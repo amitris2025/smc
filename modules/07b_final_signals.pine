@@ -1,0 +1,46 @@
+// ============================================================================
+// بهبود ۷ (بلوک ب) : سیگنال‌های نهایی ترکیبی با فیلترهای تکمیلی
+// Pine Script v5
+// ----------------------------------------------------------------------------
+// محل درج : بعد از ماژول‌های ۴ و ۶
+// ورودی‌های مورد نیاز : ntsTrend, bullishConfirmation / bearishConfirmation,
+//   kdBuySignal / kdSellSignal, inSupplyZone / inDemandZone, revBuyOk / revSellOk,
+//   xauTradeOk, inNtsBuyFibBand / inNtsSellFibBand, ntsFibTouchBuy / ntsFibTouchSell,
+//   inDailyDiscount / inDailyPremium (بلوک الف)
+// خروجی‌ها : ntsKafSignal , ntsSaghfSignal , finalBuySignal , finalSellSignal
+// ============================================================================
+
+// --- ۷.۳ سیگنال کف/سقف NTS (با آستانه پویا از ماژول ۶) ---
+ntsKafSignal   = xauTradeOk and ntsFibTouchBuy  and ntsSwingKaf   and ntsBuyConfluencePts  >= ntsBuyThreshold
+ntsSaghfSignal = xauTradeOk and ntsFibTouchSell and ntsSwingSaghf and ntsSellConfluencePts >= ntsSellThreshold
+
+// --- ۷.۴ سیگنال خرید نهایی ---
+// روی ناحیه فیب NTS + همه فیلترهای تکمیلی
+finalBuySignal =
+     ntsTrend == 1           and
+     bullishConfirmation     and
+     kdBuySignal             and
+     not inSupplyZone        and
+     revBuyOk                and
+     xauTradeOk              and
+     (inNtsBuyFibBand or ntsFibTouchBuy) and
+     (not useDailyZoneFilter or inDailyDiscount)   // فقط خرید در ناحیه تخفیف
+
+// --- ۷.۵ سیگنال فروش نهایی ---
+finalSellSignal =
+     ntsTrend == -1          and
+     bearishConfirmation     and
+     kdSellSignal            and
+     not inDemandZone        and
+     revSellOk               and
+     xauTradeOk              and
+     (inNtsSellFibBand or ntsFibTouchSell) and
+     (not useDailyZoneFilter or inDailyPremium)    // فقط فروش در ناحیه پریمیوم
+
+// ----------------------------------------------------------------------------
+// ورودی جدید پیشنهادی (در بخش input.* اضافه شود):
+//   useDailyZoneFilter = input.bool(true, "فیلتر ناحیه روزانه (خرید در تخفیف / فروش در پریمیوم)",
+//        group="NTS — فیلترهای تکمیلی")
+// این سوییچ در متن اولیه نبود و برای این اضافه شد که بتوانید در صورت کم‌شدن
+// بیش از حد سیگنال‌ها، فیلتر Premium/Discount را سریعاً غیرفعال کنید.
+// ----------------------------------------------------------------------------

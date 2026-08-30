@@ -1,0 +1,39 @@
+// ============================================================================
+// بهبود ۲ : محاسبه دقیق‌تر True Range با در نظر گرفتن گپ‌های قیمتی
+// Pine Script v5
+// ----------------------------------------------------------------------------
+// محل درج : در هسته NTS، جایی که True Range محاسبه می‌شود
+// ورودی‌های مورد نیاز از کد پایه شما:
+//   ntsTrailType (string input) : "modified" | حالت کلاسیک
+//   ntsHigh, ntsLow, ntsClose   : سری‌های تایم‌فریم پایه (خروجی request.security)
+//   ntsHiLo, ntsHRef, ntsLRef   : اجزای True Range در حالت modified
+// نکته: اگر در کد پایه نام‌های متفاوتی دارید (مثل hi, lo, srcHigh)، در همین‌جا
+//       معادل‌سازی کنید؛ بقیه منطق بدون تغییر کار می‌کند.
+// خروجی‌ها : ntsTrueRange (float) , ntsGapUp, ntsGapDown (bool) , ntsGapAdjustment
+// ============================================================================
+
+// --- ۲.۱ اجزای کلاسیک True Range (در صورت نبود در کد پایه) ---
+ntsHiLo = ntsHigh - ntsLow
+ntsHRef = math.abs(ntsHigh - ntsClose[1])
+ntsLRef = math.abs(ntsLow  - ntsClose[1])
+
+// --- ۲.۲ تشخیص گپ قیمتی بین کندل قبلی و فعلی ---
+ntsGapUp   = ntsLow  > ntsHigh[1]
+ntsGapDown = ntsHigh < ntsLow[1]
+
+// --- ۲.۳ True Range پایه (modified یا کلاسیک) ---
+ntsTrueRange = ntsTrailType == "modified" ?
+     math.max(ntsHiLo, math.max(ntsHRef, ntsLRef)) :
+     math.max(ntsHigh - ntsLow, math.max(math.abs(ntsHigh - ntsClose[1]),
+                                         math.abs(ntsLow  - ntsClose[1])))
+
+// --- ۲.۴ اعمال وزن گپ روی True Range ---
+// فقط نیمی از اندازه گپ اضافه می‌شود تا از بزرگ‌نمایی نویز جلوگیری شود
+ntsGapAdjustment = ntsGapUp   ? ntsLow - ntsHigh[1] :
+     ntsGapDown              ? ntsLow[1] - ntsHigh  :
+     0.0
+
+ntsTrueRange := ntsTrueRange + ntsGapAdjustment * 0.5
+
+// --- ۲.۵ ایمنی عددی (اختیاری اما توصیه‌شده) ---
+ntsTrueRange := nz(ntsTrueRange, ntsHigh - ntsLow)

@@ -1,0 +1,86 @@
+//@version=5
+indicator("fixture — snippets as originally pasted (contains the bugs)", overlay=true)
+// هدف این فایل «نمونه معیوب» است تا بررسی‌کننده بتواند خطاها را نشان دهد.
+// این فایل نباید وارد اندیکاتور اصلی شود.
+
+ntsTradingMode   = input.string("سوینگ تریدینگ", "mode", options=["اسکالپینگ", "ترید روزانه", "سوینگ تریدینگ", "پوزیشن تریدینگ"])
+ntsBaseTimeframe = input.string("15", "tf", options=["1", "3", "5", "15", "30", "60", "240"])
+xauMinAtrPct     = input.float(0.06, "min atr pct")
+autoTuneThisChart = input.bool(false, "auto tune")
+useReversalCloudFilter = input.bool(true, "cloud filter")
+
+ntsTfWeight = 0.4
+basePeriod = 15
+ntsBasePeriod = 10
+baseFactor = 5.0
+ntsBaseFactor = 3.5
+
+// --- بهبود ۱: پرانتز اضافه و پرانتز سرگردان ---
+ntsPeriod = int(math.round(basePeriod * ntsTfWeight + ntsBasePeriod * (1 - ntsTfWeight))))
+ntsPeriod := math.max(4, math.min(40, ntsPeriod))
+
+ntsFactor = baseFactor * ntsTfWeight + ntsBaseFactor * (1 - ntsTfWeight)
+)
+ntsFactor := math.max(1.5, math.min(20.0, ntsFactor))
+
+// --- بهبود ۳: پرانتز اضافه در int(...) ---
+adxSmooth = 20.0
+ntsMildAdx = 18.0
+ntsStrongAdx = 25.0
+atrSeed = ta.atr(14)
+atrMean = ta.sma(atrSeed, 80)
+atrNorm = atrMean > 0 ? atrSeed / atrMean : ‌1.0
+atrNorm := math.max(0.50, math.min(2.20, atrNorm))
+chopRegime = adxSmooth < ntsMildAdx and atrNorm < 1.2
+trendRegime = adxSmooth >= ntsStrongAdx or (adxSmooth >= ntsMildAdx and atrNorm >= 1.5)
+if chopRegime
+    ntsPeriod := math.max(4, int(ntsPeriod * 1.2))
+else if trendRegime
+    ntsPeriod := math.max(4, int(ntsPeriod * 0.85)))
+
+// --- بهبود ۵: orinRevSellZone ---
+upperCloud1 = close + 10
+lowerCloud1 = close - 10
+inRevSellZone = high >= upperCloud1
+inRevBuyZone = low <= lowerCloud1
+revBuyRecent = ta.lowest(low, 12) <= lowerCloud1
+revSellRecent = ta.highest(high, 12) >= upperCloud1
+revBuyOk = not useReversalCloudFilter or inRevBuyZone or revBuyRecent
+revSellOk = not useReversalCloudFilter orinRevSellZone or revSellRecent
+
+// --- بهبود ۷: -1and و کلمات چسبیده ---
+ntsTrend = 1
+bullishConfirmation = true
+bearishConfirmation = true
+kdBuySignal = true
+kdSellSignal = true
+inSupplyZone = false
+inDemandZone = false
+xauTradeOk = true
+inNtsBuyFibBand = true
+inNtsSellFibBand = true
+ntsFibTouchBuy = true
+ntsFibTouchSell = true
+eqLevel = close
+inDailyDiscount = close <= eqLevel
+inDailyPremium = close >= eqLevel
+
+finalSellSignal =
+     ntsTrend == -1and
+     bearishConfirmationand
+     kdSellSignaland
+     not inDemandZoneand
+     revSellOkand
+     xauTradeOkand
+     (inNtsSellFibBand or ntsFibTouchSell)and
+     inDailyPremium
+
+// --- بهبود ۹: بازنویسی ورودی ---
+autoSymbolType = "gold"
+autoPeriod = 10
+autoFactor = 3.5
+autoMinAtrPct = 0.06
+if autoTuneThisChart
+    ntsPeriod := autoPeriod
+    ntsFactor := autoFactor
+    xauMinAtrPct := autoMinAtrPct

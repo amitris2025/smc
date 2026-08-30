@@ -1,0 +1,61 @@
+// ============================================================================
+// بهبود ۶ : سیستم امتیازدهی Confluence کامل‌تر و دقیق‌تر
+// Pine Script v5
+// ----------------------------------------------------------------------------
+// محل درج : بعد از ماژول‌های ۳ (adxForNts/ntsStrongAdx) و ۵ (revBuyOk/revSellOk)
+//           و بعد از «بلوک الف» ماژول ۷ (inDailyDiscount / inDailyPremium / ntsVolBoost)
+// حداکثر امتیاز ممکن خرید یا فروش : ۱۴۷
+// خروجی‌ها : ntsBuyConfluencePts , ntsSellConfluencePts ,
+//            ntsBuyThreshold , ntsSellThreshold
+// ============================================================================
+
+// =============================== خرید ===============================
+// --- ۶.۱ امتیازهای پایه (موجود در اندیکاتور فعلی) ---
+ntsBuyConfluencePts =
+     (ntsFibTouchBuy    ? 32 : inNtsBuyFibBand ? 14 : 0) +
+     (revBuyOk          ? 14 : 0) +
+     (ntsDivBuy         ? 18 : ntsRsiNow <= 35 ? 11 : 0) +
+     (kdBuySignal       ? 10 : 0) +
+     (bullishConfirmation ? 14 : 0) +
+     (ntsBuyTrendOk     ? 8  : 0) +
+     (ntsSwingKaf       ? 10 : 0) +
+     (ntsVolBoost       ? 4  : 0)
+
+// --- ۶.۲ امتیازهای جدید ---
+ntsBuyConfluencePts +=
+     (inDailyDiscount ? 10 : 0) +                                        // ناحیه تخفیف روزانه
+     (ntsGoldenHourBonus) +                                              // سشن طلایی لندن/نیویورک
+     (ntsTrend == 1 and adxForNts >= ntsStrongAdx ? 6 : 0) +             // روند قوی هم‌راستا
+     (close > ntsFib1 and close > ntsFib2 ? 5 : 0) +                     // بالای فیب‌های کلیدی
+     (ta.crossover(close, ntsFib1) or ta.crossover(close, ntsFib2) ? 8 : 0) // کراس‌اور لحظه‌ای
+
+// =============================== فروش ===============================
+// --- ۶.۳ امتیازهای پایه ---
+ntsSellConfluencePts =
+     (ntsFibTouchSell     ? 32 : inNtsSellFibBand ? 14 : 0) +
+     (revSellOk           ? 14 : 0) +
+     (ntsDivSell          ? 18 : ntsRsiNow >= 65 ? 11 : 0) +
+     (kdSellSignal        ? 10 : 0) +
+     (bearishConfirmation ? 14 : 0) +
+     (ntsSellTrendOk      ? 8  : 0) +
+     (ntsSwingSaghf       ? 10 : 0) +
+     (ntsVolBoost         ? 4  : 0)
+
+// --- ۶.۴ امتیازهای جدید ---
+ntsSellConfluencePts +=
+     (inDailyPremium ? 10 : 0) +                                         // ناحیه پریمیوم روزانه
+     (ntsGoldenHourBonus) +                                              // سشن طلایی لندن/نیویورک
+     (ntsTrend == -1 and adxForNts >= ntsStrongAdx ? 6 : 0) +            // روند قوی هم‌راستا
+     (close < ntsFib1 and close < ntsFib2 ? 5 : 0) +                     // پایین فیب‌های کلیدی
+     (ta.crossunder(close, ntsFib1) or ta.crossunder(close, ntsFib2) ? 8 : 0) // کراس‌آندر لحظه‌ای
+
+// ======================== آستانه‌های پویا بر اساس حالت تریدینگ ========================
+ntsBuyThreshold = ntsTradingMode == "اسکالپینگ"      ? 55 :
+     ntsTradingMode == "ترید روزانه"                 ? 58 :
+     ntsTradingMode == "سوینگ تریدینگ"               ? 62 :
+     65  // پوزیشن تریدینگ
+
+ntsSellThreshold = ntsTradingMode == "اسکالپینگ"     ? 55 :
+     ntsTradingMode == "ترید روزانه"                 ? 58 :
+     ntsTradingMode == "سوینگ تریدینگ"               ? 62 :
+     65  // پوزیشن تریدینگ

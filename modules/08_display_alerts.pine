@@ -1,0 +1,47 @@
+// ============================================================================
+// بهبود ۸ : نمایش بهتر اطلاعات و هشدارهای دقیق‌تر
+// Pine Script v5
+// ----------------------------------------------------------------------------
+// محل درج : انتهای فایل (بعد از همه ماژول‌ها و بعد از تعریف autoTunePanel)
+// ورودی‌های مورد نیاز : showAutoTunePanel (bool) , autoTunePanel (table)
+// خروجی‌ها : ردیف‌های ۹ تا ۱۱ پنل + دو alertcondition + یک پلات کمکی
+// ============================================================================
+
+// --- ۸.۱ ردیف‌های جدید پنل تنظیم خودکار ---
+// فرض: پنل شما از قبل ردیف‌های ۰ تا ۸ را پر کرده است؛
+// در غیر این صورت شماره ردیف‌ها را با توجه به پنل خود تغییر دهید.
+if barstate.islast and showAutoTunePanel
+    table.cell(autoTunePanel, 0, 9,  "Buy Pts", text_color=color.gray, text_size=size.tiny)
+    table.cell(autoTunePanel, 1, 9,  str.tostring(ntsBuyConfluencePts, "#") + " / " + str.tostring(ntsBuyThreshold, "#"),
+         text_color = ntsBuyConfluencePts >= ntsBuyThreshold ? color.lime : color.orange,
+         text_size  = size.tiny)
+
+    table.cell(autoTunePanel, 0, 10, "Sell Pts", text_color=color.gray, text_size=size.tiny)
+    table.cell(autoTunePanel, 1, 10, str.tostring(ntsSellConfluencePts, "#") + " / " + str.tostring(ntsSellThreshold, "#"),
+         text_color = ntsSellConfluencePts >= ntsSellThreshold ? color.red : color.orange,
+         text_size  = size.tiny)
+
+    table.cell(autoTunePanel, 0, 11, "Daily Zone", text_color=color.gray, text_size=size.tiny)
+    table.cell(autoTunePanel, 1, 11, inDailyDiscount ? "DISCOUNT" : inDailyPremium ? "PREMIUM" : "EQ",
+         text_color = inDailyDiscount ? color.green : inDailyPremium ? color.red : color.gray,
+         text_size  = size.tiny)
+
+// --- ۸.۲ پلات کمکی برای استفاده در پیام هشدار ---
+// در Pine v5 تنها می‌توان به پلات‌های واقعی ارجاع داد؛
+// بنابراین {{plot("inDailyDiscount")}} معتبر نیست و از این پلات استفاده می‌کنیم.
+//   ۱ = ناحیه تخفیف (Discount) | ۱- = ناحیه پریمیوم (Premium) | ۰ = تعادل
+plot(inDailyDiscount and not inDailyPremium ? 1 : inDailyPremium and not inDailyDiscount ? -1 : 0,
+     title="DailyZone", display=display.data_window)
+
+// --- ۸.۳ هشدارهای دقیق‌تر ---
+alertcondition(finalBuySignal,
+     title   = "Final Confirmed BUY (Premium/Discount Filtered)",
+     message = "Final BUY on {{ticker}} at {{close}} | Zone: {{plot(\"DailyZone\")}} | Pts: {{plot(\"BuyPts\")}}")
+
+alertcondition(finalSellSignal,
+     title   = "Final Confirmed SELL (Premium/Discount Filtered)",
+     message = "Final SELL on {{ticker}} at {{close}} | Zone: {{plot(\"DailyZone\")}} | Pts: {{plot(\"SellPts\")}}")
+
+// پلات‌های عددی امتیاز (برای نمایش در هشدار)
+plot(ntsBuyConfluencePts,  title="BuyPts",  display=display.data_window)
+plot(ntsSellConfluencePts, title="SellPts", display=display.data_window)

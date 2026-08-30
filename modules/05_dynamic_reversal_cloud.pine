@@ -1,0 +1,40 @@
+// ============================================================================
+// بهبود ۵ : Reversal Cloud پویا با تنظیم خودکار بر اساس نوسان (ATR نرمال‌شده)
+// Pine Script v5
+// ----------------------------------------------------------------------------
+// محل درج : بعد از محاسبه cloudBasis / cloudRange در کد پایه،
+//           و بعد از ماژول ۳ (نیاز به atrNorm)
+// ورودی‌های مورد نیاز : cloudBasis (float) , cloudRange (float) ,
+//                       bandDev1/2/3 (float input) , useReversalCloudFilter (bool)
+// خروجی‌ها : upperCloud1..3 , lowerCloud1..3 , revBuyOk , revSellOk
+// ============================================================================
+
+// --- ۵.۱ انحراف‌های پویا ---
+// در نوسان بالا ابر پهن‌تر می‌شود (atrNorm≈2.2 → ضریب ۱.۲۴)
+// در نوسان پایین ابر باریک‌تر می‌شود (atrNorm≈0.5 → ضریب ۰.۹۰)
+bandDev1Dynamic = bandDev1 * (0.8 + atrNorm * 0.2)
+bandDev2Dynamic = bandDev2 * (0.8 + atrNorm * 0.2)
+bandDev3Dynamic = bandDev3 * (0.8 + atrNorm * 0.2)
+
+// --- ۵.۲ ابر ریورسال پویا ---
+upperCloud1 = cloudBasis + cloudRange * bandDev1Dynamic
+upperCloud2 = cloudBasis + cloudRange * bandDev2Dynamic
+upperCloud3 = cloudBasis + cloudRange * bandDev3Dynamic
+
+lowerCloud1 = cloudBasis - cloudRange * bandDev1Dynamic
+lowerCloud2 = cloudBasis - cloudRange * bandDev2Dynamic
+lowerCloud3 = cloudBasis - cloudRange * bandDev3Dynamic
+
+// --- ۵.۳ تشخیص عمق قرارگیری در ناحیه ابر ---
+inRevSellZone = high  >= upperCloud1
+inRevBuyZone  = low   <= lowerCloud1
+inRevSellDeep = close >= upperCloud2
+inRevBuyDeep  = close <= lowerCloud2
+
+// --- ۵.۴ تماس با ابر در چند کندل اخیر (نه الزاماً همان کندل سیگنال) ---
+revBuyRecent  = ta.lowest (low,  12) <= lowerCloud1
+revSellRecent = ta.highest(high, 12) >= upperCloud1
+
+// --- ۵.۵ فیلتر نهایی ---
+revBuyOk  = not useReversalCloudFilter or inRevBuyZone  or revBuyRecent
+revSellOk = not useReversalCloudFilter or inRevSellZone or revSellRecent

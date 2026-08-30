@@ -1,0 +1,37 @@
+// ============================================================================
+// بهبود ۴ : فیلتر سشن و نوسان دقیق‌تر برای XAUUSD (طلا)
+// Pine Script v5
+// ----------------------------------------------------------------------------
+// محل درج : قبل از سیگنال‌های نهایی (و بعد از ماژول ۳ برای atrNorm)
+//           توجه: برای استفاده از xauMinAtrPctEff باید «بلوک الف» ماژول ۹
+//           (تشخیص نوع نماد) قبل از این ماژول درج شود.
+// سشن‌های مهم طلا به وقت نیویورک:
+//   آسیا   : 19:00 → 03:00 (شب قبل)
+//   لندن   : 03:00 → 12:00
+//   نیویورک: 12:00 → 17:00
+//   همپوشانی لندن/نیویورک (سشن طلایی): 12:00 → 17:00
+// ورودی‌های مورد نیاز : useSessionFilter (bool) , volatilityRatio (float) ,
+//                       autoTuneThisChart (bool) , xauMinAtrPct / xauMinAtrPctEff (float)
+// خروجی‌ها : xauTradeOk (bool) , ntsGoldenHourBonus (int)
+// ============================================================================
+
+// --- ۴.۱ ساعت به وقت نیویورک ---
+xauNyHour = hour(time, "America/New_York")
+
+// --- ۴.۲ سشن اصلی معاملاتی طلا: لندن + نیویورک ---
+xauInSession = not useSessionFilter or (xauNyHour >= 3 and xauNyHour < 17)
+
+// --- ۴.۳ سشن طلایی: همپوشانی لندن و نیویورک ---
+xauGoldenHour = xauNyHour >= 12 and xauNyHour < 17
+
+// --- ۴.۴ فیلتر نوسان ---
+// نکته اصلاحی: در متن اولیه سه شرط با OR داشتیم که شرط سوم
+// (volatilityRatio >= xauMinAtrPct) دو شرط اول را خنثی می‌کرد.
+// معادل منطقیِ همان هدف، بدون عبارت تکراری:
+xauVolOk = (autoTuneThisChart and atrNorm >= 0.62) or volatilityRatio >= xauMinAtrPctEff
+
+// --- ۴.۵ شرط نهایی معاملات ---
+xauTradeOk = xauInSession and xauVolOk
+
+// --- ۴.۶ امتیاز تشویقی سشن طلایی (برای سیستم Confluence در ماژول ۶) ---
+ntsGoldenHourBonus = xauGoldenHour ? 8 : 0
