@@ -1,0 +1,33 @@
+// ============================================================================
+// بهبود ۹ (بلوک ب) : اعمال تنظیم خودکار روی هسته NTS
+// Pine Script v5
+// ----------------------------------------------------------------------------
+// محل درج : بعد از ماژول ۳ (که ntsPeriod را بر اساس رژیم تنظیم می‌کند)
+//           و «قبل از» جایی که ntsPeriod / ntsFactor در محاسبه تریلینگ استفاده می‌شوند
+// خروجی‌ها : ntsPeriodFinal (int) , ntsFactorFinal (float)
+// ============================================================================
+
+// --- ۹.۵ اعمال تنظیم خودکار در صورت فعال‌بودن ---
+// در متن اولیه:
+//     if autoTuneThisChart
+//         ntsPeriod := autoPeriod
+//         ntsFactor := autoFactor
+//         xauMinAtrPct := autoMinAtrPct      ← خطا: بازنویسی ورودی
+// نسخه اصلاح‌شده:
+ntsPeriodFinal = autoTuneThisChart ? autoPeriod : ntsPeriod
+ntsPeriodFinal := math.max(4, math.min(40, ntsPeriodFinal))
+
+ntsFactorFinal = autoTuneThisChart ? autoFactor : ntsFactor
+ntsFactorFinal := math.max(1.5, math.min(20.0, ntsFactorFinal))
+
+// --- ۹.۶ دو راه برای اتصال به هسته NTS ---
+//
+// راه ۱ (توصیه‌شده، کمترین تغییر در کد پایه):
+//   در همین‌جا ntsPeriod و ntsFactor را بازنویسی کنید تا بقیه کد بدون تغییر بماند:
+//       ntsPeriod := ntsPeriodFinal
+//       ntsFactor := ntsFactorFinal
+//
+// راه ۲: در هسته محاسبه تریلینگ/ATR، نام ntsPeriod را به ntsPeriodFinal و
+//        ntsFactor را به ntsFactorFinal تغییر دهید.
+//
+// اگر از راه ۱ استفاده می‌کنید، دو خط بالا را از حالت کامنت خارج کنید.

@@ -1,0 +1,49 @@
+// ============================================================================
+// بهبود ۳ : تشخیص رژیم بازار (روند / رنج) با ترکیب ADX و ATR نرمال‌شده
+// Pine Script v5
+// ----------------------------------------------------------------------------
+// محل درج : بعد از ماژول ۱ (تعریف ntsPeriod) و قبل از استفاده از ntsPeriod در هسته
+// ورودی‌های مورد نیاز از کد پایه شما:
+//   adxSmooth   (float) : ADX هموار‌شده
+//   ntsMildAdx  (float input)
+//   ntsStrongAdx(float input)
+// خروجی‌ها : atrNorm, chopRegime, trendRegime  + تنظیم پویای ntsPeriod
+// ============================================================================
+
+// --- ۳.۱ نرمال‌سازی ATR نسبت به میانگین بلندمدتش ---
+atrSeed = ta.atr(14)
+atrMean = ta.sma(atrSeed, 80)
+atrNorm = atrMean > 0 ? atrSeed / atrMean : 1.0
+atrNorm := math.max(0.50, math.min(2.20, atrNorm))
+
+// --- ۳.۲ تعریف رژیم‌ها ---
+// رنج (Chop) : ADX ضعیف  و  نوسان پایین
+chopRegime  = adxSmooth < ntsMildAdx and atrNorm < 1.2
+
+// روند (Trend) : ADX قوی  یا  (ADX متوسط + نوسان بالا)
+trendRegime = adxSmooth >= ntsStrongAdx or (adxSmooth >= ntsMildAdx and atrNorm >= 1.5)
+
+// --- ۳.۳ تنظیم پویای دوره NTS بر اساس رژیم ---
+// رنج   → دوره بلندتر : فیلتر نویز بیشتر
+// روند  → دوره کوتاه‌تر : واکنش سریع‌تر
+if chopRegime
+    ntsPeriod := math.max(4, int(ntsPeriod * 1.2))
+else if trendRegime
+    ntsPeriod := math.max(4, int(ntsPeriod * 0.85))
+
+// ----------------------------------------------------------------------------
+// ⚠ هشدار بسیار مهم (ساده در ظاهر، دردسرساز در عمل):
+// قبل از این ماژول، ntsPeriod یک simple int است (چون فقط از ورودی‌ها می‌آید)،
+// اما از اینجا به بعد یک series int می‌شود (وابسته به رژیم بازار).
+// توابع کتابخانه‌ای ta.* طولِ خود را فقط به صورت simple int می‌پذیرند، بنابراین
+// اگر در کد پایه چیزی شبیه این دارید:
+//        ntsATR = ta.atr(ntsPeriod)      ← خطای کامپایل
+// باید آن را با بازگشت دستی جایگزین کنید (RMA = EMA با آلفای ۱/دوره):
+//
+//     var float ntsATR = na
+//     ntsATRalpha = 1.0 / ntsPeriod
+//     ntsATR := na(ntsATR[1]) ? nz(ntsTrueRange) :
+//          ntsATR[1] + ntsATRalpha * (ntsTrueRange - ntsATR[1])
+//
+// همین نسخه در فایل مرجع src/SMC_NTS_Pro.pine پیاده‌سازی شده است.
+// ----------------------------------------------------------------------------

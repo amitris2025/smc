@@ -1,0 +1,56 @@
+// ============================================================================
+// بهبود ۱ : تفکیک کامل تنظیمات NTS بر اساس «حالت تریدینگ» و «تایم‌فریم پایه»
+// Pine Script v5
+// ----------------------------------------------------------------------------
+// محل درج : بلافاصله بعد از تعریف ورودی‌های ntsTradingMode و ntsBaseTimeframe
+// ورودی‌های مورد نیاز از کد پایه شما:
+//   ntsTradingMode   (string input) : "اسکالپینگ" | "ترید روزانه" |
+//                                     "سوینگ تریدینگ" | "پوزیشن تریدینگ"
+//   ntsBaseTimeframe (string input) : "1" | "3" | "5" | "15" | "30" | "60" | "240"
+// خروجی‌ها : ntsPeriod (int) , ntsFactor (float)
+// ============================================================================
+
+// --- ۱.۱ دوره و ضریب پایه بر اساس حالت تریدینگ ---
+basePeriod = ntsTradingMode == "اسکالپینگ"      ? 5  :
+     ntsTradingMode == "ترید روزانه"           ? 10 :
+     ntsTradingMode == "سوینگ تریدینگ"         ? 15 :
+     20   // پیش‌فرض: پوزیشن تریدینگ
+
+baseFactor = ntsTradingMode == "اسکالپینگ"      ? 2.0 :
+     ntsTradingMode == "ترید روزانه"           ? 3.5 :
+     ntsTradingMode == "سوینگ تریدینگ"         ? 5.0 :
+     7.0  // پیش‌فرض: پوزیشن تریدینگ
+
+// --- ۱.۲ دوره و ضریب پایه بر اساس تایم‌فریم پایه NTS ---
+// این مقادیر مستقل از حالت تریدینگ هستند و فقط از ntsBaseTimeframe تغذیه می‌کنند
+ntsBasePeriod = ntsBaseTimeframe == "1"   ? 3  :
+     ntsBaseTimeframe == "3"              ? 5  :
+     ntsBaseTimeframe == "5"              ? 7  :
+     ntsBaseTimeframe == "15"             ? 10 :
+     ntsBaseTimeframe == "30"             ? 12 :
+     ntsBaseTimeframe == "60"             ? 15 :
+     ntsBaseTimeframe == "240"            ? 20 :
+     10  // پیش‌فرض
+
+ntsBaseFactor = ntsBaseTimeframe == "1"   ? 1.5 :
+     ntsBaseTimeframe == "3"              ? 2.0 :
+     ntsBaseTimeframe == "5"              ? 2.5 :
+     ntsBaseTimeframe == "15"             ? 3.5 :
+     ntsBaseTimeframe == "30"             ? 4.0 :
+     ntsBaseTimeframe == "60"             ? 5.0 :
+     ntsBaseTimeframe == "240"            ? 6.0 :
+     3.5 // پیش‌فرض
+
+// --- ۱.۳ ترکیب هوشمند: میانگین وزنی بین حالت تریدینگ و تایم‌فریم پایه ---
+// اگر تایم‌فریم پایه با حالت تریدینگ «هماهنگ» باشد، وزن حالت تریدینگ بیشتر است
+ntsTfWeight = (ntsTradingMode == "اسکالپینگ"       and ntsBaseTimeframe == "5")  or
+     (ntsTradingMode == "ترید روزانه"             and ntsBaseTimeframe == "15") or
+     (ntsTradingMode == "سوینگ تریدینگ"           and ntsBaseTimeframe == "30") or
+     (ntsTradingMode == "پوزیشن تریدینگ"          and ntsBaseTimeframe == "60") ? 0.7 : 0.4
+
+// --- ۱.۴ مقدار نهایی با محدودسازی (Clamp) ---
+ntsPeriod = int(math.round(basePeriod * ntsTfWeight + ntsBasePeriod * (1 - ntsTfWeight)))
+ntsPeriod := math.max(4, math.min(40, ntsPeriod))
+
+ntsFactor = baseFactor * ntsTfWeight + ntsBaseFactor * (1 - ntsTfWeight)
+ntsFactor := math.max(1.5, math.min(20.0, ntsFactor))
