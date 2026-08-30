@@ -69,6 +69,18 @@ rsiLen  = input.int(14, "دوره RSI", minval=2, group=gKD)
 autoTuneThisChart = input.bool(false, "تنظیم خودکار بر اساس نماد", group=gAuto)
 showAutoTunePanel = input.bool(true,  "نمایش پنل تنظیمات", group=gDisp)
 
+// --- M10: خط روند پرایس‌اکشن + ناحیه پریمیوم/دیسکانت روز قبل ---
+gTrend = "خط روند (Price Action)"
+showTrendlines = input.bool(true,  "نمایش خط‌روندها (سقف/کف سویینگ)", group=gTrend)
+tlMaxPivots    = input.int(8, "تعداد پیوت‌های نگهداری‌شده", minval=3, maxval=20, group=gTrend)
+tlMinTouch     = input.int(2, "حداقل برخورد لازم", minval=2, maxval=6,
+     tooltip="۲ = خط روند با اتصال دو سقف نزولی / دو کف صعودی؛ عددهای بالاتر خط را سخت‌گیرتر می‌کنند", group=gTrend)
+tlTouchTolAtr  = input.float(0.55, "تلورانس برخورد (× ATR)", step=0.05, minval=0.05, group=gTrend)
+tlExtendRight  = input.bool(true,  "امتداد خط به سمت راست", group=gTrend)
+tlColUp        = input.color(color.new(color.lime, 0), "رنگ روند صعودی", group=gTrend)
+tlColDn        = input.color(color.new(color.red, 0),  "رنگ روند نزولی", group=gTrend)
+showPrevDayPD  = input.bool(true,  "نمایش ناحیه پریمیوم/دیسکانت روز قبل", group=gTrend)
+
 // ============================================================================
 //  ▍M09a — بهبود ۹ (الف): تشخیص خودکار نوع نماد
 // ============================================================================
@@ -458,6 +470,136 @@ finalSellSignal =
      (not useDailyZoneFilter or inDailyPremium)
 
 // ============================================================================
+//  ▍M10 — خط روند اصولی پرایس‌اکشن (بر پایه سقف/کف‌های سویینگ)
+//  منطق:
+//    • روند نزولی  = اتصالِ «سقف‌های نزولی» (Lower Highs) — حداقل ۲ برخورد
+//    • روند صعودی  = اتصالِ «کف‌های صعودی»  (Higher Lows) — حداقل ۲ برخورد
+//  اعتبارسنجی: هیچ سقفی نباید به‌طور معنادار از خط مقاومت بالا بزند و
+//              هیچ کفی نباید از خط حمایت پایین بزند (تلورانس = ضریبی از ATR).
+//  از پیوت‌های تأییدشدهٔ همان swingLen استفاده می‌شود (سازگار با کل اندیکاتور).
+// ============================================================================
+// انبارهٔ پیوت‌های تأییدشده (index=0 قدیمی‌ترین، انتها جدیدترین)
+var array<float> tlPhP = array.new_float()   // قیمت سقف‌های سویینگ
+var array<int>   tlPhB = array.new_int()     // bar_index سقف‌ها
+var array<float> tlPlP = array.new_float()   // قیمت کف‌های سویینگ
+var array<int>   tlPlB = array.new_int()     // bar_index کف‌ها
+
+// bar_index واقعیِ پیوت = swingLen کندل قبل از تأیید
+if not na(ph)
+    array.push(tlPhP, ph)
+    array.push(tlPhB, bar_index - swingLen)
+    if array.size(tlPhP) > tlMaxPivots
+        array.shift(tlPhP)
+        array.shift(tlPhB)
+if not na(pl)
+    array.push(tlPlP, pl)
+    array.push(tlPlB, bar_index - swingLen)
+    if array.size(tlPlP) > tlMaxPivots
+        array.shift(tlPlP)
+        array.shift(tlPlB)
+
+tlTol = tlTouchTolAtr * atrSeed
+
+var line tlDnLine = na
+var line tlUpLine = na
+var label tlDnLbl  = na
+var label tlUpLbl  = na
+
+if barstate.islast and showTrendlines
+    // پاک‌سازی رسم قبلی
+    if not na(tlDnLine)
+        line.delete(tlDnLine)
+    if not na(tlUpLine)
+        line.delete(tlUpLine)
+    if not na(tlDnLbl)
+        label.delete(tlDnLbl)
+    if not na(tlUpLbl)
+        label.delete(tlUpLbl)
+
+    tlExt = tlExtendRight ? extend.right : extend.none
+
+    // ---------- خط روند نزولی: بهترین اتصالِ سقف‌های نزولی ----------
+    nH = array.size(tlPhP)
+    dnBestTouch = 0
+    dnAx = -1
+    dnAy = 0.0
+    dnBx = -1
+    dnBy = 0.0
+    if nH >= 2
+        for a = 0 to nH - 2
+            for b = a + 1 to nH - 1
+                pa = array.get(tlPhP, a)
+                ba = array.get(tlPhB, a)
+                pb = array.get(tlPhP, b)
+                bb = array.get(tlPhB, b)
+                if pb < pa and bb > ba          // سقف دوم پایین‌تر → شیب نزولی
+                    slope = (pb - pa) / (bb - ba)
+                    touches = 0
+                    valid = true
+                    for k = 0 to nH - 1
+                        bk = array.get(tlPhB, k)
+                        if bk >= ba             // فقط سقف‌های هم‌زمان/بعد از لنگرِ اول
+                            pk = array.get(tlPhP, k)
+                            lv = pa + slope * (bk - ba)
+                            d  = pk - lv
+                            if math.abs(d) <= tlTol
+                                touches += 1
+                            else if d > tlTol   // سقف از خط بالا زده → نامعتبر
+                                valid := false
+                    // ترجیح: برخورد بیشتر، سپس اتصالِ جدیدتر (bb بزرگ‌تر)
+                    if valid and touches >= tlMinTouch and (touches > dnBestTouch or (touches == dnBestTouch and bb > dnBx))
+                        dnBestTouch := touches
+                        dnAx := ba
+                        dnAy := pa
+                        dnBx := bb
+                        dnBy := pb
+    if dnBestTouch >= tlMinTouch
+        tlDnLine := line.new(dnAx, dnAy, dnBx, dnBy, color=tlColDn, width=2, extend=tlExt)
+        tlDnLbl  := label.new(dnBx, dnBy, "روند نزولی ×" + str.tostring(dnBestTouch),
+             color=color.new(color.red, 20), textcolor=color.white, style=label.style_label_down,
+             size=size.small)
+
+    // ---------- خط روند صعودی: بهترین اتصالِ کف‌های صعودی ----------
+    nL = array.size(tlPlP)
+    upBestTouch = 0
+    upAx = -1
+    upAy = 0.0
+    upBx = -1
+    upBy = 0.0
+    if nL >= 2
+        for a = 0 to nL - 2
+            for b = a + 1 to nL - 1
+                pa = array.get(tlPlP, a)
+                ba = array.get(tlPlB, a)
+                pb = array.get(tlPlP, b)
+                bb = array.get(tlPlB, b)
+                if pb > pa and bb > ba          // کف دوم بالاتر → شیب صعودی
+                    slope = (pb - pa) / (bb - ba)
+                    touches = 0
+                    valid = true
+                    for k = 0 to nL - 1
+                        bk = array.get(tlPlB, k)
+                        if bk >= ba             // فقط کف‌های هم‌زمان/بعد از لنگرِ اول
+                            pk = array.get(tlPlP, k)
+                            lv = pa + slope * (bk - ba)
+                            d  = pk - lv
+                            if math.abs(d) <= tlTol
+                                touches += 1
+                            else if d < -tlTol  // کف از خط پایین زده → نامعتبر
+                                valid := false
+                    if valid and touches >= tlMinTouch and (touches > upBestTouch or (touches == upBestTouch and bb > upBx))
+                        upBestTouch := touches
+                        upAx := ba
+                        upAy := pa
+                        upBx := bb
+                        upBy := pb
+    if upBestTouch >= tlMinTouch
+        tlUpLine := line.new(upAx, upAy, upBx, upBy, color=tlColUp, width=2, extend=tlExt)
+        tlUpLbl  := label.new(upBx, upBy, "روند صعودی ×" + str.tostring(upBestTouch),
+             color=color.new(color.green, 20), textcolor=color.white, style=label.style_label_up,
+             size=size.small)
+
+// ============================================================================
 //  ▍نمایش روی چارت
 // ============================================================================
 stopColor = ntsTrend == 1 ? color.new(color.teal, 0) : color.new(color.red, 0)
@@ -473,6 +615,16 @@ fill(pc2, pc4, color=color.new(color.fuchsia, 88), title="ناحیه عرضه ا
 plot(eqLevel, "تعادل روزانه", color=color.new(color.gray, 40), style=plot.style_linebr)
 plot(ntsFib1, "OTE پایین",    color=color.new(color.orange, 50), style=plot.style_linebr)
 plot(ntsFib2, "OTE بالا",     color=color.new(color.orange, 50), style=plot.style_linebr)
+
+// --- ناحیه پریمیوم/دیسکانت روز قبل (بالای EQ = پریمیوم، پایین EQ = دیسکانت) ---
+pdHi = plot(showPrevDayPD ? nz(dHighPrev) : na, "سقف روز قبل",
+     color=color.new(color.red, 55), style=plot.style_linebr)
+pdEq = plot(showPrevDayPD ? eqLevel : na, "تعادل روز قبل",
+     color=color.new(color.gray, 55), style=plot.style_linebr)
+pdLo = plot(showPrevDayPD ? nz(dLowPrev) : na, "کف روز قبل",
+     color=color.new(color.green, 55), style=plot.style_linebr)
+fill(pdHi, pdEq, color=color.new(color.red, 90),   title="پریمیوم روز قبل")
+fill(pdEq, pdLo, color=color.new(color.green, 90), title="دیسکانت روز قبل")
 
 plotshape(finalBuySignal,  title="خرید نهایی", style=shape.triangleup, location=location.belowbar,
      color=color.new(color.green, 0), size=size.normal, text="BUY")

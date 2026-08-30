@@ -16,12 +16,13 @@
 | ۸ | `08_display_alerts.pine` | پنل نمایش و هشدارها | انتهای فایل (بعد از همه) | ردیف‌های ۹–۱۱ پنل + `alertcondition` |
 | 9a | `09a_symbol_detection.pine` | تشخیص نوع نماد + حداقل نوسان مؤثر | **زود**: بلافاصله بعد از بخش `input.*` | `symU`, `autoSymbolType`, `autoPeriod`, `autoFactor`, `autoMinAtrPct`, `xauMinAtrPctEff` |
 | 9b | `09b_apply_autotune.pine` | اعمال تنظیم خودکار روی هسته | بعد از ۳، قبل از محاسبه هسته NTS | `ntsPeriodFinal`, `ntsFactorFinal` |
+| ۱۰ | `10_price_action_trendlines.pine` | خط روند اصولی پرایس‌اکشن (سقف/کف سویینگ) + ناحیه پریمیوم/دیسکانت روز قبل | **بعد از** پیوت‌های `ph`/`pl` و `atrSeed`، پیش از نمایش | `tlDnLine`, `tlUpLine`, `dnBestTouch`, `upBestTouch` |
 
 ### ترتیب پیشنهادیِ نهایی برای درج
 
 ```
 input.*  →  09a  →  01  →  03  →  09b  →  02  →  هسته NTS
-        →  05  →  04  →  07a  →  06  →  07b  →  نمایش/هشدار (08)
+        →  05  →  04  →  07a  →  06  →  07b  →  10  →  نمایش/هشدار (08)
 ```
 (فایل مرجع `src/SMC_NTS_Pro.pine` دقیقاً همین ترتیب را دارد.)
 
