@@ -4,7 +4,7 @@
 // ----------------------------------------------------------------------------
 // محل درج : بعد از ماژول‌های ۳ (adxForNts/ntsStrongAdx) و ۵ (revBuyOk/revSellOk)
 //           و بعد از «بلوک الف» ماژول ۷ (inDailyDiscount / inDailyPremium / ntsVolBoost)
-// حداکثر امتیاز ممکن خرید یا فروش : ۱۴۷
+// حداکثر امتیاز ممکن خرید یا فروش : ۱۵۱ (۱۱۰ پایه + ۳۳ جدید + ۸ سشن/عمق)
 // خروجی‌ها : ntsBuyConfluencePts , ntsSellConfluencePts ,
 //            ntsBuyThreshold , ntsSellThreshold
 // ============================================================================
@@ -27,7 +27,8 @@ ntsBuyConfluencePts +=
      (ntsGoldenHourBonus) +                                              // سشن طلایی لندن/نیویورک
      (ntsTrend == 1 and adxForNts >= ntsStrongAdx ? 6 : 0) +             // روند قوی هم‌راستا
      (close > ntsFib1 and close > ntsFib2 ? 5 : 0) +                     // بالای فیب‌های کلیدی
-     (ta.crossover(close, ntsFib1) or ta.crossover(close, ntsFib2) ? 8 : 0) // کراس‌اور لحظه‌ای
+     (ta.crossover(close, ntsFib1) or ta.crossover(close, ntsFib2) ? 8 : 0) + // کراس‌اور لحظه‌ای
+     (inRevBuyDeep ? 4 : 0)                                        // عمق قرارگیری در ابر
 
 // =============================== فروش ===============================
 // --- ۶.۳ امتیازهای پایه ---
@@ -47,7 +48,8 @@ ntsSellConfluencePts +=
      (ntsGoldenHourBonus) +                                              // سشن طلایی لندن/نیویورک
      (ntsTrend == -1 and adxForNts >= ntsStrongAdx ? 6 : 0) +            // روند قوی هم‌راستا
      (close < ntsFib1 and close < ntsFib2 ? 5 : 0) +                     // پایین فیب‌های کلیدی
-     (ta.crossunder(close, ntsFib1) or ta.crossunder(close, ntsFib2) ? 8 : 0) // کراس‌آندر لحظه‌ای
+     (ta.crossunder(close, ntsFib1) or ta.crossunder(close, ntsFib2) ? 8 : 0) + // کراس‌آندر لحظه‌ای
+     (inRevSellDeep ? 4 : 0)                                        // عمق قرارگیری در ابر
 
 // ======================== آستانه‌های پویا بر اساس حالت تریدینگ ========================
 ntsBuyThreshold = ntsTradingMode == "اسکالپینگ"      ? 55 :

@@ -1,73 +1,80 @@
 //@version=5
 // ============================================================================
-//  SMC + NTS Pro  —  پیاده‌سازی مرجعِ ۹ بهبود (Pine Script v5)
+//  SMC + NTS Pro  —  نسخه نهایی و کامل (Pine Script v5)
+//  پیاده‌سازیِ هر ۹ بهبود + هسته پایه، در یک فایل مستقل
 // ============================================================================
-//  این فایل یک اندیکاتور کامل و قابل اجراست که «هسته پایه» (NTS Trailing،
-//  فیبوناچی، ADX، KD، نواحی عرضه/تقاضا، ابر ریورسال، ناحیه روزانه) را به همراه
-//  هر ۹ بهبود پیاده‌سازی می‌کند.
+//  نشانیِ بهبودها در کد:  M01 ... M09
 //
-//  نشانیِ هر بهبود در کد:  M01 ... M09   (منطبق بر پوشه modules/)
+//  ترتیب اجرا در Pine خطی است و در این فایل رعایت شده:
+//    ورودی‌ها → M09a → M01 → ADX → M03 → M09b → M02 → هسته NTS → مشتقات
+//    → M05 → M04 → M07a → M06 → M07b → نمایش/هشدار (M08)
 //
-//  ترتیب اجرا در Pine خطی است، بنابراین ترتیب بلوک‌ها رعایت شده است:
-//    ورودی‌ها → M09a → M01 → M03 → M09b → M02 → هسته → M05 → M04 → M07a
-//    → M06 → M07b → نمایش/هشدار (M08)
+//  خلاصه ۹ بهبود:
+//    M01 تفکیک حالت تریدینگ از تایم‌فریم پایه (وزن‌دهی هوشمند)
+//    M02 True Range دقیق‌تر با در نظر گرفتن گپ‌های قیمتی
+//    M03 تشخیص رژیم رنج/روند با ترکیب ADX و ATR نرمال‌شده
+//    M04 فیلتر سشن و نوسان مخصوص XAUUSD + امتیاز سشن طلایی
+//    M05 Reversal Cloud پویا بر اساس نوسان
+//    M06 امتیازدهی Confluence (حداکثر ۱۵۱ امتیاز) با آستانه پویا
+//    M07 فیلترهای تکمیلی: خرید در تخفیف / فروش در پریمیوم
+//    M08 پنل اطلاعات و هشدارهای دقیق
+//    M09 تنظیم خودکار کامل بر اساس نوع نماد
 //
-//  نکته: این فایل «مرجع» است. وقتی اندیکاتور اصلی‌تان را بفرستید، ماژول‌های
-//  پوشه modules/ را در همان فایل ادغام می‌کنیم و این نسخه صرفاً به عنوان
-//  نمونه‌ی قابل اجرا باقی می‌ماند.
+//  نکته: کامپایلر رسمی تریدینگ‌ویو در این محیط در دسترس نیست؛
+//  این فایل از نظر نحو و ساختار با tools/check_pine.py بررسی شده است،
+//  اما تأیید نهایی با یک بار Add to chart در تریدینگ‌ویو انجام شود.
 // ============================================================================
-indicator("SMC + NTS Pro (9 Improvements)", shorttitle="SMC/NTS Pro",
+indicator("SMC + NTS Pro (Final)", shorttitle="SMC/NTS Pro",
      overlay=true, max_boxes_count=500, max_lines_count=500, max_labels_count=500)
 
 // ============================================================================
-//  ورودی‌ها
+//  ▍ورودی‌ها
 // ============================================================================
-gNTS    = "NTS — هسته"
-gFilt   = "NTS — فیلترها"
-gConf   = "NTS — امتیازدهی"
-gDisp   = "نمایش"
-gAuto   = "تنظیم خودکار"
+gNTS  = "NTS — هسته"
+gFilt = "NTS — فیلترها"
+gKD   = "NTS — نوسان‌نما و میانگین"
+gAuto = "تنظیم خودکار"
+gDisp = "نمایش"
 
-// --- هسته ---
-ntsTradingMode    = input.string("سوینگ تریدینگ", "حالت تریدینگ",
+// --- هسته NTS ---
+ntsTradingMode   = input.string("سوینگ تریدینگ", "حالت تریدینگ",
      options=["اسکالپینگ", "ترید روزانه", "سوینگ تریدینگ", "پوزیشن تریدینگ"], group=gNTS)
-ntsBaseTimeframe  = input.string("15", "تایم‌فریم پایه NTS",
+ntsBaseTimeframe = input.string("15", "تایم‌فریم پایه NTS",
      options=["1", "3", "5", "15", "30", "60", "240"], group=gNTS)
-ntsTrailType      = input.string("modified", "نوع محاسبه True Range",
+ntsTrailType     = input.string("modified", "نوع محاسبه True Range",
      options=["modified", "classic"], group=gNTS)
-swingLen          = input.int(7, "طول سویینگ (پیوت)", minval=2, maxval=50, group=gNTS)
-fibLo             = input.float(0.618, "فیب ۱ (OTE پایین)", step=0.001, group=gNTS)
-fibHi             = input.float(0.786, "فیب ۲ (OTE بالا)",  step=0.001, group=gNTS)
-
-// --- ADX / رژیم ---
-adxLen            = input.int(14, "دوره ADX", minval=2, group=gNTS)
-ntsMildAdx        = input.float(18.0, "آستانه ADX متوسط", step=0.5, group=gNTS)
-ntsStrongAdx      = input.float(25.0, "آستانه ADX قوی",   step=0.5, group=gNTS)
+swingLen         = input.int(7, "طول سویینگ (پیوت)", minval=2, maxval=50, group=gNTS)
+fibLo            = input.float(0.618, "فیب OTE پایین", step=0.001, group=gNTS)
+fibHi            = input.float(0.786, "فیب OTE بالا",  step=0.001, group=gNTS)
+adxLen           = input.int(14, "دوره ADX", minval=2, group=gNTS)
+ntsMildAdx       = input.float(18.0, "آستانه ADX متوسط", step=0.5, group=gNTS)
+ntsStrongAdx     = input.float(25.0, "آستانه ADX قوی",   step=0.5, group=gNTS)
 
 // --- فیلترها ---
-useSessionFilter  = input.bool(true,  "فعال‌سازی فیلتر سشن (XAUUSD)", group=gFilt)
-xauMinAtrPct      = input.float(0.06, "حداقل نوسان (ATR٪)", step=0.01, group=gFilt)
-useReversalCloudFilter = input.bool(true, "فعال‌سازی فیلتر ابر ریورسال", group=gFilt)
-useDailyZoneFilter     = input.bool(true, "فیلتر ناحیه روزانه (خرید در تخفیف / فروش در پریمیوم)", group=gFilt)
-bandDev1          = input.float(0.5,   "انحراف ابر ۱", step=0.05, group=gFilt)
-bandDev2          = input.float(1.0,   "انحراف ابر ۲", step=0.05, group=gFilt)
-bandDev3          = input.float(1.618, "انحراف ابر ۳", step=0.05, group=gFilt)
+useSessionFilter       = input.bool(true,  "فیلتر سشن (لندن + نیویورک)", group=gFilt)
+xauMinAtrPct           = input.float(0.06, "حداقل نوسان (ATR٪)", step=0.01, group=gFilt)
+useReversalCloudFilter = input.bool(true,  "فیلتر ابر ریورسال", group=gFilt)
+useDailyZoneFilter     = input.bool(true,  "فیلتر ناحیه روزانه (خرید در تخفیف / فروش در پریمیوم)", group=gFilt)
+bandDev1               = input.float(0.5,   "انحراف ابر ۱", step=0.05, group=gFilt)
+bandDev2               = input.float(1.0,   "انحراف ابر ۲", step=0.05, group=gFilt)
+bandDev3               = input.float(1.618, "انحراف ابر ۳", step=0.05, group=gFilt)
 
-// --- تنظیم خودکار ---
+// --- نوسان‌نماها ---
+kdLen   = input.int(14, "دوره KD", minval=2, group=gKD)
+kSmooth = input.int(3,  "همواری K", minval=1, group=gKD)
+dSmooth = input.int(3,  "همواری D", minval=1, group=gKD)
+rsiLen  = input.int(14, "دوره RSI", minval=2, group=gKD)
+
+// --- تنظیم خودکار و نمایش ---
 autoTuneThisChart = input.bool(false, "تنظیم خودکار بر اساس نماد", group=gAuto)
 showAutoTunePanel = input.bool(true,  "نمایش پنل تنظیمات", group=gDisp)
 
-// --- KD ---
-kdLen  = input.int(14, "دوره KD", minval=2, group=gNTS)
-kSmooth = input.int(3, "همواری K", minval=1, group=gNTS)
-dSmooth = input.int(3, "همواری D", minval=1, group=gNTS)
-
 // ============================================================================
-//  ===[ M09a ]===  بهبود ۹ (الف): تشخیص خودکار نوع نماد
+//  ▍M09a — بهبود ۹ (الف): تشخیص خودکار نوع نماد
 // ============================================================================
 symU = str.upper(syminfo.ticker)
 
-// اصلاح: بررسی کریپتو «قبل از» USD، وگرنه BTCUSD اشتباهاً forex می‌شود
+// اصلاح: بررسی کریپتو «قبل از» USD، وگرنه BTCUSD اشتباهاً forex شناسایی می‌شود
 autoSymbolType =
      str.contains(symU, "XAU")  or str.contains(symU, "GOLD") ? "gold"   :
      str.contains(symU, "XAG")                                ? "silver" :
@@ -99,18 +106,20 @@ autoMinAtrPct = autoSymbolType == "gold"   ? 0.06 :
 xauMinAtrPctEff = autoTuneThisChart ? autoMinAtrPct : xauMinAtrPct
 
 // ============================================================================
-//  ===[ M01 ]===  بهبود ۱: تفکیک حالت تریدینگ از تایم‌فریم پایه
+//  ▍M01 — بهبود ۱: تفکیک حالت تریدینگ از تایم‌فریم پایه
 // ============================================================================
+// --- ۱.۱ از حالت تریدینگ ---
 basePeriod = ntsTradingMode == "اسکالپینگ"      ? 5  :
      ntsTradingMode == "ترید روزانه"           ? 10 :
      ntsTradingMode == "سوینگ تریدینگ"         ? 15 :
-     20
+     20   // پوزیشن تریدینگ
 
 baseFactor = ntsTradingMode == "اسکالپینگ"      ? 2.0 :
      ntsTradingMode == "ترید روزانه"           ? 3.5 :
      ntsTradingMode == "سوینگ تریدینگ"         ? 5.0 :
-     7.0
+     7.0  // پوزیشن تریدینگ
 
+// --- ۱.۲ از تایم‌فریم پایه (مستقل از حالت تریدینگ) ---
 ntsBasePeriod = ntsBaseTimeframe == "1"   ? 3  :
      ntsBaseTimeframe == "3"              ? 5  :
      ntsBaseTimeframe == "5"              ? 7  :
@@ -129,11 +138,14 @@ ntsBaseFactor = ntsBaseTimeframe == "1"   ? 1.5 :
      ntsBaseTimeframe == "240"            ? 6.0 :
      3.5
 
+// --- ۱.۳ وزن‌دهی هوشمند ---
+// اگر تایم‌فریم پایه با حالت تریدینگ هماهنگ باشد، وزن حالت تریدینگ بیشتر است
 ntsTfWeight = (ntsTradingMode == "اسکالپینگ"      and ntsBaseTimeframe == "5")  or
      (ntsTradingMode == "ترید روزانه"            and ntsBaseTimeframe == "15") or
      (ntsTradingMode == "سوینگ تریدینگ"          and ntsBaseTimeframe == "30") or
      (ntsTradingMode == "پوزیشن تریدینگ"         and ntsBaseTimeframe == "60") ? 0.7 : 0.4
 
+// --- ۱.۴ مقدار نهایی با محدودسازی ---
 ntsPeriod = int(math.round(basePeriod * ntsTfWeight + ntsBasePeriod * (1 - ntsTfWeight)))
 ntsPeriod := math.max(4, math.min(40, ntsPeriod))
 
@@ -141,31 +153,36 @@ ntsFactor = baseFactor * ntsTfWeight + ntsBaseFactor * (1 - ntsTfWeight)
 ntsFactor := math.max(1.5, math.min(20.0, ntsFactor))
 
 // ============================================================================
-//  ADX / DI  (پیش‌نیاز M03)
+//  ▍ADX / DI  (پیش‌نیاز M03)
 // ============================================================================
 [dmiPlus, dmiMinus, adxRaw] = ta.dmi(adxLen, adxLen)
-adxVal      = adxRaw
-adxSmooth   = ta.sma(adxVal, 3)
-adxForNts   = adxVal
+adxVal    = adxRaw
+adxSmooth = ta.sma(adxVal, 3)
+adxForNts = adxVal
 
 // ============================================================================
-//  ===[ M03 ]===  بهبود ۳: تشخیص رژیم روند/رنج با ADX + ATR نرمال‌شده
+//  ▍M03 — بهبود ۳: تشخیص رژیم روند/رنج با ADX + ATR نرمال‌شده
 // ============================================================================
 atrSeed = ta.atr(14)
 atrMean = ta.sma(atrSeed, 80)
 atrNorm = atrMean > 0 ? atrSeed / atrMean : 1.0
 atrNorm := math.max(0.50, math.min(2.20, atrNorm))
 
-chopRegime  = adxSmooth < ntsMildAdx and atrNorm < 1.2
+// رنج: ADX ضعیف و نوسان پایین
+chopRegime = adxSmooth < ntsMildAdx and atrNorm < 1.2
+// روند: ADX قوی، یا ADX متوسط همراه با نوسان بالا
 trendRegime = adxSmooth >= ntsStrongAdx or (adxSmooth >= ntsMildAdx and atrNorm >= 1.5)
 
+// رنج → دوره بلندتر (فیلتر نویز) | روند → دوره کوتاه‌تر (واکنش سریع‌تر)
 if chopRegime
     ntsPeriod := math.max(4, int(ntsPeriod * 1.2))
 else if trendRegime
     ntsPeriod := math.max(4, int(ntsPeriod * 0.85))
+// از این نقطه به بعد ntsPeriod یک series int است و دیگر نمی‌توان آن را
+// به عنوان طول (length) به توابع ta.* داد (آن‌ها simple int می‌خواهند).
 
 // ============================================================================
-//  ===[ M09b ]===  بهبود ۹ (ب): اعمال تنظیم خودکار روی هسته
+//  ▍M09b — بهبود ۹ (ب): اعمال تنظیم خودکار روی هسته
 // ============================================================================
 ntsPeriodFinal = autoTuneThisChart ? autoPeriod : ntsPeriod
 ntsPeriodFinal := math.max(4, math.min(40, ntsPeriodFinal))
@@ -174,7 +191,7 @@ ntsFactorFinal = autoTuneThisChart ? autoFactor : ntsFactor
 ntsFactorFinal := math.max(1.5, math.min(20.0, ntsFactorFinal))
 
 // ============================================================================
-//  ===[ M02 ]===  بهبود ۲: True Range دقیق‌تر با در نظر گرفتن گپ‌ها
+//  ▍M02 — بهبود ۲: True Range دقیق‌تر با در نظر گرفتن گپ‌ها
 // ============================================================================
 ntsHigh  = request.security(syminfo.tickerid, ntsBaseTimeframe, high,  barmerge.gaps_off, barmerge.lookahead_off)
 ntsLow   = request.security(syminfo.tickerid, ntsBaseTimeframe, low,   barmerge.gaps_off, barmerge.lookahead_off)
@@ -184,6 +201,7 @@ ntsHiLo = ntsHigh - ntsLow
 ntsHRef = math.abs(ntsHigh - ntsClose[1])
 ntsLRef = math.abs(ntsLow  - ntsClose[1])
 
+// گپ بین کندل قبلی و فعلی
 ntsGapUp   = ntsLow  > ntsHigh[1]
 ntsGapDown = ntsHigh < ntsLow[1]
 
@@ -200,40 +218,39 @@ ntsGapAdjustment = ntsGapUp   ? ntsLow - ntsHigh[1] :
 ntsTrueRange := nz(ntsTrueRange, ntsHigh - ntsLow) + ntsGapAdjustment * 0.5
 
 // ============================================================================
-//  هسته NTS: تریلینگ‌استاپ ATR روی داده‌های تایم‌فریم پایه
+//  ▍هسته NTS: تریلینگ‌استاپ ATR روی داده‌های تایم‌فریم پایه
 // ============================================================================
-// نکته مهم: توابع ta.* طولِ (length) از نوع simple int می‌خواهند،
-// اما ntsPeriodFinal بعد از M03 یک series int است (چون به رژیم بازار وابسته است).
-// بنابراین به‌جای ta.rma(...) از بازگشت دستیِ هموارسازی وایلدر استفاده می‌شود
-// (RMA همان EMA با آلفای ۱/دوره است) و محدودیت simple int دور زده می‌شود.
+// هموارسازی وایلدر به‌صورت بازگشت دستی (RMA = EMA با آلفای ۱/دوره)؛
+// چون ntsPeriodFinal یک series int است و ta.rma آن را نمی‌پذیرد.
 var float ntsATR = na
 ntsATRalpha = 1.0 / ntsPeriodFinal
 ntsATR := na(ntsATR[1]) ? nz(ntsTrueRange) :
      ntsATR[1] + ntsATRalpha * (ntsTrueRange - ntsATR[1])
 
-ntsSrc = (ntsHigh + ntsLow) / 2
-
+ntsSrc       = (ntsHigh + ntsLow) / 2
 ntsUpBandRaw = ntsSrc - ntsFactorFinal * ntsATR
 ntsDnBandRaw = ntsSrc + ntsFactorFinal * ntsATR
 
 var float ntsUpBand = na
 var float ntsDnBand = na
-ntsUpBand := na(ntsUpBand[1]) ? ntsUpBandRaw : (ntsClose[1] > ntsUpBand[1] ? math.max(ntsUpBandRaw, ntsUpBand[1]) : ntsUpBandRaw)
-ntsDnBand := na(ntsDnBand[1]) ? ntsDnBandRaw : (ntsClose[1] < ntsDnBand[1] ? math.min(ntsDnBandRaw, ntsDnBand[1]) : ntsDnBandRaw)
+ntsUpBand := na(ntsUpBand[1]) ? ntsUpBandRaw :
+     (ntsClose[1] > ntsUpBand[1] ? math.max(ntsUpBandRaw, ntsUpBand[1]) : ntsUpBandRaw)
+ntsDnBand := na(ntsDnBand[1]) ? ntsDnBandRaw :
+     (ntsClose[1] < ntsDnBand[1] ? math.min(ntsDnBandRaw, ntsDnBand[1]) : ntsDnBandRaw)
 
 var int ntsTrend = 1
 ntsTrend := ntsClose > nz(ntsDnBand[1], ntsDnBand) ? 1 :
      ntsClose < nz(ntsUpBand[1], ntsUpBand) ? -1 :
      ntsTrend[1]
 
-ntsStopLine = ntsTrend == 1 ? ntsUpBand : ntsDnBand
+ntsStopLine    = ntsTrend == 1 ? ntsUpBand : ntsDnBand
 ntsBuyTrendOk  = ntsTrend == 1
 ntsSellTrendOk = ntsTrend == -1
 
 // ============================================================================
-//  مشتقات پایه: سویینگ، فیبوناچی، KD، واگرایی، نواحی، ابر
+//  ▍مشتقات پایه: سویینگ، فیبوناچی، KD، واگرایی، نواحی، ابر
 // ============================================================================
-// --- پیوت‌های سویینگ ---
+// --- پیوت‌های سویینگ (با تأخیر طبیعی swingLen کندل در تشخیص) ---
 ph = ta.pivothigh(high, swingLen, swingLen)
 pl = ta.pivotlow (low,  swingLen, swingLen)
 
@@ -244,14 +261,14 @@ if not na(ph)
 if not na(pl)
     lastPL := pl
 
-ntsSwingKaf   = not na(pl)
-ntsSwingSaghf = not na(ph)
+ntsSwingKaf   = not na(pl)   // کف سویینگ
+ntsSwingSaghf = not na(ph)   // سقف سویینگ
 
-// --- فیبوناچی OTE ---
+// --- ناحیه فیبوناچی OTE ---
 fibRangeRaw = nz(lastPH, close) - nz(lastPL, close)
 fibRange    = fibRangeRaw > 0 ? fibRangeRaw : na
-ntsFib1 = nz(lastPL, close) + nz(fibRange, 0) * fibLo
-ntsFib2 = nz(lastPL, close) + nz(fibRange, 0) * fibHi
+ntsFib1     = nz(lastPL, close) + nz(fibRange, 0) * fibLo
+ntsFib2     = nz(lastPL, close) + nz(fibRange, 0) * fibHi
 
 inNtsBuyFibBand  = not na(fibRange) and high >= ntsFib1 and low <= ntsFib2
 inNtsSellFibBand = not na(fibRange) and high >= ntsFib1 and low <= ntsFib2
@@ -259,18 +276,16 @@ ntsFibTouchBuy   = inNtsBuyFibBand  and ntsBuyTrendOk
 ntsFibTouchSell  = inNtsSellFibBand and ntsSellTrendOk
 
 // --- KD (استوکاستیک) ---
-kRaw = ta.stoch(close, high, low, kdLen)
-kVal = ta.sma(kRaw, kSmooth)
-dVal = ta.sma(kVal, dSmooth)
-kdBuySignal  = ta.crossover(kVal, dVal)  and kVal < 45
+kRaw         = ta.stoch(close, high, low, kdLen)
+kVal         = ta.sma(kRaw, kSmooth)
+dVal         = ta.sma(kVal, dSmooth)
+kdBuySignal  = ta.crossover (kVal, dVal) and kVal < 45
 kdSellSignal = ta.crossunder(kVal, dVal) and kVal > 55
 
 // --- RSI و واگرایی ---
-rsiNow = ta.rsi(close, 14)
-ntsRsiNow = rsiNow
-
-plRsi = ta.pivotlow (rsiNow, swingLen, swingLen)
-phRsi = ta.pivothigh(rsiNow, swingLen, swingLen)
+ntsRsiNow = ta.rsi(close, rsiLen)
+plRsi     = ta.pivotlow (ntsRsiNow, swingLen, swingLen)
+phRsi     = ta.pivothigh(ntsRsiNow, swingLen, swingLen)
 
 var float prevPlPrice = na
 var float prevPlRsi   = na
@@ -280,19 +295,23 @@ var float prevPhRsi   = na
 ntsDivBuy  = false
 ntsDivSell = false
 if not na(pl)
-    if not na(prevPlPrice) and pl < prevPlPrice and rsiNow[swingLen] > prevPlRsi
+    if not na(prevPlPrice) and pl < prevPlPrice and ntsRsiNow[swingLen] > prevPlRsi
         ntsDivBuy := true
     prevPlPrice := pl
-    prevPlRsi   := rsiNow[swingLen]
+    prevPlRsi   := ntsRsiNow[swingLen]
 if not na(ph)
-    if not na(prevPhPrice) and ph > prevPhPrice and rsiNow[swingLen] < prevPhRsi
+    if not na(prevPhPrice) and ph > prevPhPrice and ntsRsiNow[swingLen] < prevPhRsi
         ntsDivSell := true
     prevPhPrice := ph
-    prevPhRsi   := rsiNow[swingLen]
+    prevPhRsi   := ntsRsiNow[swingLen]
 
-// --- تأییدیه جهت (Confirmation) ---
-bullishConfirmation = close > open and close > ta.highest(high, 20)[1]
-bearishConfirmation = close < open and close < ta.lowest(low, 20)[1]
+// --- تأییدیه جهت (BOS یا دیسپلیسمنت) ---
+bosUp   = ta.crossover (close, nz(lastPH, close))
+bosDown = ta.crossunder(close, nz(lastPL, close))
+displacementUp   = close > open and close > high[1] + 0.5 * atrSeed
+displacementDown = close < open and close < low[1]  - 0.5 * atrSeed
+bullishConfirmation = bosUp   or displacementUp
+bearishConfirmation = bosDown or displacementDown
 
 // --- نواحی عرضه و تقاضا ---
 supplyTop = nz(lastPH, high)
@@ -303,19 +322,20 @@ inSupplyZone = close >= supplyBot and close <= supplyTop
 inDemandZone = close >= demandBot and close <= demandTop
 
 // --- نوسان نسبی و سطح تعادلی روزانه ---
-volatilityRatio = ta.atr(14) / close * 100
+volatilityRatio = atrSeed / close * 100
 
 dHighPrev = request.security(syminfo.tickerid, "D", high[1], barmerge.gaps_off, barmerge.lookahead_off)
 dLowPrev  = request.security(syminfo.tickerid, "D", low[1],  barmerge.gaps_off, barmerge.lookahead_off)
 eqLevel   = (nz(dHighPrev, high) + nz(dLowPrev, low)) / 2
 
-// --- پایهٔ ابر ریورسال ---
+// --- پایه ابر ریورسال ---
 cloudBasis = ta.ema(close, 50)
 cloudRange = ta.atr(20)
 
 // ============================================================================
-//  ===[ M05 ]===  بهبود ۵: Reversal Cloud پویا بر اساس نوسان
+//  ▍M05 — بهبود ۵: Reversal Cloud پویا بر اساس نوسان
 // ============================================================================
+// نوسان بالا → ابر پهن‌تر (تا ۱.۲۴×) | نوسان پایین → ابر باریک‌تر (تا ۰.۹۰×)
 bandDev1Dynamic = bandDev1 * (0.8 + atrNorm * 0.2)
 bandDev2Dynamic = bandDev2 * (0.8 + atrNorm * 0.2)
 bandDev3Dynamic = bandDev3 * (0.8 + atrNorm * 0.2)
@@ -333,6 +353,7 @@ inRevBuyZone  = low   <= lowerCloud1
 inRevSellDeep = close >= upperCloud2
 inRevBuyDeep  = close <= lowerCloud2
 
+// تماس با ابر در ۱۲ کندل اخیر (نه الزاماً همان کندل سیگنال)
 revBuyRecent  = ta.lowest (low,  12) <= lowerCloud1
 revSellRecent = ta.highest(high, 12) >= upperCloud1
 
@@ -340,8 +361,9 @@ revBuyOk  = not useReversalCloudFilter or inRevBuyZone  or revBuyRecent
 revSellOk = not useReversalCloudFilter or inRevSellZone or revSellRecent
 
 // ============================================================================
-//  ===[ M04 ]===  بهبود ۴: فیلتر سشن و نوسان برای XAUUSD
+//  ▍M04 — بهبود ۴: فیلتر سشن و نوسان برای XAUUSD
 // ============================================================================
+// لندن ۰۳:۰۰→۱۲:۰۰ | نیویورک ۱۲:۰۰→۱۷:۰۰ | سشن طلایی = همپوشانی ۱۲:۰۰→۱۷:۰۰
 xauNyHour     = hour(time, "America/New_York")
 xauInSession  = not useSessionFilter or (xauNyHour >= 3 and xauNyHour < 17)
 xauGoldenHour = xauNyHour >= 12 and xauNyHour < 17
@@ -350,16 +372,17 @@ xauTradeOk    = xauInSession and xauVolOk
 ntsGoldenHourBonus = xauGoldenHour ? 8 : 0
 
 // ============================================================================
-//  ===[ M07a ]===  بهبود ۷ (الف): ناحیه روزانه و حجم
+//  ▍M07a — بهبود ۷ (الف): ناحیه روزانه و حجم
+//  (باید «قبل از» M06 بیاید، چون امتیازدهی به این سه متغیر وابسته است)
 // ============================================================================
 inDailyDiscount = close <= eqLevel
 inDailyPremium  = close >= eqLevel
 ntsVolBoost     = volume > ta.sma(volume, 20) * 1.05
-// اگر فید نماد شما حجم ندارد، خط بالا را به `ntsVolBoost = true` تغییر دهید.
+// اگر فید نماد شما حجم ندارد، این خط را به `ntsVolBoost = true` تغییر دهید.
 
 // ============================================================================
-//  ===[ M06 ]===  بهبود ۶: سیستم امتیازدهی Confluence
-//  حداکثر امتیاز ممکن: ۱۴۷
+//  ▍M06 — بهبود ۶: سیستم امتیازدهی Confluence
+//  حداکثر امتیاز ممکن: ۱۵۱ (۱۱۰ پایه + ۳۷ جدید + ۴ عمق ابر)
 // ============================================================================
 ntsBuyConfluencePts =
      (ntsFibTouchBuy      ? 32 : inNtsBuyFibBand ? 14 : 0) +
@@ -372,11 +395,12 @@ ntsBuyConfluencePts =
      (ntsVolBoost         ? 4  : 0)
 
 ntsBuyConfluencePts +=
-     (inDailyDiscount ? 10 : 0) +
-     (ntsGoldenHourBonus) +
-     (ntsTrend == 1 and adxForNts >= ntsStrongAdx ? 6 : 0) +
-     (close > ntsFib1 and close > ntsFib2 ? 5 : 0) +
-     (ta.crossover(close, ntsFib1) or ta.crossover(close, ntsFib2) ? 8 : 0)
+     (inDailyDiscount ? 10 : 0) +                                            // ناحیه تخفیف روزانه
+     (ntsGoldenHourBonus) +                                                  // سشن طلایی لندن/نیویورک
+     (ntsTrend == 1 and adxForNts >= ntsStrongAdx ? 6 : 0) +                 // روند قوی هم‌راستا
+     (close > ntsFib1 and close > ntsFib2 ? 5 : 0) +                         // بالای فیب‌های کلیدی
+     (ta.crossover(close, ntsFib1) or ta.crossover(close, ntsFib2) ? 8 : 0) + // کراس‌اور لحظه‌ای
+     (inRevBuyDeep ? 4 : 0)                                                  // عمق قرارگیری در ابر
 
 ntsSellConfluencePts =
      (ntsFibTouchSell      ? 32 : inNtsSellFibBand ? 14 : 0) +
@@ -389,11 +413,12 @@ ntsSellConfluencePts =
      (ntsVolBoost          ? 4  : 0)
 
 ntsSellConfluencePts +=
-     (inDailyPremium ? 10 : 0) +
-     (ntsGoldenHourBonus) +
-     (ntsTrend == -1 and adxForNts >= ntsStrongAdx ? 6 : 0) +
-     (close < ntsFib1 and close < ntsFib2 ? 5 : 0) +
-     (ta.crossunder(close, ntsFib1) or ta.crossunder(close, ntsFib2) ? 8 : 0)
+     (inDailyPremium ? 10 : 0) +                                             // ناحیه پریمیوم روزانه
+     (ntsGoldenHourBonus) +                                                  // سشن طلایی لندن/نیویورک
+     (ntsTrend == -1 and adxForNts >= ntsStrongAdx ? 6 : 0) +                // روند قوی هم‌راستا
+     (close < ntsFib1 and close < ntsFib2 ? 5 : 0) +                         // پایین فیب‌های کلیدی
+     (ta.crossunder(close, ntsFib1) or ta.crossunder(close, ntsFib2) ? 8 : 0) + // کراس‌آندر لحظه‌ای
+     (inRevSellDeep ? 4 : 0)                                                 // عمق قرارگیری در ابر
 
 // آستانه‌های پویا بر اساس حالت تریدینگ
 ntsBuyThreshold = ntsTradingMode == "اسکالپینگ"      ? 55 :
@@ -407,7 +432,7 @@ ntsSellThreshold = ntsTradingMode == "اسکالپینگ"     ? 55 :
      65
 
 // ============================================================================
-//  ===[ M07b ]===  بهبود ۷ (ب): سیگنال‌های نهایی
+//  ▍M07b — بهبود ۷ (ب): سیگنال‌های نهایی
 // ============================================================================
 ntsKafSignal   = xauTradeOk and ntsFibTouchBuy  and ntsSwingKaf   and ntsBuyConfluencePts  >= ntsBuyThreshold
 ntsSaghfSignal = xauTradeOk and ntsFibTouchSell and ntsSwingSaghf and ntsSellConfluencePts >= ntsSellThreshold
@@ -433,65 +458,63 @@ finalSellSignal =
      (not useDailyZoneFilter or inDailyPremium)
 
 // ============================================================================
-//  نمایش
+//  ▍نمایش روی چارت
 // ============================================================================
 stopColor = ntsTrend == 1 ? color.new(color.teal, 0) : color.new(color.red, 0)
 plot(ntsStopLine, "NTS Stop", color=stopColor, linewidth=2)
 
-p1 = plot(lowerCloud1, "Cloud −1", color=color.new(color.aqua, 70))
-p2 = plot(upperCloud1, "Cloud +1", color=color.new(color.fuchsia, 70))
-p3 = plot(lowerCloud2, "Cloud −2", color=color.new(color.aqua, 85))
-p4 = plot(upperCloud2, "Cloud +2", color=color.new(color.fuchsia, 85))
-fill(p1, p3, color=color.new(color.aqua, 88),    title="ناحیه تقاضای ابر")
-fill(p2, p4, color=color.new(color.fuchsia, 88), title="ناحیه عرضه ابر")
+pc1 = plot(lowerCloud1, "Cloud −1", color=color.new(color.aqua, 70))
+pc2 = plot(upperCloud1, "Cloud +1", color=color.new(color.fuchsia, 70))
+pc3 = plot(lowerCloud2, "Cloud −2", color=color.new(color.aqua, 85))
+pc4 = plot(upperCloud2, "Cloud +2", color=color.new(color.fuchsia, 85))
+fill(pc1, pc3, color=color.new(color.aqua, 88),    title="ناحیه تقاضای ابر")
+fill(pc2, pc4, color=color.new(color.fuchsia, 88), title="ناحیه عرضه ابر")
 
-plot(eqLevel, "سطح تعادلی روزانه", color=color.new(color.gray, 40), style=plot.style_linebr)
-plot(ntsFib1, "Fib OTE پایین", color=color.new(color.orange, 50), style=plot.style_linebr)
-plot(ntsFib2, "Fib OTE بالا",  color=color.new(color.orange, 50), style=plot.style_linebr)
+plot(eqLevel, "تعادل روزانه", color=color.new(color.gray, 40), style=plot.style_linebr)
+plot(ntsFib1, "OTE پایین",    color=color.new(color.orange, 50), style=plot.style_linebr)
+plot(ntsFib2, "OTE بالا",     color=color.new(color.orange, 50), style=plot.style_linebr)
 
-plotshape(finalBuySignal,  title="BUY",  style=shape.triangleup,   location=location.belowbar,
+plotshape(finalBuySignal,  title="خرید نهایی", style=shape.triangleup, location=location.belowbar,
      color=color.new(color.green, 0), size=size.normal, text="BUY")
-plotshape(finalSellSignal, title="SELL", style=shape.triangledown, location=location.abovebar,
-     color=color.new(color.red, 0),   size=size.normal, text="SELL")
-plotshape(ntsKafSignal,   title="کف NTS",  style=shape.labelup,   location=location.belowbar,
-     color=color.new(color.lime, 0), size=size.tiny, text="KAF",
-     textcolor=color.black)
+plotshape(finalSellSignal, title="فروش نهایی", style=shape.triangledown, location=location.abovebar,
+     color=color.new(color.red, 0), size=size.normal, text="SELL")
+plotshape(ntsKafSignal,   title="کف NTS", style=shape.labelup, location=location.belowbar,
+     color=color.new(color.lime, 0), size=size.tiny, text="KAF", textcolor=color.black)
 plotshape(ntsSaghfSignal, title="سقف NTS", style=shape.labeldown, location=location.abovebar,
-     color=color.new(color.maroon, 0), size=size.tiny, text="SAGHF",
-     textcolor=color.white)
+     color=color.new(color.maroon, 0), size=size.tiny, text="SAGHF", textcolor=color.white)
 
 // ============================================================================
-//  ===[ M08 ]===  بهبود ۸: پنل اطلاعات و هشدارها
+//  ▍M08 — بهبود ۸: پنل اطلاعات و هشدارها
 // ============================================================================
-var table autoTunePanel = table.new(position.top_right, 2, 12,
+var table autoTunePanel = table.new(position.top_right, 2, 13,
      border_width=1, frame_color=color.new(color.gray, 60))
 
 if barstate.islast and showAutoTunePanel
-    table.cell(autoTunePanel, 0, 0, "Mode",  text_color=color.gray, text_size=size.tiny)
-    table.cell(autoTunePanel, 1, 0, ntsTradingMode, text_color=color.white, text_size=size.tiny)
-    table.cell(autoTunePanel, 0, 1, "Base TF", text_color=color.gray, text_size=size.tiny)
-    table.cell(autoTunePanel, 1, 1, ntsBaseTimeframe, text_color=color.white, text_size=size.tiny)
-    table.cell(autoTunePanel, 0, 2, "Symbol", text_color=color.gray, text_size=size.tiny)
-    table.cell(autoTunePanel, 1, 2, autoSymbolType, text_color=color.white, text_size=size.tiny)
-    table.cell(autoTunePanel, 0, 3, "Period", text_color=color.gray, text_size=size.tiny)
-    table.cell(autoTunePanel, 1, 3, str.tostring(ntsPeriodFinal, "#"), text_color=color.white, text_size=size.tiny)
-    table.cell(autoTunePanel, 0, 4, "Factor", text_color=color.gray, text_size=size.tiny)
-    table.cell(autoTunePanel, 1, 4, str.tostring(ntsFactorFinal, "#.#"), text_color=color.white, text_size=size.tiny)
-    table.cell(autoTunePanel, 0, 5, "ATR Norm", text_color=color.gray, text_size=size.tiny)
-    table.cell(autoTunePanel, 1, 5, str.tostring(atrNorm, "#.##"), text_color=color.white, text_size=size.tiny)
-    table.cell(autoTunePanel, 0, 6, "Regime", text_color=color.gray, text_size=size.tiny)
-    table.cell(autoTunePanel, 1, 6, chopRegime ? "CHOP" : trendRegime ? "TREND" : "NEUTRAL",
+    table.cell(autoTunePanel, 0, 0,  "Mode",     text_color=color.gray,  text_size=size.tiny)
+    table.cell(autoTunePanel, 1, 0,  ntsTradingMode, text_color=color.white, text_size=size.tiny)
+    table.cell(autoTunePanel, 0, 1,  "Base TF",  text_color=color.gray,  text_size=size.tiny)
+    table.cell(autoTunePanel, 1, 1,  ntsBaseTimeframe, text_color=color.white, text_size=size.tiny)
+    table.cell(autoTunePanel, 0, 2,  "Symbol",   text_color=color.gray,  text_size=size.tiny)
+    table.cell(autoTunePanel, 1, 2,  autoSymbolType, text_color=color.white, text_size=size.tiny)
+    table.cell(autoTunePanel, 0, 3,  "Period",   text_color=color.gray,  text_size=size.tiny)
+    table.cell(autoTunePanel, 1, 3,  str.tostring(ntsPeriodFinal, "#"), text_color=color.white, text_size=size.tiny)
+    table.cell(autoTunePanel, 0, 4,  "Factor",   text_color=color.gray,  text_size=size.tiny)
+    table.cell(autoTunePanel, 1, 4,  str.tostring(ntsFactorFinal, "#.#"), text_color=color.white, text_size=size.tiny)
+    table.cell(autoTunePanel, 0, 5,  "ATR Norm", text_color=color.gray,  text_size=size.tiny)
+    table.cell(autoTunePanel, 1, 5,  str.tostring(atrNorm, "#.##"), text_color=color.white, text_size=size.tiny)
+    table.cell(autoTunePanel, 0, 6,  "Regime",   text_color=color.gray,  text_size=size.tiny)
+    table.cell(autoTunePanel, 1, 6,  chopRegime ? "CHOP" : trendRegime ? "TREND" : "NEUTRAL",
          text_color = chopRegime ? color.orange : trendRegime ? color.lime : color.gray,
          text_size  = size.tiny)
-    table.cell(autoTunePanel, 0, 7, "Session", text_color=color.gray, text_size=size.tiny)
-    table.cell(autoTunePanel, 1, 7, xauGoldenHour ? "GOLDEN" : xauInSession ? "OPEN" : "CLOSED",
+    table.cell(autoTunePanel, 0, 7,  "Session",  text_color=color.gray,  text_size=size.tiny)
+    table.cell(autoTunePanel, 1, 7,  xauGoldenHour ? "GOLDEN" : xauInSession ? "OPEN" : "CLOSED",
          text_color = xauGoldenHour ? color.lime : xauInSession ? color.white : color.gray,
          text_size  = size.tiny)
-    table.cell(autoTunePanel, 0, 8, "Vol OK", text_color=color.gray, text_size=size.tiny)
-    table.cell(autoTunePanel, 1, 8, xauVolOk ? "YES" : "NO",
+    table.cell(autoTunePanel, 0, 8,  "Vol OK",   text_color=color.gray,  text_size=size.tiny)
+    table.cell(autoTunePanel, 1, 8,  xauVolOk ? "YES" : "NO",
          text_color = xauVolOk ? color.lime : color.red, text_size=size.tiny)
 
-    table.cell(autoTunePanel, 0, 9,  "Buy Pts", text_color=color.gray, text_size=size.tiny)
+    table.cell(autoTunePanel, 0, 9,  "Buy Pts",  text_color=color.gray, text_size=size.tiny)
     table.cell(autoTunePanel, 1, 9,  str.tostring(ntsBuyConfluencePts, "#") + " / " + str.tostring(ntsBuyThreshold, "#"),
          text_color = ntsBuyConfluencePts >= ntsBuyThreshold ? color.lime : color.orange,
          text_size  = size.tiny)
@@ -505,8 +528,13 @@ if barstate.islast and showAutoTunePanel
          text_color = inDailyDiscount and not inDailyPremium ? color.green :
               inDailyPremium and not inDailyDiscount ? color.red : color.gray,
          text_size  = size.tiny)
+    table.cell(autoTunePanel, 0, 12, "DI", text_color=color.gray, text_size=size.tiny)
+    table.cell(autoTunePanel, 1, 12, dmiPlus > dmiMinus ? "BULL" : "BEAR",
+         text_color = dmiPlus > dmiMinus ? color.lime : color.red, text_size=size.tiny)
 
 // --- پلات‌های کمکی برای پیام هشدار ---
+// در Pine v5 تنها می‌توان به پلات‌های واقعی ارجاع داد؛
+// بنابراین {{plot("inDailyDiscount")}} معتبر نیست و از این پلات‌ها استفاده می‌شود.
 plot(inDailyDiscount and not inDailyPremium ? 1 : inDailyPremium and not inDailyDiscount ? -1 : 0,
      title="DailyZone", display=display.data_window)
 plot(ntsBuyConfluencePts,  title="BuyPts",  display=display.data_window)
