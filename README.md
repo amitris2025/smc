@@ -24,13 +24,20 @@ python3 tools/check_pine.py src/
 
 # دیدن نمونهٔ خطاها روی نسخهٔ اولیهٔ ارسالی
 python3 tools/check_pine.py tools/testdata/original_snippets_BAD.pine
+
+# شبیه‌سازیِ منطقِ خطوط روند روی داده‌ی مصنوعی (خروجی: tools/sample_trendlines.png)
+python3 tools/sim_trendlines.py
 ```
 
 ## وضعیت فعلی
 
-- `modules/0*.pine` — ۱۱ قطعه، آمادهٔ درج در اندیکاتور اصلی شما
+- `modules/0*.pine` — ۱۲ قطعه، آمادهٔ درج در اندیکاتور اصلی شما
 - `src/SMC_NTS_Pro.pine` — نسخهٔ مرجعِ کامل (هسته پایه + ۹ بهبود)،
   که تا وقتی فایل اصلی‌تان را نفرستاده‌اید، قابل اجرا و تست است
+- `modules/10_trendlines_pa.pine` — خطوط روندِ اصولیِ پرایس‌اکشن
+  (حداقل ۲ سقف برای نزولی / ۲ کف برای صعودی) همراه با ناحیهٔ
+  Previous Daily Premium / Discount؛ شرحِ کامل در
+  [`docs/TRENDLINES.md`](docs/TRENDLINES.md)
 - در انتظار دریافت فایل `.pine` اصلی برای ادغامِ اختصاصی
 
 ## نکات کلیدی ادغام

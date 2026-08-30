@@ -1,0 +1,531 @@
+// ============================================================================
+// بهبود ۱۰ : خطوط روندِ اصولیِ پرایس‌اکشن + Previous Daily Premium / Discount
+// Pine Script v5
+// ----------------------------------------------------------------------------
+// محل درج : «بعد از» ماژول ۷a و «قبل از» ماژول ۶ (امتیازدهی)
+//           (چون خروجی‌های tlAtSupport / tlAtResistance در امتیازدهی استفاده
+//            می‌شوند و خودِ این ماژول به خروجیِ ماژول ۶ نیازی ندارد)
+// پیش‌نیاز از کد پایه : فقط high / low / close / bar_index  (خودکفا است)
+// نکته‌ی مهم : تابع indicator شما باید این دو را داشته باشد
+//           max_lines_count=500, max_labels_count=500
+//
+// خروجی‌های کلیدی :
+//   tlPdPremBar , tlPdDiscBar , tlPdHigh , tlPdLow , tlPdEq
+//   tlDnLive , tlUpLive                     ← خط فعال دارد؟
+//   tlDnHits  , tlUpHits                    ← تعداد لمس‌های معتبر
+//   tlDnYNow  , tlUpYNow                    ← قیمتِ لحظه‌ایِ خط
+//   tlDnBreakNow , tlUpBreakNow             ← رویداد شکست (برای هشدار)
+//   tlAtSupport  , tlAtResistance           ← برای امتیازدهی Confluence
+// ============================================================================
+
+// --- ورودی‌ها (این بلوک را به بخش input.* منتقل کنید) ---
+gTL            = "خطوط روند (Price Action)"
+showTrendlines = input.bool(true, "نمایش خطوط روند", group=gTL)
+tlPivotLeft    = input.int(5, "کندل‌های چپِ پیوت (سقف/کف)", minval=1, maxval=50, group=gTL)
+tlPivotRight   = input.int(3, "کندل‌های راستِ پیوت (تایید)", minval=1, maxval=25, group=gTL)
+tlTouchBasis   = input.string("کلوز", "مبنای لمس و شکست",
+     options=["کلوز", "سایه (High/Low)"], group=gTL)
+tlMinTouches   = input.int(2, "حداقل لمس برای ترسیم", minval=2, maxval=5, group=gTL)
+tlTolAtr       = input.float(0.35, "تلورانس لمس (ضریب ATR)", minval=0.0, step=0.05, group=gTL)
+tlBreakAtr     = input.float(0.10, "تلورانس شکست (ضریب ATR)", minval=0.0, step=0.05, group=gTL)
+tlReanchor     = input.bool(true,  "بازترسیم روی دو سقف/کف آخر در صورت لمس‌نشدن", group=gTL)
+tlPdMode       = input.string("تاکید روی همسو", "نقش پریمیوم/دیسکانت روزانهٔ قبل",
+     options=["بدون فیلتر", "تاکید روی همسو", "فقط همسو"], group=gTL)
+showPdZones    = input.bool(true, "نمایش نواحی روزانهٔ قبل", group=gTL)
+showTlLabels   = input.bool(true, "برچسب نقاط لمس و شکست", group=gTL)
+tlMaxLines     = input.int(12, "حداکثر خطوط بایگانی‌شده", minval=2, maxval=100, group=gTL)
+tlBonus        = input.int(5, "امتیاز Confluence برای لمس خط روند", minval=0, maxval=20, group=gTL)
+
+// ============================================================================
+//  بخش الف — ناحیهٔ روزانهٔ قبل : Previous Daily Premium / Discount
+// ============================================================================
+tlPdHighRaw = request.security(syminfo.tickerid, "D", high[1], barmerge.gaps_off, barmerge.lookahead_off)
+tlPdLowRaw  = request.security(syminfo.tickerid, "D", low[1],  barmerge.gaps_off, barmerge.lookahead_off)
+tlPdHigh    = nz(tlPdHighRaw, high)
+tlPdLow     = nz(tlPdLowRaw,  low)
+tlPdEq      = (tlPdHigh + tlPdLow) / 2
+
+// بالای تعادل = پریمیوم (فروش) | پایین تعادل = دیسکانت (خرید)
+pdInPremium  = close > tlPdEq
+pdInDiscount = close < tlPdEq
+
+// ناحیهٔ PD در «خودِ کندلِ پیوت» (نه کندل جاری) — چون تاخیرِ پیوت مقداری ثابت است،
+// دسترسی به تاریخچه با اندیسِ ساده مجاز است و ناحیه دقیقاً همان لحظه سنجیده می‌شود
+tlPdEqBar   = tlPdEq[tlPivotRight]
+tlPdPremBar = close[tlPivotRight] > tlPdEqBar
+tlPdDiscBar = close[tlPivotRight] < tlPdEqBar
+
+// نمایش نواحی
+pPdHi = plot(showPdZones ? tlPdHigh : na, "PDH — سقف روز قبل",
+     color=color.new(color.gray, 20), style=plot.style_linebr, linewidth=1)
+pPdEq = plot(showPdZones ? tlPdEq   : na, "تعادل روز قبل (50%)",
+     color=color.new(color.orange, 10), style=plot.style_linebr, linewidth=1)
+pPdLo = plot(showPdZones ? tlPdLow  : na, "PDL — کف روز قبل",
+     color=color.new(color.gray, 20), style=plot.style_linebr, linewidth=1)
+fill(pPdHi, pPdEq, color=color.new(color.red, 93),   title="پریمیوم روز قبل")
+fill(pPdEq, pPdLo, color=color.new(color.green, 93), title="دیسکانت روز قبل")
+
+// ============================================================================
+//  بخش ب — سقف‌ها و کف‌ها (پیوت‌های تاییدشده)
+// ============================================================================
+// پیوت با tlPivotRight کندل تاخیر تایید می‌شود؛ یعنی خط هرگز بازترسیم نمی‌شود
+tlPH        = ta.pivothigh(high, tlPivotLeft, tlPivotRight)
+tlPL        = ta.pivotlow (low,  tlPivotLeft, tlPivotRight)
+tlPhBar     = bar_index - tlPivotRight
+tlPlBar     = bar_index - tlPivotRight
+// منبعِ سنجش در کندلِ خودِ پیوت (کلوزِ کندل پیوت یا سایه‌ی آن)
+tlPhSrc     = tlTouchBasis == "کلوز" ? close[tlPivotRight] : tlPH
+tlPlSrc     = tlTouchBasis == "کلوز" ? close[tlPivotRight] : tlPL
+
+tlAtr    = ta.atr(14)
+tlTolVal = tlTolAtr   * tlAtr
+tlBrkVal = tlBreakAtr * tlAtr
+
+// منبعِ سنجش برای شکست روی کندل جاری
+tlSrcUp = tlTouchBasis == "کلوز" ? close : high
+tlSrcDn = tlTouchBasis == "کلوز" ? close : low
+
+// مقدارِ خط در یک کندلِ دلخواه (درون‌یابی خطیِ دو نقطه)
+fLineY(x1, y1, x2, y2, xTarget) =>
+    tlDx = x2 - x1
+    tlDx != 0 ? y1 + (y2 - y1) * (xTarget - x1) / tlDx : float(na)
+
+// ============================================================================
+//  بخش ج — حافظهٔ خطوط
+// ============================================================================
+// --- خط نزولی : اتصال سقف‌های پایین‌تر (مقاومت پویا) ---
+var int[]   tlDnBarArr = array.new_int()
+var float[] tlDnPxArr  = array.new_float()
+var int     tlDnX1     = na
+var float   tlDnY1     = na
+var int     tlDnX2     = na
+var float   tlDnY2     = na
+var bool    tlDnLive   = false
+var bool    tlDnAlign  = false
+var int     tlDnKillX  = na
+var float   tlDnKillY  = na
+var line    tlDnObj    = na
+var line[]  tlDnHist   = array.new_line()
+
+// --- خط صعودی : اتصال کف‌های بالاتر (حمایت پویا) ---
+var int[]   tlUpBarArr = array.new_int()
+var float[] tlUpPxArr  = array.new_float()
+var int     tlUpX1     = na
+var float   tlUpY1     = na
+var int     tlUpX2     = na
+var float   tlUpY2     = na
+var bool    tlUpLive   = false
+var bool    tlUpAlign  = false
+var int     tlUpKillX  = na
+var float   tlUpKillY  = na
+var line    tlUpObj    = na
+var line[]  tlUpHist   = array.new_line()
+
+var label[] tlLabHist  = array.new_label()
+
+// رنگ‌ها
+tlColDn     = color.new(color.red, 0)
+tlColDnWeak = color.new(color.red, 70)
+tlColUp     = color.new(color.teal, 0)
+tlColUpWeak = color.new(color.teal, 70)
+tlColDead   = color.new(color.gray, 50)
+
+// رویدادهای یک‌کندلی (هر بار از نو)
+tlDnBreakNow = false
+tlUpBreakNow = false
+tlDnNewTouch = false
+tlUpNewTouch = false
+
+tlDnHits = array.size(tlDnBarArr)
+tlUpHits = array.size(tlUpBarArr)
+// نکته: این دو بعد از پردازشِ پیوتِ همین کندل دوباره به‌روز می‌شوند (پایین‌تر)
+
+// ============================================================================
+//  بخش د — پردازشِ پیوتِ سقف جدید  →  خط روند نزولی
+// ============================================================================
+if showTrendlines and not na(tlPH)
+    tlPx = tlPH                                   // anchor همیشه نوک سایه است
+    tlBx = tlPhBar
+    tlSc = tlPhSrc                                // منبع سنجش در کندل پیوت
+    if tlDnHits == 0
+        // اولین سقفِ چارچوب
+        array.push(tlDnBarArr, tlBx)
+        array.push(tlDnPxArr,  tlPx)
+        tlDnX1   := tlBx
+        tlDnY1   := tlPx
+        tlDnLive := false
+    else
+        if tlDnHits == 1
+            if tlPx < tlDnY1
+                if tlPdMode != "فقط همسو" or tlPdPremBar
+                    array.push(tlDnBarArr, tlBx)
+                    array.push(tlDnPxArr,  tlPx)
+                    tlDnX2      := tlBx
+                    tlDnY2      := tlPx
+                    tlDnLive    := true
+                    tlDnAlign   := tlPdPremBar
+                    tlDnNewTouch := true
+            else
+                // سقف بالاتر = ساختار نزولی نداریم؛ از نو شروع می‌کنیم
+                array.clear(tlDnBarArr)
+                array.clear(tlDnPxArr)
+                array.push(tlDnBarArr, tlBx)
+                array.push(tlDnPxArr,  tlPx)
+                tlDnX1   := tlBx
+                tlDnY1   := tlPx
+                tlDnLive := false
+        else
+            tlYAt = fLineY(tlDnX1, tlDnY1, tlDnX2, tlDnY2, tlBx)
+            if na(tlYAt)
+                array.clear(tlDnBarArr)
+                array.clear(tlDnPxArr)
+                tlDnLive := false
+            else
+                if tlSc > tlYAt + tlBrkVal
+                    // ============ ابطال: سقفِ جدید بالای خط بسته شد ============
+                    tlDnKillX    := tlBx
+                    tlDnKillY    := tlYAt
+                    tlDnLive     := false
+                    tlDnBreakNow := true
+                    array.clear(tlDnBarArr)
+                    array.clear(tlDnPxArr)
+                    if tlPx >= tlDnY2
+                        // سقفِ جدید از آخرین سقف بالاتر است: تک‌نقطه از نو
+                        array.push(tlDnBarArr, tlBx)
+                        array.push(tlDnPxArr,  tlPx)
+                        tlDnX1 := tlBx
+                        tlDnY1 := tlPx
+                    else
+                        // هنوز سقفِ پایین‌تر است: خطِ جدید از آخرین سقف تا این سقف
+                        array.push(tlDnBarArr, tlDnX2)
+                        array.push(tlDnPxArr,  tlDnY2)
+                        array.push(tlDnBarArr, tlBx)
+                        array.push(tlDnPxArr,  tlPx)
+                        tlDnX1 := tlDnX2
+                        tlDnY1 := tlDnY2
+                        tlDnX2 := tlBx
+                        tlDnY2 := tlPx
+                        tlDnLive  := true
+                        tlDnAlign := tlPdPremBar
+                else
+                    // ===================== بررسیِ لمسِ معتبر =====================
+                    tlNeedRe = false
+                    if tlPx <= tlYAt + tlTolVal
+                        // شرطِ هال: هیچ سقفِ قبلی نباید بالاتر از خطِ کاندید بایستد
+                        tlHullOk = tlPdMode != "فقط همسو" or tlPdPremBar
+                        for tlI = 0 to array.size(tlDnBarArr) - 1
+                            tlYY = fLineY(tlDnX1, tlDnY1, tlBx, tlPx, array.get(tlDnBarArr, tlI))
+                            if not na(tlYY) and array.get(tlDnPxArr, tlI) > tlYY + tlTolVal
+                                tlHullOk := false
+                        if tlHullOk
+                            array.push(tlDnBarArr, tlBx)
+                            array.push(tlDnPxArr,  tlPx)
+                            tlDnX2 := tlBx
+                            tlDnY2 := tlPx
+                            tlDnAlign := tlDnAlign or tlPdPremBar
+                            tlDnNewTouch := true
+                        else
+                            tlNeedRe := true
+                    else
+                        tlNeedRe := true
+
+                    if tlNeedRe and tlReanchor and tlPx < tlDnY2
+                        // خطِ فعلی با ساختار هم‌خوان نیست: از دو سقفِ آخر بازترسیم می‌شود
+                        // (اگر خط تاییدشده بود، ابتدا بایگانی می‌شود تا روی چارت بماند)
+                        if array.size(tlDnBarArr) >= 3 and not na(tlDnObj)
+                            line.set_extend(tlDnObj, extend.none)
+                            line.set_xy2(tlDnObj, tlDnX2, tlDnY2)
+                            line.set_color(tlDnObj, tlColDead)
+                            line.set_style(tlDnObj, line.style_dotted)
+                            line.set_width(tlDnObj, 1)
+                            array.push(tlDnHist, tlDnObj)
+                            if array.size(tlDnHist) > tlMaxLines
+                                line.delete(array.shift(tlDnHist))
+                            tlDnObj := na
+                        array.clear(tlDnBarArr)
+                        array.clear(tlDnPxArr)
+                        array.push(tlDnBarArr, tlDnX2)
+                        array.push(tlDnPxArr,  tlDnY2)
+                        array.push(tlDnBarArr, tlBx)
+                        array.push(tlDnPxArr,  tlPx)
+                        tlDnX1 := tlDnX2
+                        tlDnY1 := tlDnY2
+                        tlDnX2 := tlBx
+                        tlDnY2 := tlPx
+                        tlDnAlign := tlPdPremBar
+
+// ============================================================================
+//  بخش هـ — پردازشِ پیوتِ کف جدید  →  خط روند صعودی
+// ============================================================================
+if showTrendlines and not na(tlPL)
+    tlQx = tlPL
+    tlQb = tlPlBar
+    tlQs = tlPlSrc
+    if tlUpHits == 0
+        array.push(tlUpBarArr, tlQb)
+        array.push(tlUpPxArr,  tlQx)
+        tlUpX1   := tlQb
+        tlUpY1   := tlQx
+        tlUpLive := false
+    else
+        if tlUpHits == 1
+            if tlQx > tlUpY1
+                if tlPdMode != "فقط همسو" or tlPdDiscBar
+                    array.push(tlUpBarArr, tlQb)
+                    array.push(tlUpPxArr,  tlQx)
+                    tlUpX2      := tlQb
+                    tlUpY2      := tlQx
+                    tlUpLive    := true
+                    tlUpAlign   := tlPdDiscBar
+                    tlUpNewTouch := true
+            else
+                array.clear(tlUpBarArr)
+                array.clear(tlUpPxArr)
+                array.push(tlUpBarArr, tlQb)
+                array.push(tlUpPxArr,  tlQx)
+                tlUpX1   := tlQb
+                tlUpY1   := tlQx
+                tlUpLive := false
+        else
+            tlUAt = fLineY(tlUpX1, tlUpY1, tlUpX2, tlUpY2, tlQb)
+            if na(tlUAt)
+                array.clear(tlUpBarArr)
+                array.clear(tlUpPxArr)
+                tlUpLive := false
+            else
+                if tlQs < tlUAt - tlBrkVal
+                    // ============ ابطال: کفِ جدید زیر خط بسته شد ============
+                    tlUpKillX    := tlQb
+                    tlUpKillY    := tlUAt
+                    tlUpLive     := false
+                    tlUpBreakNow := true
+                    array.clear(tlUpBarArr)
+                    array.clear(tlUpPxArr)
+                    if tlQx <= tlUpY2
+                        array.push(tlUpBarArr, tlQb)
+                        array.push(tlUpPxArr,  tlQx)
+                        tlUpX1 := tlQb
+                        tlUpY1 := tlQx
+                    else
+                        array.push(tlUpBarArr, tlUpX2)
+                        array.push(tlUpPxArr,  tlUpY2)
+                        array.push(tlUpBarArr, tlQb)
+                        array.push(tlUpPxArr,  tlQx)
+                        tlUpX1 := tlUpX2
+                        tlUpY1 := tlUpY2
+                        tlUpX2 := tlQb
+                        tlUpY2 := tlQx
+                        tlUpLive  := true
+                        tlUpAlign := tlPdDiscBar
+                else
+                    // ===================== بررسیِ لمسِ معتبر =====================
+                    tlNeedUp = false
+                    if tlQx >= tlUAt - tlTolVal
+                        // شرطِ هال: هیچ کفِ قبلی نباید پایین‌تر از خطِ کاندید بایستد
+                        tlUHullOk = tlPdMode != "فقط همسو" or tlPdDiscBar
+                        for tlJ = 0 to array.size(tlUpBarArr) - 1
+                            tlUU = fLineY(tlUpX1, tlUpY1, tlQb, tlQx, array.get(tlUpBarArr, tlJ))
+                            if not na(tlUU) and array.get(tlUpPxArr, tlJ) < tlUU - tlTolVal
+                                tlUHullOk := false
+                        if tlUHullOk
+                            array.push(tlUpBarArr, tlQb)
+                            array.push(tlUpPxArr,  tlQx)
+                            tlUpX2 := tlQb
+                            tlUpY2 := tlQx
+                            tlUpAlign := tlUpAlign or tlPdDiscBar
+                            tlUpNewTouch := true
+                        else
+                            tlNeedUp := true
+                    else
+                        tlNeedUp := true
+
+                    if tlNeedUp and tlReanchor and tlQx > tlUpY2
+                        if array.size(tlUpBarArr) >= 3 and not na(tlUpObj)
+                            line.set_extend(tlUpObj, extend.none)
+                            line.set_xy2(tlUpObj, tlUpX2, tlUpY2)
+                            line.set_color(tlUpObj, tlColDead)
+                            line.set_style(tlUpObj, line.style_dotted)
+                            line.set_width(tlUpObj, 1)
+                            array.push(tlUpHist, tlUpObj)
+                            if array.size(tlUpHist) > tlMaxLines
+                                line.delete(array.shift(tlUpHist))
+                            tlUpObj := na
+                        array.clear(tlUpBarArr)
+                        array.clear(tlUpPxArr)
+                        array.push(tlUpBarArr, tlUpX2)
+                        array.push(tlUpPxArr,  tlUpY2)
+                        array.push(tlUpBarArr, tlQb)
+                        array.push(tlUpPxArr,  tlQx)
+                        tlUpX1 := tlUpX2
+                        tlUpY1 := tlUpY2
+                        tlUpX2 := tlQb
+                        tlUpY2 := tlQx
+                        tlUpAlign := tlPdDiscBar
+
+// ============================================================================
+//  بخش و — مقدارِ لحظه‌ایِ خطوط و بررسی شکست روی کندل جاری
+// ============================================================================
+// بعد از پردازشِ پیوتِ همین کندل، شمارنده‌ها بازخوانی می‌شوند
+tlDnHits := array.size(tlDnBarArr)
+tlUpHits := array.size(tlUpBarArr)
+
+tlDnYNow = (tlDnLive and tlDnHits >= 2) ? fLineY(tlDnX1, tlDnY1, tlDnX2, tlDnY2, bar_index) : float(na)
+tlUpYNow = (tlUpLive and tlUpHits >= 2) ? fLineY(tlUpX1, tlUpY1, tlUpX2, tlUpY2, bar_index) : float(na)
+
+if showTrendlines
+    // شکستِ مقاومتِ پویا با کلوز (یا سایه) بالای خط
+    if tlDnLive and not na(tlDnYNow) and bar_index > tlDnX2 and tlSrcUp > tlDnYNow + tlBrkVal
+        tlDnKillX    := bar_index
+        tlDnKillY    := tlDnYNow
+        tlDnLive     := false
+        tlDnBreakNow := true
+        array.clear(tlDnBarArr)
+        array.clear(tlDnPxArr)
+        array.push(tlDnBarArr, bar_index)
+        array.push(tlDnPxArr,  high)
+        tlDnX1 := bar_index
+        tlDnY1 := high
+        tlDnX2 := bar_index
+        tlDnY2 := high
+    // شکستِ حمایتِ پویا با کلوز (یا سایه) زیر خط
+    if tlUpLive and not na(tlUpYNow) and bar_index > tlUpX2 and tlSrcDn < tlUpYNow - tlBrkVal
+        tlUpKillX    := bar_index
+        tlUpKillY    := tlUpYNow
+        tlUpLive     := false
+        tlUpBreakNow := true
+        array.clear(tlUpBarArr)
+        array.clear(tlUpPxArr)
+        array.push(tlUpBarArr, bar_index)
+        array.push(tlUpPxArr,  low)
+        tlUpX1 := bar_index
+        tlUpY1 := low
+        tlUpX2 := bar_index
+        tlUpY2 := low
+
+// ============================================================================
+//  بخش ز — ترسیم و بایگانی
+// ============================================================================
+if showTrendlines
+    // ---------- خط نزولی ----------
+    if tlDnLive and array.size(tlDnBarArr) >= tlMinTouches
+        tlColD = (tlPdMode == "بدون فیلتر" or tlDnAlign) ? tlColDn : tlColDnWeak
+        tlStlD = array.size(tlDnBarArr) >= 3 ? line.style_solid : line.style_dashed
+        tlWidD = array.size(tlDnBarArr) >= 3 ? 2 : 1
+        if na(tlDnObj)
+            tlDnObj := line.new(tlDnX1, tlDnY1, tlDnX2, tlDnY2, xloc=xloc.bar_index,
+                 extend=extend.right, color=tlColD, style=tlStlD, width=tlWidD)
+        else
+            line.set_xy1(tlDnObj, tlDnX1, tlDnY1)
+            line.set_xy2(tlDnObj, tlDnX2, tlDnY2)
+            line.set_color(tlDnObj, tlColD)
+            line.set_style(tlDnObj, tlStlD)
+            line.set_width(tlDnObj, tlWidD)
+            line.set_extend(tlDnObj, extend.right)
+    else
+        if not na(tlDnObj)
+            // نقطهٔ پایانِ خط: محل شکست؛ اگر ثبت نشده بود، آخرین لنگر
+            tlEndX = not na(tlDnKillX) ? tlDnKillX : tlDnX2
+            tlEndY = not na(tlDnKillY) ? tlDnKillY : tlDnY2
+            if not na(tlEndX) and not na(tlEndY)
+                line.set_extend(tlDnObj, extend.none)
+                line.set_xy2(tlDnObj, tlEndX, tlEndY)
+                line.set_color(tlDnObj, tlColDead)
+                line.set_style(tlDnObj, line.style_dotted)
+                line.set_width(tlDnObj, 1)
+                array.push(tlDnHist, tlDnObj)
+                if array.size(tlDnHist) > tlMaxLines
+                    line.delete(array.shift(tlDnHist))
+            else
+                line.delete(tlDnObj)
+            tlDnObj   := na
+            tlDnKillX := na
+            tlDnKillY := na
+
+    // ---------- خط صعودی ----------
+    if tlUpLive and array.size(tlUpBarArr) >= tlMinTouches
+        tlColU = (tlPdMode == "بدون فیلتر" or tlUpAlign) ? tlColUp : tlColUpWeak
+        tlStlU = array.size(tlUpBarArr) >= 3 ? line.style_solid : line.style_dashed
+        tlWidU = array.size(tlUpBarArr) >= 3 ? 2 : 1
+        if na(tlUpObj)
+            tlUpObj := line.new(tlUpX1, tlUpY1, tlUpX2, tlUpY2, xloc=xloc.bar_index,
+                 extend=extend.right, color=tlColU, style=tlStlU, width=tlWidU)
+        else
+            line.set_xy1(tlUpObj, tlUpX1, tlUpY1)
+            line.set_xy2(tlUpObj, tlUpX2, tlUpY2)
+            line.set_color(tlUpObj, tlColU)
+            line.set_style(tlUpObj, tlStlU)
+            line.set_width(tlUpObj, tlWidU)
+            line.set_extend(tlUpObj, extend.right)
+    else
+        if not na(tlUpObj)
+            tlEndU = not na(tlUpKillX) ? tlUpKillX : tlUpX2
+            tlEndV = not na(tlUpKillY) ? tlUpKillY : tlUpY2
+            if not na(tlEndU) and not na(tlEndV)
+                line.set_extend(tlUpObj, extend.none)
+                line.set_xy2(tlUpObj, tlEndU, tlEndV)
+                line.set_color(tlUpObj, tlColDead)
+                line.set_style(tlUpObj, line.style_dotted)
+                line.set_width(tlUpObj, 1)
+                array.push(tlUpHist, tlUpObj)
+                if array.size(tlUpHist) > tlMaxLines
+                    line.delete(array.shift(tlUpHist))
+            else
+                line.delete(tlUpObj)
+            tlUpObj   := na
+            tlUpKillX := na
+            tlUpKillY := na
+
+    // ---------- برچسب‌ها ----------
+    if showTlLabels
+        if tlDnNewTouch
+            tlLb = label.new(tlDnX2, tlDnY2 + tlAtr * 0.6,
+                 "سقف " + str.tostring(array.size(tlDnBarArr)),
+                 xloc=xloc.bar_index, yloc=yloc.price, style=label.style_label_center,
+                 color=tlDnAlign ? color.new(color.red, 20) : color.new(color.gray, 30),
+                 textcolor=color.white, size=size.tiny)
+            array.push(tlLabHist, tlLb)
+        if tlUpNewTouch
+            tlLu = label.new(tlUpX2, tlUpY2 - tlAtr * 0.6,
+                 "کف " + str.tostring(array.size(tlUpBarArr)),
+                 xloc=xloc.bar_index, yloc=yloc.price, style=label.style_label_center,
+                 color=tlUpAlign ? color.new(color.teal, 20) : color.new(color.gray, 30),
+                 textcolor=color.white, size=size.tiny)
+            array.push(tlLabHist, tlLu)
+        if tlDnBreakNow
+            tlLd = label.new(bar_index, high + tlAtr * 0.8, "شکست خط نزولی",
+                 xloc=xloc.bar_index, yloc=yloc.price, style=label.style_label_center,
+                 color=color.new(color.lime, 20), textcolor=color.black, size=size.tiny)
+            array.push(tlLabHist, tlLd)
+        if tlUpBreakNow
+            tlLv = label.new(bar_index, low - tlAtr * 0.8, "شکست خط صعودی",
+                 xloc=xloc.bar_index, yloc=yloc.price, style=label.style_label_center,
+                 color=color.new(color.maroon, 20), textcolor=color.white, size=size.tiny)
+            array.push(tlLabHist, tlLv)
+        while array.size(tlLabHist) > 60
+            label.delete(array.shift(tlLabHist))
+else
+    if not na(tlDnObj)
+        line.delete(tlDnObj)
+        tlDnObj := na
+    if not na(tlUpObj)
+        line.delete(tlUpObj)
+        tlUpObj := na
+
+// ============================================================================
+//  بخش ح — خروجی‌های قابل‌استفاده در امتیازدهی Confluence
+// ============================================================================
+// نزدیکیِ قیمت به خطِ روندِ فعال (حمایت برای خرید، مقاومت برای فروش)
+tlAtSupport    = not na(tlUpYNow) and tlSrcDn >= tlUpYNow - tlTolVal and tlSrcDn <= tlUpYNow + tlTolVal * 2.0
+tlAtResistance = not na(tlDnYNow) and tlSrcUp <= tlDnYNow + tlTolVal and tlSrcUp >= tlDnYNow - tlTolVal * 2.0
+tlDnConfirmed  = tlDnLive and array.size(tlDnBarArr) >= 3
+tlUpConfirmed  = tlUpLive and array.size(tlUpBarArr) >= 3
+
+// --- هشدارها ---
+alertcondition(tlDnBreakNow, title="PA — شکست خط روند نزولی (BOS صعودی)",
+     message="شکست خط روند نزولی روی {{ticker}} — کلوز {{close}}")
+alertcondition(tlUpBreakNow, title="PA — شکست خط روند صعودی (BOS نزولی)",
+     message="شکست خط روند صعودی روی {{ticker}} — کلوز {{close}}")
+alertcondition(tlDnNewTouch, title="PA — لمس جدید روی خط روند نزولی",
+     message="لمس جدید روی خط روند نزولی {{ticker}} — تعداد لمس ها افزایش یافت")
+alertcondition(tlUpNewTouch, title="PA — لمس جدید روی خط روند صعودی",
+     message="لمس جدید روی خط روند صعودی {{ticker}} — تعداد لمس ها افزایش یافت")

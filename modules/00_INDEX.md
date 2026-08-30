@@ -16,12 +16,13 @@
 | ۸ | `08_display_alerts.pine` | پنل نمایش و هشدارها | انتهای فایل (بعد از همه) | ردیف‌های ۹–۱۱ پنل + `alertcondition` |
 | 9a | `09a_symbol_detection.pine` | تشخیص نوع نماد + حداقل نوسان مؤثر | **زود**: بلافاصله بعد از بخش `input.*` | `symU`, `autoSymbolType`, `autoPeriod`, `autoFactor`, `autoMinAtrPct`, `xauMinAtrPctEff` |
 | 9b | `09b_apply_autotune.pine` | اعمال تنظیم خودکار روی هسته | بعد از ۳، قبل از محاسبه هسته NTS | `ntsPeriodFinal`, `ntsFactorFinal` |
+| ۱۰ | `10_trendlines_pa.pine` | خطوط روندِ پرایس‌اکشن + ناحیهٔ روزانهٔ قبل | **بعد از ۷a و قبل از ۶** | `tlPdHigh/Low/Eq`, `tlDnLive`/`tlUpLive`, `tlDnYNow`/`tlUpYNow`, `tlDnBreakNow`/`tlUpBreakNow`, `tlAtSupport`/`tlAtResistance` |
 
 ### ترتیب پیشنهادیِ نهایی برای درج
 
 ```
 input.*  →  09a  →  01  →  03  →  09b  →  02  →  هسته NTS
-        →  05  →  04  →  07a  →  06  →  07b  →  نمایش/هشدار (08)
+        →  05  →  04  →  07a  →  10  →  06  →  07b  →  نمایش/هشدار (08)
 ```
 (فایل مرجع `src/SMC_NTS_Pro.pine` دقیقاً همین ترتیب را دارد.)
 
@@ -46,3 +47,15 @@ input.*  →  09a  →  01  →  03  →  09b  →  02  →  هسته NTS
 | `ntsTrend == -1and`, `bearishConfirmationand`, `kdBuySignaland`, `xauTradeOkand` | فاصله‌گذاری اصلاح شد |
 | `{{plot("inDailyDiscount")}}` در `alertcondition` | تبدیل به `{{plot("DailyZone")}}` + پلات کمکی |
 | `xauMinAtrPct := autoMinAtrPct` (بازنویسی ورودی) | تبدیل به `xauMinAtrPctEff` |
+
+## نکتهٔ ویژهٔ ماژول ۱۰ (خطوط روند)
+
+این ماژول **اشیاء گرافیکی** (`line` و `label`) می‌سازد، بنابراین اندیکاتور مقصد
+باید این مقادیر را داشته باشد:
+
+```pine
+indicator(..., overlay=true, max_lines_count=500, max_labels_count=500)
+```
+
+همچنین چون خروجی‌های `tlAtSupport` / `tlAtResistance` در امتیازدهیِ M06 استفاده
+می‌شوند، ماژول ۱۰ باید **قبل از** M06 درج شود.
