@@ -32,6 +32,7 @@ tlMinTouch     = input.int(2, "حداقل برخورد لازم", minval=2, maxv
      tooltip="۲ = خط روند با اتصال دو سقف نزولی / دو کف صعودی", group=gTrend)
 tlTouchTolAtr  = input.float(0.55, "تلورانس برخورد (× ATR)", step=0.05, minval=0.05, group=gTrend)
 tlExtendRight  = input.bool(true,  "امتداد خط به سمت راست", group=gTrend)
+updateOnClose  = input.bool(true,  "به‌روزرسانی خط فقط در بسته‌شدن کندل", group=gTrend)
 tlColUp        = input.color(color.new(color.lime, 0), "رنگ روند صعودی", group=gTrend)
 tlColDn        = input.color(color.new(color.red, 0),  "رنگ روند نزولی", group=gTrend)
 showPrevDayPD  = input.bool(true,  "نمایش ناحیه پریمیوم/دیسکانت روز قبل", group=gTrend)
@@ -65,7 +66,7 @@ var label tlUpLbl  = na
 dnBestTouch = 0
 upBestTouch = 0
 
-if barstate.islast and showTrendlines
+if barstate.islast and showTrendlines and (not updateOnClose or barstate.isconfirmed)
     if not na(tlDnLine)
         line.delete(tlDnLine)
     if not na(tlUpLine)

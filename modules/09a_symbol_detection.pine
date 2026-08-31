@@ -1,50 +1,22 @@
 // ============================================================================
-// بهبود ۹ (بلوک الف) : تشخیص خودکار نوع نماد و پارامترهای پیش‌فرض
+// بهبود ۹ (الف) : تشخیص نوع نماد
 // Pine Script v5
 // ----------------------------------------------------------------------------
-// محل درج : بلافاصله بعد از بخش input.* (خیلی زود، چون xauMinAtrPctEff در
-//           ماژول ۴ استفاده می‌شود)
-// خروجی‌ها : symU, autoSymbolType, autoPeriod, autoFactor, autoMinAtrPct,
-//            xauMinAtrPctEff
+// کریپتو قبل از USD بررسی می‌شود تا BTCUSD/ETHUSD/SOLUSD به‌اشتباه Forex نشوند.
 // ============================================================================
 
-// --- ۹.۱ نام نماد به حروف بزرگ ---
-// اگر در کد پایه symU از قبل تعریف شده، این خط را حذف کنید
-symU = str.upper(syminfo.ticker)
-
-// --- ۹.۲ تشخیص خودکار نوع نماد ---
-// اصلاح مهم نسبت به متن اولیه: بررسی «کریپتو» باید «قبل از» بررسی USD انجام شود،
-// وگرنه BTCUSD (که شامل USD است) اشتباهاً forex تشخیص داده می‌شود.
+symU = str.upper(syminfo.ticker + " " + syminfo.basecurrency + " " + syminfo.currency)
 autoSymbolType =
-     str.contains(symU, "XAU")  or str.contains(symU, "GOLD") ? "gold"   :
-     str.contains(symU, "XAG")                                ? "silver" :
-     str.contains(symU, "BTC")  or str.contains(symU, "ETH")  ? "crypto" :
+     str.contains(symU, "XAU") or str.contains(symU, "GOLD") ? "gold" :
+     str.contains(symU, "XAG") ? "silver" :
+     str.contains(symU, "BTC") or str.contains(symU, "ETH") or str.contains(symU, "SOL") ? "crypto" :
      (str.contains(symU, "USD") and not str.contains(symU, "USDT")) or
-     str.contains(symU, "EUR")  or str.contains(symU, "GBP")  or
-     str.contains(symU, "JPY")                                ? "forex"  :
+     str.contains(symU, "EUR") or str.contains(symU, "GBP") or str.contains(symU, "JPY") ? "forex" :
      "other"
-
-// --- ۹.۳ پارامترهای خودکار بر اساس نوع نماد ---
-autoPeriod = autoSymbolType == "gold"   ? 10 :
-     autoSymbolType == "silver"         ? 12 :
-     autoSymbolType == "forex"          ? 8  :
-     autoSymbolType == "crypto"         ? 14 :
-     10
-
-autoFactor = autoSymbolType == "gold"   ? 3.5 :
-     autoSymbolType == "silver"         ? 4.0 :
-     autoSymbolType == "forex"          ? 3.0 :
-     autoSymbolType == "crypto"         ? 5.0 :
-     3.5
-
-autoMinAtrPct = autoSymbolType == "gold"   ? 0.06 :
-     autoSymbolType == "silver"            ? 0.08 :
-     autoSymbolType == "forex"             ? 0.05 :
-     autoSymbolType == "crypto"            ? 0.15 :
-     0.06
-
-// --- ۹.۴ حداقل نوسان مؤثر ---
-// نکته: در Pine نمی‌توان مقدار یک ورودی (input) را با := بازنویسی کرد،
-// بنابراین به‌جای "xauMinAtrPct := autoMinAtrPct" از یک متغیر مؤثر استفاده می‌کنیم
-// و در تمام کد (از جمله ماژول ۴) از xauMinAtrPctEff استفاده می‌شود.
+autoPeriod = autoSymbolType == "gold" ? 10 : autoSymbolType == "silver" ? 12 :
+     autoSymbolType == "forex" ? 8 : autoSymbolType == "crypto" ? 14 : 10
+autoFactor = autoSymbolType == "gold" ? 3.5 : autoSymbolType == "silver" ? 4.0 :
+     autoSymbolType == "forex" ? 3.0 : autoSymbolType == "crypto" ? 5.0 : 3.5
+autoMinAtrPct = autoSymbolType == "gold" ? 0.06 : autoSymbolType == "silver" ? 0.08 :
+     autoSymbolType == "forex" ? 0.05 : autoSymbolType == "crypto" ? 0.15 : 0.06
 xauMinAtrPctEff = autoTuneThisChart ? autoMinAtrPct : xauMinAtrPct

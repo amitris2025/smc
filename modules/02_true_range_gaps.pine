@@ -1,39 +1,37 @@
 // ============================================================================
-// بهبود ۲ : محاسبه دقیق‌تر True Range با در نظر گرفتن گپ‌های قیمتی
+// بهبود ۲ : True Range و SMA واقعاً در تایم‌فریم پایه NTS
 // Pine Script v5
 // ----------------------------------------------------------------------------
-// محل درج : در هسته NTS، جایی که True Range محاسبه می‌شود
-// ورودی‌های مورد نیاز از کد پایه شما:
-//   ntsTrailType (string input) : "modified" | حالت کلاسیک
-//   ntsHigh, ntsLow, ntsClose   : سری‌های تایم‌فریم پایه (خروجی request.security)
-//   ntsHiLo, ntsHRef, ntsLRef   : اجزای True Range در حالت modified
-// نکته: اگر در کد پایه نام‌های متفاوتی دارید (مثل hi, lo, srcHigh)، در همین‌جا
-//       معادل‌سازی کنید؛ بقیه منطق بدون تغییر کار می‌کند.
-// خروجی‌ها : ntsTrueRange (float) , ntsGapUp, ntsGapDown (bool) , ntsGapAdjustment
+// این بخش را جایگزین request.securityهای جداگانهٔ High/Low/Close کنید.
+// نکتهٔ کلیدی: ta.sma(high - low, 14) داخل expression تایم‌فریم پایه است؛
+// بنابراین روی چارت پایین‌تر، تکرار یک کندل HTF باعث خراب‌شدن SMA نمی‌شود.
+// خروجی‌ها: ntsHigh, ntsLow, ntsClose, ntsHtfTime, ntsRangeSma,
+//            ntsTrueRange, ntsGapUp, ntsGapDown, ntsGapAdjustment
 // ============================================================================
 
-// --- ۲.۱ اجزای کلاسیک True Range (در صورت نبود در کد پایه) ---
-ntsHiLo = ntsHigh - ntsLow
-ntsHRef = math.abs(ntsHigh - ntsClose[1])
-ntsLRef = math.abs(ntsLow  - ntsClose[1])
+ntsTicker = ticker.new(syminfo.prefix, syminfo.ticker)
+[ntsHigh, ntsLow, ntsClose, ntsHtfTime, ntsRangeSma] = request.security(
+     ntsTicker,
+     ntsBaseTimeframe,
+     [high, low, close, time, ta.sma(high - low, 14)],
+     gaps=barmerge.gaps_off,
+     lookahead=barmerge.lookahead_off)
 
-// --- ۲.۲ تشخیص گپ قیمتی بین کندل قبلی و فعلی ---
-ntsGapUp   = ntsLow  > ntsHigh[1]
-ntsGapDown = ntsHigh < ntsLow[1]
-
-// --- ۲.۳ True Range پایه (modified یا کلاسیک) ---
-ntsTrueRange = ntsTrailType == "modified" ?
+ntsPrevClose = ntsClose[1]
+ntsRawRange = ntsHigh - ntsLow
+ntsHiLo = math.min(ntsRawRange, 1.5 * nz(ntsRangeSma, ntsRawRange))
+ntsHRef = not na(ntsPrevClose) ? math.abs(ntsHigh - ntsPrevClose) : ntsRawRange
+ntsLRef = not na(ntsPrevClose) ? math.abs(ntsLow - ntsPrevClose) : ntsRawRange
+ntsGapUp = not na(ntsHigh[1]) and ntsLow > ntsHigh[1]
+ntsGapDown = not na(ntsLow[1]) and ntsHigh < ntsLow[1]
+ntsGapAdjustment = ntsGapUp ? ntsLow - ntsHigh[1] : ntsGapDown ? ntsLow[1] - ntsHigh : 0.0
+ntsTrueRangeRaw = ntsTrailType == "modified" ?
      math.max(ntsHiLo, math.max(ntsHRef, ntsLRef)) :
-     math.max(ntsHigh - ntsLow, math.max(math.abs(ntsHigh - ntsClose[1]),
-                                         math.abs(ntsLow  - ntsClose[1])))
+     math.max(ntsRawRange, math.max(ntsHRef, ntsLRef))
+ntsTrueRange = nz(ntsTrueRangeRaw, nz(ntsRawRange, syminfo.mintick)) + ntsGapAdjustment * 0.5
 
-// --- ۲.۴ اعمال وزن گپ روی True Range ---
-// فقط نیمی از اندازه گپ اضافه می‌شود تا از بزرگ‌نمایی نویز جلوگیری شود
-ntsGapAdjustment = ntsGapUp   ? ntsLow - ntsHigh[1] :
-     ntsGapDown              ? ntsLow[1] - ntsHigh  :
-     0.0
-
-ntsTrueRange := ntsTrueRange + ntsGapAdjustment * 0.5
-
-// --- ۲.۵ ایمنی عددی (اختیاری اما توصیه‌شده) ---
-ntsTrueRange := nz(ntsTrueRange, ntsHigh - ntsLow)
+// برای جلوگیری از آپدیت چندبارهٔ state در چارت پایین‌تر:
+ntsCurrentTfSeconds = timeframe.in_seconds(timeframe.period)
+ntsBaseTfSeconds = timeframe.in_seconds(ntsBaseTimeframe)
+ntsSameOrHigher = not na(ntsCurrentTfSeconds) and not na(ntsBaseTfSeconds) and ntsCurrentTfSeconds >= ntsBaseTfSeconds
+ntsOnBaseBar = ntsSameOrHigher or na(ntsHtfTime[1]) or (not na(ntsHtfTime) and ntsHtfTime != ntsHtfTime[1])

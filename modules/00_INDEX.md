@@ -1,49 +1,62 @@
 # ماژول‌های بهبود NTS / SMC (Pine Script v5)
 
-هر فایل یک «بهبود» مستقل است که می‌تواند به صورت قطعه‌قطعه در اندیکاتور اصلی شما درج شود.
-ترتیب درج بسیار مهم است (ستون «ترتیب»).
+هر فایل یک قطعهٔ قابل درج در اندیکاتور اصلی است. ترتیب درج مهم است؛
+`src/SMC_NTS_Pro.pine` نسخهٔ کامل و یکپارچهٔ همین منطق را دارد.
 
-| # | فایل | موضوع | ترتیب درج | خروجی‌های کلیدی |
-|---|------|-------|-----------|-----------------|
-| ۱ | `01_nts_mode_params.pine` | تفکیک حالت تریدینگ از تایم‌فریم پایه | بعد از تعریف ورودی‌های `ntsTradingMode` / `ntsBaseTimeframe` | `ntsPeriod`, `ntsFactor`, `basePeriod`, `baseFactor` |
-| ۲ | `02_true_range_gaps.pine` | True Range دقیق‌تر با وزن گپ | داخل/قبل از هسته محاسبه NTS | `ntsTrueRange`, `ntsGapUp`, `ntsGapDown`, `ntsGapAdjustment` |
-| ۳ | `03_adx_atr_regime.pine` | تشخیص رژیم روند/رنج با ADX+ATR | **بعد از ۱**، قبل از استفاده از `ntsPeriod` | `atrNorm`, `chopRegime`, `trendRegime` + تنظیم پویای `ntsPeriod` |
-| ۴ | `04_session_volatility_xau.pine` | فیلتر سشن و نوسان برای XAUUSD | بعد از ۳ و ۹a، قبل از ۶ | `xauNyHour`, `xauInSession`, `xauGoldenHour`, `xauVolOk`, `xauTradeOk`, `ntsGoldenHourBonus` |
-| ۵ | `05_dynamic_reversal_cloud.pine` | Reversal Cloud پویا بر اساس ATR | بعد از محاسبه `cloudBasis`/`cloudRange` و `atrNorm` (ماژول ۳) | `upperCloud1..3`, `lowerCloud1..3`, `revBuyOk`, `revSellOk` |
-| ۶ | `06_confluence_scoring.pine` | سیستم امتیازدهی Confluence | بعد از ۵ و **۷a** | `ntsBuyConfluencePts`, `ntsSellConfluencePts`, `ntsBuyThreshold`, `ntsSellThreshold` |
-| 7a | `07a_zone_volume_filters.pine` | ناحیه روزانه + فیلتر حجم | **قبل از ۶** | `inDailyDiscount`, `inDailyPremium`, `ntsVolBoost` |
-| 7b | `07b_final_signals.pine` | سیگنال‌های نهایی ترکیبی | بعد از ۴ و ۶ | `ntsKafSignal`, `ntsSaghfSignal`, `finalBuySignal`, `finalSellSignal` |
-| ۸ | `08_display_alerts.pine` | پنل نمایش و هشدارها | انتهای فایل (بعد از همه) | ردیف‌های ۹–۱۱ پنل + `alertcondition` |
-| 9a | `09a_symbol_detection.pine` | تشخیص نوع نماد + حداقل نوسان مؤثر | **زود**: بلافاصله بعد از بخش `input.*` | `symU`, `autoSymbolType`, `autoPeriod`, `autoFactor`, `autoMinAtrPct`, `xauMinAtrPctEff` |
-| 9b | `09b_apply_autotune.pine` | اعمال تنظیم خودکار روی هسته | بعد از ۳، قبل از محاسبه هسته NTS | `ntsPeriodFinal`, `ntsFactorFinal` |
-| ۱۰ | `10_price_action_trendlines.pine` | خط روند اصولی پرایس‌اکشن (سقف/کف سویینگ) + ناحیه پریمیوم/دیسکانت روز قبل | **بعد از** پیوت‌های `ph`/`pl` و `atrSeed`، پیش از نمایش | `tlDnLine`, `tlUpLine`, `dnBestTouch`, `upBestTouch` |
+| # | فایل | موضوع | خروجی‌های کلیدی |
+|---|------|-------|-----------------|
+| ۱ | `01_nts_mode_params.pine` | تفکیک حالت تریدینگ از تایم‌فریم پایه | `ntsPeriod`, `ntsFactor` |
+| ۲ | `02_true_range_gaps.pine` | True Range و SMA رنج در TF پایه | `ntsHigh/Low/Close`, `ntsRangeSma`, `ntsTrueRange` |
+| ۳ | `03_adx_atr_regime.pine` | رژیم رنج/روند با ADX + ATR | `atrNorm`, `chopRegime`, `trendRegime` |
+| ۴ | `04_session_volatility_xau.pine` | سشن تهران + فیلتر ATR طلا | `xauTradeOk`, `ntsGoldenHourBonus` |
+| ۵ | `05_dynamic_reversal_cloud.pine` | ابر ریورسال پویا و تماس نزدیک | `upper/lowerCloud1..3`, `revBuyOk`, `revSellOk` |
+| ۶ | `06_confluence_scoring.pine` | امتیازدهی با کراس‌های پیش‌محاسبه‌شده | `ntsBuy/SellConfluencePts` |
+| ۷الف | `07a_zone_volume_filters.pine` | PD بر اساس رنج روز قبل + حجم | `inDailyDiscount`, `inDailyPremium` |
+| ۷ب | `07b_final_signals.pine` | Final با threshold و bar close | `finalBuySignal`, `finalSellSignal` |
+| ۸ | `08_display_alerts.pine` | پنل و هشدار همهٔ گروه‌های Fib | `alertcondition`های Extension |
+| ۹الف | `09a_symbol_detection.pine` | تشخیص Gold/Silver/Crypto/Forex | `autoSymbolType`, `xauMinAtrPctEff` |
+| ۹ب | `09b_apply_autotune.pine` | ترکیب Auto-Tune با mode/TF/regime | `ntsPeriodFinal`, `ntsFactorFinal` |
+| ۱۰ | `10_price_action_trendlines.pine` | خط روند بر پایهٔ پیوت‌های معتبر | `tlDnLine`, `tlUpLine` |
+| ۱۱ | `11_nts_extensions_confirmed.pine` | موج، Extension، Wick، Pullback و CHoCH | سطوح 0.300 تا 10.618 و سیگنال‌های تأییدشده |
 
-### ترتیب پیشنهادیِ نهایی برای درج
+## ترتیب پیشنهادی درج
 
+```text
+input.*
+  → 09a → 01 → 03 → 09b → 02 → هسته NTS با ntsOnBaseBar
+  → پیوت‌ها/ساختار → 05 → 04 → PD/07a → 11 → 06 → 07b
+  → 10 → نمایش و هشدارهای 08
 ```
-input.*  →  09a  →  01  →  03  →  09b  →  02  →  هسته NTS
-        →  05  →  04  →  07a  →  06  →  07b  →  10  →  نمایش/هشدار (08)
+
+## قراردادهای مهم ادغام
+
+1. **MTF:** بخش ۲ باید با یک `request.security` پنج‌تایی درج شود تا
+   `ta.sma(high - low, 14)` داخل context تایم‌فریم پایه اجرا شود. در TF پایین‌تر
+   state تریل فقط وقتی `ntsHtfTime` عوض می‌شود آپدیت شود.
+2. **موج:** `ntsExtreme` و `ntsTrail` موج جاری هر بار پایه بازتنظیم می‌شوند.
+   هنگام تغییر روند، مقادیر موج قبلی در آرایه Snapshot ذخیره می‌شوند؛ خطوط تاریخی
+   نباید از `activeWaveSize` موج جدید ساخته شوند.
+3. **سطح:** فرمول Extension عمداً همان قرارداد کد است:
+   `level = fib1 + direction * abs(trail - fib1) * (ratio - 1)`.
+   بنابراین 0.300 در فاصلهٔ منفی 0.700 نسبت به Fib1 قرار دارد، نه «۳۰٪ کل موج».
+4. **واکنش:** برای BUY، `low <= level` و `close > level`؛ برای SELL،
+   `high >= level` و `close < level`. Wick واقعی از `min/max(open, close)`
+   محاسبه می‌شود و با `barstate.isconfirmed` نهایی می‌گردد.
+5. **ترتیب 1.470/2.100:** بلوغ موج → لمس بعد از شروع موج → واکنش → CHoCH مبتنی
+   بر Pivot تأییدشده. فلگ لمس با تغییر/انقضای موج پاک می‌شود.
+6. **تفکیک سیگنال:** 0.300/1.470/2.100 ادامه‌روند هستند و Hull/RSI/CHoCH
+   می‌گیرند؛ 2.618 به بعد بازگشتی هستند و فیلتر location/momentum مستقل دارند.
+7. **PD:** `pdHigh/pdLow` از `[high[1], low[1]]` تایم‌فریم D می‌آید و ناحیهٔ
+   عملیاتی لبهٔ قابل تنظیم (پیش‌فرض ۵٪) است؛ EQ به‌تنهایی Discount/Premium نیست.
+8. **هشدار:** همهٔ Extensionها هشدار گروهی مستقل دارند و هشدارها مستقیماً به
+   شروطی متصل‌اند که قبلاً `barstate.isconfirmed` گرفته‌اند.
+
+## بررسی محلی
+
+```bash
+python3 tools/check_pine.py modules/
+python3 tools/check_pine.py src/
 ```
-(فایل مرجع `src/SMC_NTS_Pro.pine` دقیقاً همین ترتیب را دارد.)
 
-## نکات مهم ادغام (Integration Notes)
-
-1. **ترتیب اجرا در Pine خطی است.** هر متغیری که در ماژولی استفاده می‌شود باید «قبل از» آن ماژول تعریف شده باشد.
-2. **ورودی‌ها (`input.*`) قابل بازنویسی نیستند.** در بهبود ۹ نمی‌توان `xauMinAtrPct := ...` نوشت؛
-   به جای آن از متغیر مؤثر `xauMinAtrPctEff` استفاده کنید و در هسته NTS جایگزین نمایید.
-3. **`ntsPeriod` در سه مرحله تغییر می‌کند:** مقدار پایه (ماژول ۱) ← تنظیم رژیم (ماژول ۳) ← تنظیم خودکار (ماژول ۹).
-   اگر ترتیب درج رعایت شود، همان متغیر به‌صورت زنجیره‌ای اصلاح می‌شود.
-4. **هشدارها:** در Pine v5 تنها می‌توان به پلات‌های واقعی ارجاع داد (`{{plot("title")}}`).
-   برای نمایش ناحیه روزانه در پیام هشدار، یک پلات کمکی با `display=display.data_window` تعریف شده است.
-
-## اصلاحات نحو (Syntax Fixes) اعمال‌شده نسبت به متن اولیه
-
-| مشکل در متن اولیه | اصلاح |
-|---|---|
-| `ntsPeriod = int(math.round(...))))` (پرانتز اضافه) | یک پرانتز بسته حذف شد |
-| `ntsFactor = ... )` پرانتز سرگردان قبل از `:=` | حذف شد |
-| `int(ntsPeriod * 0.85))))` | دو پرانتز اضافه حذف شد |
-| `orinRevSellZone` | `or inRevSellZone` |
-| `ntsTrend == -1and`, `bearishConfirmationand`, `kdBuySignaland`, `xauTradeOkand` | فاصله‌گذاری اصلاح شد |
-| `{{plot("inDailyDiscount")}}` در `alertcondition` | تبدیل به `{{plot("DailyZone")}}` + پلات کمکی |
-| `xauMinAtrPct := autoMinAtrPct` (بازنویسی ورودی) | تبدیل به `xauMinAtrPctEff` |
+این بررسی‌کننده جایگزین کامپایلر TradingView نیست؛ پس از درج، یک بار Add to
+chart در TradingView برای بررسی محدودیت‌های نسخه/حساب اجرا شود.
