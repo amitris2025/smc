@@ -31,6 +31,8 @@ python3 tools/check_pine.py tools/testdata/original_snippets_BAD.pine
 - `modules/*.pine` — ۱۲ قطعه، آمادهٔ درج در اندیکاتور اصلی شما
 - `src/SMC_NTS_Pro.pine` — نسخهٔ مرجعِ کامل (هسته پایه + ۹ بهبود + خط روند پرایس‌اکشن)،
   که تا وقتی فایل اصلی‌تان را نفرستاده‌اید، قابل اجرا و تست است
+- `src/SMC_NTS_Pro_Merged_Fixed.pine` — نسخهٔ ادغام‌شدهٔ کامل (Premium Lux Algo + Auto Trendlines
+  + KD Hull + PD Zones + PA Trendlines) با ۱۰ اصلاحِ بررسی فنی و کاربری
 - در انتظار دریافت فایل `.pine` اصلی برای ادغامِ اختصاصی
 
 ## خط روند اصولی پرایس‌اکشن (بهبود ۱۰)
@@ -46,6 +48,25 @@ Premium/Discount روز قبل، خط روندهای معتبر رسم می‌ش
 
 پارامترها در گروه ورودی «خط روند (Price Action)»: حداقل برخورد، تلورانس ATR،
 تعداد پیوت‌های نگهداری‌شده، امتداد به راست، رنگ‌ها و نمایش ناحیهٔ روز قبل.
+
+## نسخهٔ ادغام‌شدهٔ اصلاح‌شده (Merged Fixed)
+
+فایل `src/SMC_NTS_Pro_Merged_Fixed.pine` همان اندیکاتور کاملِ ارسالی (بخش‌های ۱ تا ۴)
+با اصلاحات زیر است. فهرست کامل و توضیح هر اصلاح در
+[`docs/REVIEW_FIXES.md`](docs/REVIEW_FIXES.md).
+
+خلاصهٔ ۱۰ اصلاح:
+
+1. `f_atrAt()` — خواندن ATR تاریخی از انتهای آرایه، نه ابتدا.
+2. `doRedraw` — پاک‌سازی/بازترسیم فقط روی آخرین کندل بسته‌شده.
+3. `autoTuneThisChart` — ترکیب با حالت تریدینگ/تایم‌فریم پایه (غیرفعال‌سازی ناخواستهٔ تنظیمات).
+4. تشخیص نماد — بررسی کریپتو (BTC/ETH/SOL) قبل از forex.
+5. NTS MTF — `sma(high-low,14)` داخل `request.security`.
+6. Hull HTF — استفاده از کندل بسته‌شدهٔ تایم‌فریم بالاتر + هشدار روی `barstate.isconfirmed`.
+7. `finalBuySignal`/`finalSellSignal` — الزام `ntsBuyConfluencePts >= ntsBuyThreshold`.
+8. Premium/Discount — تعریف یکسان بر اساس PDH/PDL روز قبل.
+9. Smart Divergence — فعال‌سازی `smartDivShowMinor`، `smartDivTrendAdjust` و `smartDivBullTrend`.
+10. مدیریت لیبل — پول محدود برای Smart Divergence و کاهش رسم روی تاریخچه.
 
 ## نکات کلیدی ادغام
 

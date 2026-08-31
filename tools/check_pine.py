@@ -194,6 +194,11 @@ def collect_declarations(clean: str) -> set[str]:
         re.findall(r"\b(?:int|float|bool|string|color|line|label|table|box)\s+"
                    r"([A-Za-z_][A-Za-z0-9_]*)\s*=", clean)
     )
+    # اعلان‌های آرایهٔ نوع‌دار (v6): int[] x = ..., float[] y = ...
+    declared |= set(
+        re.findall(r"\b(?:int|float|bool|string|color|line|label|box)"
+                   r"\s*\[\s*\]\s+([A-Za-z_][A-Za-z0-9_]*)\s*=", clean)
+    )
     # پارامترهای تابع
     declared |= set(re.findall(r"\b([A-Za-z_][A-Za-z0-9_]*)\s*=>", clean))
     return declared
