@@ -1,0 +1,128 @@
+// ============================================================================
+// بهبود ۱۱ : NTS Extensionهای تأییدشده و مدیریت موج
+// Pine Script v5
+// ----------------------------------------------------------------------------
+// این قطعهٔ تکمیلی برای هسته‌ای است که ntsOnBaseBar و ntsTrendChanged را دارد.
+// مدل عملیاتیِ پیش‌فرض: موج جاری به‌صورت پویا به‌روزرسانی می‌شود؛ در هر تغییر
+// روند، extreme/trail موج قبلی Snapshot می‌شوند تا خطوط تاریخی ثابت بمانند.
+// ترتیب سیگنال‌های 1.470/2.100: بلوغ موج → Pullback/Touch → Reaction → CHoCH.
+// Extensionهای 2.618 به بعد بازگشتی‌اند و فیلتر continuation عمومی ندارند.
+// ============================================================================
+
+ntsExtWaveMode = input.string("موج جاری (پویا)", "مرجع موج Extension",
+     options=["موج جاری (پویا)", "موج تکمیل‌شده (ثابت)"], group="NTS — Extension")
+ntsExtMaturityBars = input.int(2, "بلوغ موج (کندل)", minval=1, maxval=20, group="NTS — Extension")
+ntsExtMaxBars = input.int(30, "حداکثر عمر continuation", minval=5, maxval=200, group="NTS — Extension")
+ntsExtMaxAtrDistance = input.float(12.0, "حداکثر فاصله سطح (× ATR)", minval=1.0, maxval=50.0, group="NTS — Extension")
+ntsExtRequireWick = input.bool(true, "الزام Wick واقعی", group="NTS — Extension")
+ntsExtRequireChoch = input.bool(true, "الزام CHoCH ساختاری", group="NTS — Extension")
+
+var float ntsExtCompletedExtreme = na
+var float ntsExtCompletedFib1 = na
+var float ntsExtCompletedTrail = na
+var int ntsExtCompletedStart = na
+var int ntsExtCompletedDirection = 0
+var array<float> ntsExtSavedExtreme = array.new_float()
+var array<float> ntsExtSavedFib1 = array.new_float()
+var array<float> ntsExtSavedTrail = array.new_float()
+var array<int> ntsExtSavedStart = array.new_int()
+var array<int> ntsExtSavedDirection = array.new_int()
+
+if ntsOnBaseBar and ntsTrendChanged and not na(ntsExtreme[1]) and not na(ntsTrail[1])
+    ntsExtCompletedExtreme := ntsExtreme[1]
+    ntsExtCompletedTrail := ntsTrail[1]
+    ntsExtCompletedFib1 := ntsExtreme[1] + (ntsTrail[1] - ntsExtreme[1]) * 0.618
+    ntsExtCompletedStart := nz(ntsWaveStartBar[1], bar_index - 1)
+    ntsExtCompletedDirection := nz(ntsTrend[1], 0)
+    array.push(ntsExtSavedExtreme, ntsExtCompletedExtreme)
+    array.push(ntsExtSavedFib1, ntsExtCompletedFib1)
+    array.push(ntsExtSavedTrail, ntsExtCompletedTrail)
+    array.push(ntsExtSavedStart, ntsExtCompletedStart)
+    array.push(ntsExtSavedDirection, ntsExtCompletedDirection)
+    if array.size(ntsExtSavedExtreme) > 50
+        array.shift(ntsExtSavedExtreme)
+        array.shift(ntsExtSavedFib1)
+        array.shift(ntsExtSavedTrail)
+        array.shift(ntsExtSavedStart)
+        array.shift(ntsExtSavedDirection)
+
+ntsExtUseCurrent = ntsExtWaveMode == "موج جاری (پویا)"
+ntsExtDirection = ntsExtUseCurrent ? ntsTrend : ntsExtCompletedDirection
+ntsExtExtreme = ntsExtUseCurrent ? ntsExtreme : ntsExtCompletedExtreme
+ntsExtTrail = ntsExtUseCurrent ? ntsTrail : ntsExtCompletedTrail
+ntsExtFib1 = ntsExtUseCurrent ? ntsFib1 : ntsExtCompletedFib1
+ntsExtStart = ntsExtUseCurrent ? ntsWaveStartBar : ntsExtCompletedStart
+ntsExtWaveSize = not na(ntsExtFib1) and not na(ntsExtTrail) ? math.abs(ntsExtTrail - ntsExtFib1) : na
+ntsExtReady = not na(ntsExtWaveSize) and ntsExtWaveSize > syminfo.mintick * 4
+ntsExtAge = not na(ntsExtStart) ? bar_index - ntsExtStart : na
+ntsExtMature = ntsExtReady and not na(ntsExtAge) and ntsExtAge >= ntsExtMaturityBars
+ntsExtAlive = ntsExtReady and not na(ntsExtAge) and ntsExtAge <= ntsExtMaxBars
+ntsExtLevel(ratio) =>
+    ntsExtReady ? ntsExtFib1 + ntsExtDirection * ntsExtWaveSize * (ratio - 1.0) : na
+
+ntsExtLevel0300 = ntsExtLevel(0.300)
+ntsExtLevel1470 = ntsExtLevel(1.470)
+ntsExtLevel2100 = ntsExtLevel(2.100)
+ntsExtLevel2618 = ntsExtLevel(2.618)
+ntsExtLevel3000 = ntsExtLevel(3.000)
+ntsExtLevel4414 = ntsExtLevel(4.414)
+ntsExtLevel4764 = ntsExtLevel(4.764)
+ntsExtLevel6618 = ntsExtLevel(6.618)
+ntsExtLevel8618 = ntsExtLevel(8.618)
+ntsExtLevel10618 = ntsExtLevel(10.618)
+ntsExtDistanceOk(level) => not na(level) and (na(atrSeed) or math.abs(level - close) <= atrSeed * ntsExtMaxAtrDistance)
+
+ntsExtSellReaction(level, threshold) =>
+    body = math.abs(close - open)
+    rng = high - low
+    upperWick = high - math.max(open, close)
+    engulfed = not na(level) and open > level and close < level
+    high >= level and close < level and close < open and rng > 0 and body / rng >= threshold and
+         (not ntsExtRequireWick or upperWick >= body * 0.5 or engulfed)
+ntsExtBuyReaction(level, threshold) =>
+    body = math.abs(close - open)
+    rng = high - low
+    lowerWick = math.min(open, close) - low
+    engulfed = not na(level) and open < level and close > level
+    low <= level and close > level and close > open and rng > 0 and body / rng >= threshold and
+         (not ntsExtRequireWick or lowerWick >= body * 0.5 or engulfed)
+
+// این دو فلگ فقط پس از بلوغ موج فعال می‌شوند و در تغییر روند پاک می‌شوند.
+var bool ntsExt1470Touched = false
+var bool ntsExt2100Touched = false
+if ntsTrendChanged
+    ntsExt1470Touched := false
+    ntsExt2100Touched := false
+if ntsExtUseCurrent and ntsExtMature and ntsExtAlive
+    if ntsExtDirection == 1 and low <= ntsExtLevel1470
+        ntsExt1470Touched := true
+    if ntsExtDirection == -1 and high >= ntsExtLevel1470
+        ntsExt1470Touched := true
+    if ntsExtDirection == 1 and low <= ntsExtLevel2100
+        ntsExt2100Touched := true
+    if ntsExtDirection == -1 and high >= ntsExtLevel2100
+        ntsExt2100Touched := true
+if not ntsExtAlive
+    ntsExt1470Touched := false
+    ntsExt2100Touched := false
+
+// در نسخهٔ اصلی، bullishChochStrong/bearishChochStrong از Pivot تأییدشده می‌آیند.
+ntsExtContinuation = ntsExtUseCurrent and ntsExtMature and ntsExtAlive and ntsExtDirection == ntsTrend
+ntsExtBuy1470 = barstate.isconfirmed and ntsExtContinuation and ntsExtDirection == 1 and
+     ntsExt1470Touched and ntsExtBuyReaction(ntsExtLevel1470, 0.30) and
+     (not ntsExtRequireChoch or bullishChochStrong)
+ntsExtSell1470 = barstate.isconfirmed and ntsExtContinuation and ntsExtDirection == -1 and
+     ntsExt1470Touched and ntsExtSellReaction(ntsExtLevel1470, 0.30) and
+     (not ntsExtRequireChoch or bearishChochStrong)
+ntsExtBuy2100 = barstate.isconfirmed and ntsExtContinuation and ntsExtDirection == 1 and
+     ntsExt2100Touched and ntsExtBuyReaction(ntsExtLevel2100, 0.30) and
+     (not ntsExtRequireChoch or bullishChochStrong)
+ntsExtSell2100 = barstate.isconfirmed and ntsExtContinuation and ntsExtDirection == -1 and
+     ntsExt2100Touched and ntsExtSellReaction(ntsExtLevel2100, 0.30) and
+     (not ntsExtRequireChoch or bearishChochStrong)
+
+// سطوح عمیق فقط Touch + Wick/Body + فاصلهٔ منطقی + محل/مومنتوم بازگشتی می‌خواهند.
+ntsExtBuy2618 = barstate.isconfirmed and ntsExtReady and ntsExtDirection == -1 and
+     ntsExtDistanceOk(ntsExtLevel2618) and ntsExtBuyReaction(ntsExtLevel2618, 0.35)
+ntsExtSell2618 = barstate.isconfirmed and ntsExtReady and ntsExtDirection == 1 and
+     ntsExtDistanceOk(ntsExtLevel2618) and ntsExtSellReaction(ntsExtLevel2618, 0.35)

@@ -1,0 +1,167 @@
+// ============================================================================
+// بهبود ۱۰ : خط روند اصولی پرایس‌اکشن (Price-Action Trendlines)
+// Pine Script v5
+// ----------------------------------------------------------------------------
+// محل درج : «بعد از» تعریف پیوت‌های سویینگ (ph/pl با همان swingLen) و atrSeed،
+//           و پیش از بخش نمایش. این ماژول کاملاً مستقل است و به هستهٔ NTS
+//           دست نمی‌زند؛ فقط از خروجی‌های موجود می‌خواند.
+//
+// منطق پرایس‌اکشن (خواستهٔ کاربر):
+//   • روند نزولی = اتصالِ «سقف‌های نزولی» (Lower Highs) با حداقل ۲ برخورد
+//   • روند صعودی = اتصالِ «کف‌های صعودی»  (Higher Lows)  با حداقل ۲ برخورد
+//   • خطِ معتبر: هیچ سقفی نباید به‌طور معنادار از خط مقاومت بالا بزند و هیچ
+//     کفی نباید از خط حمایت پایین بزند (تلورانس = ضریبی از ATR جاری).
+//   • میان چند خطِ ممکن، خطی با بیشترین برخورد و در تساوی، جدیدترین خط انتخاب می‌شود.
+//
+// ورودی‌های موردنیاز از فایل اصلی :
+//   ph, pl            — خروجی ta.pivothigh/ta.pivotlow (با na بودن در کندل‌های بی‌پیوت)
+//   swingLen          — طول سویینگ (برای محاسبهٔ bar_index واقعی پیوت)
+//   atrSeed           — ta.atr(14) برای تلورانس برخورد
+//   dHighPrev/dLowPrev/eqLevel — برای ناحیه پریمیوم/دیسکانت روز قبل (اختیاری)
+//
+// خروجی‌های کلیدی :
+//   tlDnLine, tlUpLine (line) — خطوط روند رسم‌شده
+//   dnBestTouch, upBestTouch (int) — تعداد برخورد هر خط
+// ============================================================================
+
+// --- ورودی‌ها ---
+gTrend = "خط روند (Price Action)"
+showTrendlines = input.bool(true,  "نمایش خط‌روندها (سقف/کف سویینگ)", group=gTrend)
+tlMaxPivots    = input.int(8, "تعداد پیوت‌های نگهداری‌شده", minval=3, maxval=20, group=gTrend)
+tlMinTouch     = input.int(2, "حداقل برخورد لازم", minval=2, maxval=6,
+     tooltip="۲ = خط روند با اتصال دو سقف نزولی / دو کف صعودی", group=gTrend)
+tlTouchTolAtr  = input.float(0.55, "تلورانس برخورد (× ATR)", step=0.05, minval=0.05, group=gTrend)
+tlExtendRight  = input.bool(true,  "امتداد خط به سمت راست", group=gTrend)
+updateOnClose  = input.bool(true,  "به‌روزرسانی خط فقط در بسته‌شدن کندل", group=gTrend)
+tlColUp        = input.color(color.new(color.lime, 0), "رنگ روند صعودی", group=gTrend)
+tlColDn        = input.color(color.new(color.red, 0),  "رنگ روند نزولی", group=gTrend)
+showPrevDayPD  = input.bool(true,  "نمایش ناحیه پریمیوم/دیسکانت روز قبل", group=gTrend)
+
+// --- انبارهٔ پیوت‌های تأییدشده (index=0 قدیمی‌ترین، انتها جدیدترین) ---
+var array<float> tlPhP = array.new_float()
+var array<int>   tlPhB = array.new_int()
+var array<float> tlPlP = array.new_float()
+var array<int>   tlPlB = array.new_int()
+
+// bar_index واقعیِ پیوت = swingLen کندل قبل از تأیید
+if not na(ph)
+    array.push(tlPhP, ph)
+    array.push(tlPhB, bar_index - swingLen)
+    if array.size(tlPhP) > tlMaxPivots
+        array.shift(tlPhP)
+        array.shift(tlPhB)
+if not na(pl)
+    array.push(tlPlP, pl)
+    array.push(tlPlB, bar_index - swingLen)
+    if array.size(tlPlP) > tlMaxPivots
+        array.shift(tlPlP)
+        array.shift(tlPlB)
+
+tlTol = tlTouchTolAtr * atrSeed
+
+var line  tlDnLine = na
+var line  tlUpLine = na
+var label tlDnLbl  = na
+var label tlUpLbl  = na
+dnBestTouch = 0
+upBestTouch = 0
+
+if barstate.islast and showTrendlines and (not updateOnClose or barstate.isconfirmed)
+    if not na(tlDnLine)
+        line.delete(tlDnLine)
+    if not na(tlUpLine)
+        line.delete(tlUpLine)
+    if not na(tlDnLbl)
+        label.delete(tlDnLbl)
+    if not na(tlUpLbl)
+        label.delete(tlUpLbl)
+
+    tlExt = tlExtendRight ? extend.right : extend.none
+
+    // ---------- روند نزولی: بهترین اتصالِ سقف‌های نزولی ----------
+    nH = array.size(tlPhP)
+    dnAx = -1
+    dnAy = 0.0
+    dnBx = -1
+    dnBy = 0.0
+    if nH >= 2
+        for a = 0 to nH - 2
+            for b = a + 1 to nH - 1
+                pa = array.get(tlPhP, a)
+                ba = array.get(tlPhB, a)
+                pb = array.get(tlPhP, b)
+                bb = array.get(tlPhB, b)
+                if pb < pa and bb > ba
+                    slope = (pb - pa) / (bb - ba)
+                    touches = 0
+                    valid = true
+                    for k = 0 to nH - 1
+                        bk = array.get(tlPhB, k)
+                        if bk >= ba
+                            pk = array.get(tlPhP, k)
+                            lv = pa + slope * (bk - ba)
+                            d  = pk - lv
+                            if math.abs(d) <= tlTol
+                                touches += 1
+                            else if d > tlTol
+                                valid := false
+                    if valid and touches >= tlMinTouch and (touches > dnBestTouch or (touches == dnBestTouch and bb > dnBx))
+                        dnBestTouch := touches
+                        dnAx := ba
+                        dnAy := pa
+                        dnBx := bb
+                        dnBy := pb
+    if dnBestTouch >= tlMinTouch
+        tlDnLine := line.new(dnAx, dnAy, dnBx, dnBy, color=tlColDn, width=2, extend=tlExt)
+        tlDnLbl  := label.new(dnBx, dnBy, "روند نزولی ×" + str.tostring(dnBestTouch),
+             color=color.new(color.red, 20), textcolor=color.white, style=label.style_label_down,
+             size=size.small)
+
+    // ---------- روند صعودی: بهترین اتصالِ کف‌های صعودی ----------
+    nL = array.size(tlPlP)
+    upAx = -1
+    upAy = 0.0
+    upBx = -1
+    upBy = 0.0
+    if nL >= 2
+        for a = 0 to nL - 2
+            for b = a + 1 to nL - 1
+                pa = array.get(tlPlP, a)
+                ba = array.get(tlPlB, a)
+                pb = array.get(tlPlP, b)
+                bb = array.get(tlPlB, b)
+                if pb > pa and bb > ba
+                    slope = (pb - pa) / (bb - ba)
+                    touches = 0
+                    valid = true
+                    for k = 0 to nL - 1
+                        bk = array.get(tlPlB, k)
+                        if bk >= ba
+                            pk = array.get(tlPlP, k)
+                            lv = pa + slope * (bk - ba)
+                            d  = pk - lv
+                            if math.abs(d) <= tlTol
+                                touches += 1
+                            else if d < -tlTol
+                                valid := false
+                    if valid and touches >= tlMinTouch and (touches > upBestTouch or (touches == upBestTouch and bb > upBx))
+                        upBestTouch := touches
+                        upAx := ba
+                        upAy := pa
+                        upBx := bb
+                        upBy := pb
+    if upBestTouch >= tlMinTouch
+        tlUpLine := line.new(upAx, upAy, upBx, upBy, color=tlColUp, width=2, extend=tlExt)
+        tlUpLbl  := label.new(upBx, upBy, "روند صعودی ×" + str.tostring(upBestTouch),
+             color=color.new(color.green, 20), textcolor=color.white, style=label.style_label_up,
+             size=size.small)
+
+// --- ناحیه پریمیوم/دیسکانت روز قبل (بالای EQ = پریمیوم، پایین EQ = دیسکانت) ---
+pdHi = plot(showPrevDayPD ? nz(dHighPrev) : na, "سقف روز قبل",
+     color=color.new(color.red, 55), style=plot.style_linebr)
+pdEq = plot(showPrevDayPD ? eqLevel : na, "تعادل روز قبل",
+     color=color.new(color.gray, 55), style=plot.style_linebr)
+pdLo = plot(showPrevDayPD ? nz(dLowPrev) : na, "کف روز قبل",
+     color=color.new(color.green, 55), style=plot.style_linebr)
+fill(pdHi, pdEq, color=color.new(color.red, 90),   title="پریمیوم روز قبل")
+fill(pdEq, pdLo, color=color.new(color.green, 90), title="دیسکانت روز قبل")

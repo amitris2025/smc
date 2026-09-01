@@ -1,46 +1,24 @@
 // ============================================================================
-// بهبود ۷ (بلوک ب) : سیگنال‌های نهایی ترکیبی با فیلترهای تکمیلی
+// بهبود ۷ (ب) : سیگنال‌های نهاییِ تأییدشده
 // Pine Script v5
 // ----------------------------------------------------------------------------
-// محل درج : بعد از ماژول‌های ۴ و ۶
-// ورودی‌های مورد نیاز : ntsTrend, bullishConfirmation / bearishConfirmation,
-//   kdBuySignal / kdSellSignal, inSupplyZone / inDemandZone, revBuyOk / revSellOk,
-//   xauTradeOk, inNtsBuyFibBand / inNtsSellFibBand, ntsFibTouchBuy / ntsFibTouchSell,
-//   inDailyDiscount / inDailyPremium (بلوک الف)
-// خروجی‌ها : ntsKafSignal , ntsSaghfSignal , finalBuySignal , finalSellSignal
+// آستانهٔ Confluence برای Final الزامی است. سیگنال‌های Extension بازگشتی باید
+// جداگانه از continuation تعریف شوند و از ntsSellTrendOk عمومی استفاده نکنند.
 // ============================================================================
 
-// --- ۷.۳ سیگنال کف/سقف NTS (با آستانه پویا از ماژول ۶) ---
-ntsKafSignal   = xauTradeOk and ntsFibTouchBuy  and ntsSwingKaf   and ntsBuyConfluencePts  >= ntsBuyThreshold
-ntsSaghfSignal = xauTradeOk and ntsFibTouchSell and ntsSwingSaghf and ntsSellConfluencePts >= ntsSellThreshold
-
-// --- ۷.۴ سیگنال خرید نهایی ---
-// روی ناحیه فیب NTS + همه فیلترهای تکمیلی
-finalBuySignal =
-     ntsTrend == 1           and
-     bullishConfirmation     and
-     kdBuySignal             and
-     not inSupplyZone        and
-     revBuyOk                and
-     xauTradeOk              and
+finalBuySignal = barstate.isconfirmed and ntsCoreReady and ntsTrend == 1 and
+     bullishConfirmation and bullishStructureConfirmation and kdBuySignal and
+     revBuyOk and xauTradeOk and
      (inNtsBuyFibBand or ntsFibTouchBuy) and
-     (not useDailyZoneFilter or inDailyDiscount)   // فقط خرید در ناحیه تخفیف
-
-// --- ۷.۵ سیگنال فروش نهایی ---
-finalSellSignal =
-     ntsTrend == -1          and
-     bearishConfirmation     and
-     kdSellSignal            and
-     not inDemandZone        and
-     revSellOk               and
-     xauTradeOk              and
+     (not useDailyZoneFilter or inDailyDiscount) and ntsBuyConfluencePts >= ntsBuyThreshold
+finalSellSignal = barstate.isconfirmed and ntsCoreReady and ntsTrend == -1 and
+     bearishConfirmation and bearishStructureConfirmation and kdSellSignal and
+     revSellOk and xauTradeOk and
      (inNtsSellFibBand or ntsFibTouchSell) and
-     (not useDailyZoneFilter or inDailyPremium)    // فقط فروش در ناحیه پریمیوم
+     (not useDailyZoneFilter or inDailyPremium) and ntsSellConfluencePts >= ntsSellThreshold
 
-// ----------------------------------------------------------------------------
-// ورودی جدید پیشنهادی (در بخش input.* اضافه شود):
-//   useDailyZoneFilter = input.bool(true, "فیلتر ناحیه روزانه (خرید در تخفیف / فروش در پریمیوم)",
-//        group="NTS — فیلترهای تکمیلی")
-// این سوییچ در متن اولیه نبود و برای این اضافه شد که بتوانید در صورت کم‌شدن
-// بیش از حد سیگنال‌ها، فیلتر Premium/Discount را سریعاً غیرفعال کنید.
-// ----------------------------------------------------------------------------
+// برای continuationهای 1.470/2.100 در کد اصلی، Hull و RSI turn نیز لازم هستند.
+finalNtsBuy1470 = barstate.isconfirmed and showNtsExtensionSignals and showNtsFib1470 and
+     buy1470 and hullBullish and (not ntsUseRsiTurn or ntsRsiTurnUp) and xauTradeOk
+finalNtsSell1470 = barstate.isconfirmed and showNtsExtensionSignals and showNtsFib1470 and
+     sell1470 and hullBearish and (not ntsUseRsiTurn or ntsRsiTurnDown) and xauTradeOk
