@@ -63,7 +63,10 @@
 indicator("SMC + NTS PRO — MTF Confluence Engine [v6]",
      shorttitle        = "NTS PRO v6",
      overlay           = true,
-     format            = format.mintick,
+     // پارامتر format در indicator() فقط مقادیر inherit/price/volume/percent را
+     // می‌پذیرد؛ format.mintick در v6 صرفاً قالب str.tostring() است. inherit
+     // دقت تیک خود نماد (XAUUSD) را به ارث می‌برد.
+     format            = format.inherit,
      max_bars_back     = 5000,
      max_lines_count   = 500,
      max_labels_count  = 500,
@@ -1809,6 +1812,13 @@ fibSellEventKind = fibSellEventCat >= 4 ? "FADE" : fibSellEventCat >= 2 ? "EXT" 
 // ============================================================================
 sessionActiveRaw = not na(time(timeframe.period, sessionString, sessionTimezone))
 goldenHourActive = not na(time(timeframe.period, goldenHourString, sessionTimezone))
+// پرچم سشن لندن/نیویورک در دامنهٔ global محاسبه می‌شود تا عملگر تاریخ [1]
+// روی آن همیشه خوش‌تعریف باشد: اگر داخل بلوک شرطیِ رسم محاسبه شود، در کندل‌هایی
+// که آن بلوک اجرا نمی‌شود مقدار local برابر na می‌گیرد و تشخیص «اولین کندلِ
+// سشن» خراب می‌شود. تابع time() فقط ۳ آرگومان می‌پذیرد:
+// time(timeframe, session, timezone) — آرگومان چهارم مجاز نیست.
+bool sessLondonActive = not na(time(timeframe.period, sessLondonStr, sessTz))
+bool sessNyActive     = not na(time(timeframe.period, sessNyStr, sessTz))
 sessionOk        = not useSessionFilter or sessionActiveRaw
 volatilityPct    = close > 0 ? chartAtrSafe / close * 100.0 : 0.0
 volatilityOk     = minAtrPctEff <= 0.0 or volatilityPct >= minAtrPctEff or
@@ -2297,16 +2307,16 @@ if drawGate and planShowLines and planDir != 0 and isStandard
 //  ▍M19 — ساختار سشن‌های جهانی (باکس پس‌زمینه)
 // ============================================================================
 if barstate.isconfirmed and (sessShowLondon or sessShowNy) and isFull
-    bool _lonNow  = not na(time(timeframe.period, sessLondonStr, sessTz))
-    bool _lonPrev = not na(time(timeframe.period, sessLondonStr, sessTz, bar_index - 1))
+    bool _lonNow  = sessLondonActive
+    bool _lonPrev = sessLondonActive[1]
     if sessShowLondon and _lonNow and not _lonPrev
         int _end = bar_index + 48
         box _b = box.new(bar_index, high + chartAtrSafe * 2.0, _end, low - chartAtrSafe * 2.0,
              xloc = xloc.bar_index, extend = extend.right, bgcolor = color.new(color.blue, 95),
              border_color = color.new(color.blue, 75), border_width = 1)
         array.push(omSessBoxes, _b)
-    bool _nyNow  = not na(time(timeframe.period, sessNyStr, sessTz))
-    bool _nyPrev = not na(time(timeframe.period, sessNyStr, sessTz, bar_index - 1))
+    bool _nyNow  = sessNyActive
+    bool _nyPrev = sessNyActive[1]
     if sessShowNy and _nyNow and not _nyPrev
         int _end = bar_index + 48
         box _b = box.new(bar_index, high + chartAtrSafe * 2.0, _end, low - chartAtrSafe * 2.0,

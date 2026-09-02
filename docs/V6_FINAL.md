@@ -124,10 +124,20 @@ PD • سازگاری مرجع موج • قرارگیری Retracement بین An
 | `tools/scan_globalmod.py` | تابعی که متغیر global را با `:=` بازنویسی می‌کند (خطای v6) |
 | `tools/namespace_check.py` | سه بررسی: عضو نامعتبر namespace (مثل `syminfo.title`)، ثابت «نوع یکتا» در متغیر با نوع صریح، و پاس‌دادن چنین ثابتی به تابع کاربردی |
 | `tools/v6_pitfalls.py` | قواعد ناسازگار v6 از راهنمای مهاجرت رسمی: `na` برای bool، `na()/nz()` با آرگومان bool، شرط int/float، پارامتر تکراری، timeframe بدون multiplier، طول mutable برای `ta.*`، `offset` سری |
+| `tools/api_arity.py` | امضای built-in ها: تعداد آرگومان موقعیتی، نام پارامتر نام‌دار، و ممنوعیت آرگومان موقعیتی بعد از نام‌دار |
 | `tools/plot_count.py` | شمارش دقیق plot count طبق قواعد مستند (سقف ۶۴) |
 
-فیکسچرهای تست (برای اطمینان از اینکه ابزارها خطا را واقعاً می‌گیرند):
-`tools/testdata/v6_typebugs_BAD.pine` و نمونه‌های `tools/testdata/original_snippets_BAD.pine`.
+فیکسچرهای تست در `tools/testdata/` (عمداً خراب‌اند؛ ابزار باید در همهٔ آن‌ها
+خطا گزارش کند و در فایل اصلی هیچ خطایی):
+
+| فیکسچر | چه چیزی را می‌آزماید |
+|---|---|
+| `v6_typebugs_BAD.pine` | `syminfo.title` و `int _style = line.style_*` |
+| `unique_type_to_userfn_BAD.pine` | پاس‌دادن `format.mintick`/`size.tiny` به تابع کاربردی |
+| `format_param_BAD.pine` | `indicator(format = format.mintick)` |
+| `api_arity_BAD.pine` | `time()` با ۴ آرگومان، آرگومان موقعیتی بعد از نام‌دار، پارامتر نامعتبر |
+| `v6_pitfalls_BAD.pine` | پنج قاعدهٔ ناسازگار v6 |
+| `original_snippets_BAD.pine` | الگوهای خطادار نسخهٔ v5 |
 
 هر سه ابزار روی فایل نهایی بدون هیچ یافته‌ای اجرا می‌شوند:
 
@@ -161,7 +171,7 @@ done
 python3 tools/plot_count.py src/SMC_NTS_PRO_v6.pine | tail -2
 ```
 
-## ۸٫۱. دو خطای کامپایلی که در بازبینی v6 برطرف شد
+## ۸٫۱. خطاهای کامپایلی که در بازبینی v6 برطرف شد
 
 1. **`Undeclared identifier "syminfo.title"`** — در Pine v6 چنین عضوی وجود
    ندارد؛ نام توصیف نماد `syminfo.description` است.
@@ -183,6 +193,22 @@ line.new(x1, y1, x2, y2, style = isRetr ? line.style_solid : line.style_dashed)
 
 به همین دلیل `f_txt(x, format.mintick)` هم به `f_txtTick(x)` تبدیل شد تا ثابت
 `format.mintick` هیچ‌گاه از مرز یک تابع کاربردی با پارامتر `string` عبور نکند.
+
+3. **`Invalid value "mintick" for "format" parameter of the "indicator()"
+   function`** — پارامتر `format` در `indicator()` فقط
+   `format.inherit`، `format.price`، `format.volume` و `format.percent` را
+   می‌پذیرد؛ `format.mintick` صرفاً قالب `str.tostring()` است. مقدار به
+   `format.inherit` تغییر کرد تا دقت تیک خود نماد (XAUUSD) به ارث برده شود.
+
+4. **`time()` با چهار آرگومان** — در ماژول M19 (باکس سشن‌ها) خطای
+   `time(timeframe.period, sess, tz, bar_index - 1)` وجود داشت؛ امضای تابع
+   `time(timeframe, session, timezone)` است و آرگومان چهارم مجاز نیست.
+   افزون بر این، همان عبارت از نظر منطقی هم نادرست بود. راه‌حل: پرچم‌های
+   `sessLondonActive` و `sessNyActive` در دامنهٔ global ماژول M13 محاسبه
+   می‌شوند و در M19 از `sessLondonActive[1]` استفاده می‌شود. محاسبه در دامنهٔ
+   global ضروری است، چون اگر داخل بلوک شرطیِ رسم محاسبه شود، در کندل‌هایی که
+   آن بلوک اجرا نمی‌شود متغیر local برابر `na` می‌گیرد و تشخیص «اولین کندلِ
+   سشن» روی همهٔ کندل‌های سشن باکس می‌سازد.
 
 ## ۹. تنظیمات پیشنهادی
 

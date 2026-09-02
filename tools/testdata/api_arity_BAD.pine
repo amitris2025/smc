@@ -1,0 +1,8 @@
+//@version=6
+indicator("x", overlay = true)
+a = not na(time(timeframe.period, "1030-1430", "Asia/Tehran", bar_index - 1))
+b = time(timeframe.period, "1030-1430")
+c = plotshape(close > open, style = shape.triangleup, location.abovebar)
+d = line.new(bar_index, 0, bar_index + 1, 1, 2, xloc = xloc.bar_index)
+e = label.new(bar_index, close, text = "hi", 5)
+f = request.security(syminfo.tickerid, "1D", close, gaps = barmerge.gaps_off, foo = 1)

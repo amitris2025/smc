@@ -38,8 +38,10 @@ NS_MEMBERS = {
     'size': {'auto', 'huge', 'large', 'normal', 'small', 'tiny'},
     'text': {'align_center', 'align_left', 'align_right', 'size_auto', 'size_huge',
              'size_large', 'size_normal', 'size_small', 'size_tiny'},
-    'format': {'close', 'dividend', 'high', 'increment', 'low', 'ohlc', 'open',
-               'percent', 'point', 'price', 'mintick', 'split', 'volume'},
+    # namespace format در v6 دقیقاً ۵ عضو دارد (مستند رسمی):
+    # inherit/price/volume/percent برای پارامتر format تابع indicator() و plot()،
+    # و mintick فقط برای str.tostring().
+    'format': {'inherit', 'mintick', 'percent', 'price', 'volume'},
     'plot': {'style_area', 'style_areabr', 'style_circles', 'style_columns',
              'style_cross', 'style_histogram', 'style_line', 'style_linebr',
              'style_stepline', 'style_steplinebr'},
@@ -55,6 +57,7 @@ STYLE_NS = {
               'style_square', 'style_diamond', 'style_text_outline'},
 }
 # ثابت‌هایی که «نوع یکتا» دارند و نباید در متغیر با نوع صریح ذخیره شوند
+FORMAT_PARAM_OK = {'inherit', 'price', 'volume', 'percent'}
 UNIQUE_CONST = re.compile(
     r'\b(?:line|label|plot)\.style_\w+|\bshape\.\w+|\bsize\.\w+|\bextend\.\w+'
     r'|\blocation\.\w+|\bxloc\.\w+|\byloc\.\w+|\btext\.align_\w+|\bdisplay\.\w+'
@@ -127,6 +130,15 @@ def check(path):
                              'مقدار نوع یکتا (' + names + ') به متغیر با نوع صریح ' +
                              typ + ' نسبت داده شده — باید مستقیم به پارامتر همان ' +
                              'built-in پاس داده شود'))
+        # --- بررسی D: مقدار مجاز پارامتر نام‌دار format ---
+        # indicator()/strategy()/plot() و مانند آن فقط inherit/price/volume/percent
+        # را می‌پذیرند؛ format.mintick مخصوص str.tostring() است.
+        for m in re.finditer(r'\bformat\s*=\s*format\.(\w+)', code):
+            if m.group(1) not in FORMAT_PARAM_OK:
+                errs.append((idx, 'D', 'format=format.' + m.group(1),
+                             'مقدار نامعتبر برای پارامتر format؛ مجاز: '
+                             + ', '.join(sorted(FORMAT_PARAM_OK))))
+
         # --- بررسی C: ثابت نوع یکتا به‌عنوان آرگومان یک تابع کاربردی ---
         # توابع کاربردی نمی‌توانند پارامتری با نوع یکتا داشته باشند؛ پس پاس
         # دادن format.mintick / size.tiny / line.style_solid و مانند آن به یک

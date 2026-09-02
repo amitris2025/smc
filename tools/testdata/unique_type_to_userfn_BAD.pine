@@ -1,0 +1,7 @@
+//@version=6
+indicator("x")
+f_myTxt(float v, string fmt) => str.tostring(v, fmt)
+a = f_myTxt(close, format.mintick)
+b = f_other(size.tiny, 1)
+c = f_ok(close, "#.##")
+line l = line.new(0, 0, 1, 1, style = line.style_solid)

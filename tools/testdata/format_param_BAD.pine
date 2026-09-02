@@ -1,0 +1,4 @@
+//@version=6
+indicator("x", format = format.mintick)
+plot(close, format = format.percent)
+a = str.tostring(close, format.mintick)
