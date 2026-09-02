@@ -30,11 +30,11 @@
 //    M23  تصویرسازی موج NTS و نشانگرهای رویداد (Flip / TL Break)
 //    M24  جدول لاگ سیگنال‌ها (اثبات عدم تکرار و عدم تناقض)
 //    M25  پنل اطلاعات اصلی
-//    M26  پلات‌های Data Window
+//    M26  (پلات‌های Data Window حذف شد؛ اعداد در پنل نمایش داده می‌شوند)
 //    M27  هشدارها: alert() پویا و alertcondition() های ثابت
 //    M28  تکمیل پنل: ماتریس HTF، Trade Plan و وضعیت فیلترها
 //    M29  آمار روزانه موتور سیگنال
-//    M30  پلات‌های تشخیصی Data Window
+//    M30  ردیف‌های تشخیصی پنل (جای‌گزین پلات‌های Data Window)
 //    M31  خودآزمایی داخلی (Invariants) و گزارش وضعیت ضد ری‌پینت
 //
 //  قراردادهای قطعی این نسخه:
@@ -44,13 +44,18 @@
 //    3) اگر تایم‌فریم نمودار پایین‌تر از تایم‌فریم پایه NTS باشد، سیگنال فقط روی
 //       اولین کندلِ بعد از بسته‌شدن کندل NTS صادر می‌شود (ntsSampled) تا سیگنال
 //       تکراری ساخته نشود.
-//    4) دو قرارداد Fib کاملاً تفکیک شده‌اند:
-//         Retracement : level = extreme - dir * |extreme - origin| * ratio   (0..1)
-//         Extension   : level = origin  + dir * |extreme - origin| * ratio   (>=1)
-//       بنابراین «1.618» یعنی ۱۶۱.۸٪ کل موج، نه نسبتی مبهم به Fib1.
-//       نسبت‌های کمتر از ۱ (و دسته‌های ۲ و ۳) فقط واکنش هم‌جهت تولید می‌کنند و
-//       نسبت‌های >= 1 در دسته‌های ۴ و ۵ واکنش خلاف‌جهت (خستگی موج) می‌سازند که
-//       بدون تأیید ساختاری/واگرایی هم‌جهت فعال نمی‌شود.
+//    4) قرارداد Fib دقیقاً همان نسخهٔ v5 اصلی است تا خطوط و شکل‌ها همان‌جا
+//       قرار بگیرند که در فیلتر اول قرار داشتند:
+//         Retracement : level = extreme + (trail - extreme) * ratio       (0..1)
+//         Extension   : level = fib1 + dir * |trail - fib1| * (ratio - 1)
+//       یعنی مرجع Extensionها سطح ۰٫۶۱۸ (fib1) است و ratio=1 خودِ fib1 است؛
+//       0.300 یعنی ۰٫۷ واحد پشت fib1 و 2.618 یعنی ۱٫۶۱۸ واحد جلوی آن.
+//       مجموعهٔ نسبت‌ها هم همان v5 است: 0.618/0.786/0.886، ادامه‌روندهای
+//       0.300/1.470/2.100، بازگشتی‌های 2.618/3.000، 4.414/4.764، 6.618/8.618،
+//       10.618 و دو Retracement عمیق −0.468/−0.168 (فقط رسم، بدون سیگنال).
+//       نسبت‌های کمتر از ۱ و دستهٔ ۲ فقط واکنش هم‌جهت تولید می‌کنند و دسته‌های
+//       ۴ و ۵ واکنش خلاف‌جهت (خستگی موج) که بدون تأیید ساختاری/واگرایی فعال
+//       نمی‌شود.
 //    5) برای هر رویداد حداکثر یک سیگنال و حداکثر یک هشدار صادر می‌شود.
 //    6) هر line / label / box در استخر اختصاصی همان ماژول ثبت و بازیافت می‌شود؛
 //       پاک‌سازی یک ماژول هرگز آبجکت ماژول دیگر را حذف نمی‌کند.
@@ -60,13 +65,15 @@
 //       می‌شوند؛ واحدها به کندل پایه تبدیل می‌شوند تا در LTF درست عمل کنند.
 // ============================================================================
 
+// تعریف indicator دقیقاً مطابق فایل اصلی v5 شما (precision=0 و بدون پارامتر
+// format) تا ظاهر و قالب نمایش اعداد روی چارت هیچ تغییری نکند.
+// نکته: format.mintick در v6 برای پارامتر format تابع indicator() مجاز نیست
+// (فقط inherit/price/volume/percent)؛ بنابراین مثل فایل اصلی اصلاً format
+// نمی‌دهیم تا رفتار پیش‌فرض format.price با precision=0 حفظ شود.
 indicator("SMC + NTS PRO — MTF Confluence Engine [v6]",
      shorttitle        = "NTS PRO v6",
      overlay           = true,
-     // پارامتر format در indicator() فقط مقادیر inherit/price/volume/percent را
-     // می‌پذیرد؛ format.mintick در v6 صرفاً قالب str.tostring() است. inherit
-     // دقت تیک خود نماد (XAUUSD) را به ارث می‌برد.
-     format            = format.inherit,
+     precision         = 0,
      max_bars_back     = 5000,
      max_lines_count   = 500,
      max_labels_count  = 500,
@@ -124,22 +131,26 @@ ntsMinWaveAtr      = input.float(1.2, "حداقل اندازه موج (× ATR)",
 fibRetr1           = input.float(0.618, "Retracement ۱", minval = 0.05, maxval = 0.95, step = 0.001, group = gFib)
 fibRetr2           = input.float(0.786, "Retracement ۲", minval = 0.05, maxval = 0.98, step = 0.001, group = gFib)
 fibRetr3           = input.float(0.886, "Retracement ۳", minval = 0.05, maxval = 0.99, step = 0.001, group = gFib)
-fibShowRetrShallow = input.bool(true, "نمایش Retracement کم‌عمق 0.236 / 0.382", group = gFib, inline = "fr0")
-fibSigRetrShallow  = input.bool(true, "سیگنال Retracement کم‌عمق", group = gFib, inline = "fr0")
+fibShowRetrShallow = input.bool(false, "نمایش Retracement کم‌عمق 0.236 / 0.382", group = gFib, inline = "fr0",
+     tooltip   = "در نسخهٔ v5 اصلی این دو سطح وجود نداشتند؛ برای حفظ ظاهر چارت پیش‌فرض خاموش است.")
+fibSigRetrShallow  = input.bool(false, "سیگنال Retracement کم‌عمق", group = gFib, inline = "fr0")
 fibShowRetrOte     = input.bool(true, "نمایش Retracement اصلی 0.618 / 0.786 / 0.886", group = gFib, inline = "fr1")
 fibSigRetrOte      = input.bool(true, "سیگنال Retracement اصلی", group = gFib, inline = "fr1")
 fibShowRetrLabel   = input.bool(true, "لیبل سطوح Retracement", group = gFib, inline = "fr1")
 fibShowExtLabel    = input.bool(false, "لیبل سطوح Extension", group = gFib, inline = "fa")
-showFibExtA        = input.bool(true, "Ext A — Normal Pullback 1.168 / 1.272", group = gFib, inline = "fa")
+showFibExtA        = input.bool(true, "Ext A — ادامه‌روند 0.300 / 1.470 / 2.100", group = gFib, inline = "fa")
 sigFibExtA         = input.bool(true, "سیگنال Ext A", group = gFib, inline = "fa")
-showFibExtB        = input.bool(true, "Ext B — Early Extension 1.414 / 1.618", group = gFib, inline = "fb")
+showFibExtB        = input.bool(true, "Ext B — Reversal 2.618 / 3.000", group = gFib, inline = "fb")
 sigFibExtB         = input.bool(true, "سیگنال Ext B", group = gFib, inline = "fb")
-showFibExtC        = input.bool(true, "Ext C — Deep Reversal 2.000 / 2.618", group = gFib, inline = "fc")
+showFibExtC        = input.bool(true, "Ext C — Reversal 4.414 / 4.764", group = gFib, inline = "fc")
 sigFibExtC         = input.bool(true, "سیگنال Ext C", group = gFib, inline = "fc")
-showFibExtD        = input.bool(false, "Ext D — Extreme Reversal 3.618 / 4.236", group = gFib, inline = "fd")
-sigFibExtD         = input.bool(false, "سیگنال Ext D", group = gFib, inline = "fd")
-showFibExtE        = input.bool(false, "Ext E — Extreme Reversal 6.854 / 8.618", group = gFib, inline = "fe")
-sigFibExtE         = input.bool(false, "سیگنال Ext E", group = gFib, inline = "fe")
+showFibExtD        = input.bool(true, "Ext D — Reversal 6.618 / 8.618", group = gFib, inline = "fd")
+sigFibExtD         = input.bool(true, "سیگنال Ext D", group = gFib, inline = "fd")
+showFibExtE        = input.bool(true, "Ext E — Reversal 10.618", group = gFib, inline = "fe")
+sigFibExtE         = input.bool(true, "سیگنال Ext E", group = gFib, inline = "fe")
+showFibDeepRetr    = input.bool(true, "نمایش Retracement عمیق −0.468 / −0.168", group = gFib, inline = "fg",
+     tooltip   = "دو خط کمکی v5 که فقط رسم می‌شوند و سیگنال تولید نمی‌کنند.")
+sigFibDeepRetr     = input.bool(false, "سیگنال Retracement عمیق", group = gFib, inline = "fg")
 fibExtMaxAtr       = input.float(9.0, "حداکثر فاصله سطح فعال (× ATR)", minval = 1.0, maxval = 60.0, step = 0.5, group = gFib,
      tooltip   = "سطوح بسیار دور فقط کمرنگ رسم می‌شوند و سیگنال عملیاتی تولید نمی‌کنند.")
 fibPenetrationAtr  = input.float(0.05, "حداقل نفوذ معتبر (× ATR)", minval = 0.0, maxval = 2.0, step = 0.01, group = gFib)
@@ -203,7 +214,8 @@ hullUseHtf         = input.bool(false, "تأیید Hull از تایم‌فریم
 hullHtf            = input.timeframe("60", "تایم‌فریم Hull", group = gHull)
 hullRequireAligned = input.bool(true, "رد سیگنال در صورت تناقض Hull و NTS", group = gHull,
      tooltip   = "روشن = سیگنال مخالف Hull رد می‌شود؛ خاموش = فقط امتیاز کمتری می‌گیرد.")
-hullShowRibbon     = input.bool(true, "نمایش Hull", group = gHull)
+hullShowRibbon     = input.bool(false, "نمایش روبان Hull (فقط v6)", group = gHull,
+     tooltip   = "Hull در نسخهٔ v5 فقط فیلتر تأیید بود و روی چارت رسم نمی‌شد؛ به همین دلیل پیش‌فرض خاموش است. وضعیت Hull در پنل نمایش داده می‌شود.")
 
 // --- ۰۶ب نوسان‌نماهای واحد (یک تعریف برای همه ماژول‌ها) ---
 oscRsiLen          = input.int(14, "دوره RSI", minval = 2, maxval = 200, group = gHull)
@@ -237,6 +249,8 @@ sdShowZones        = input.bool(false, "نمایش ناحیه واگرایی", g
 
 // --- ۰۸ خطوط روند ---
 tlShow             = input.bool(true, "نمایش خطوط روند فعال", group = gTl)
+tlColUp            = input.color(color.new(color.lime, 0), "رنگ روند صعودی", group = gTl)
+tlColDn            = input.color(color.new(color.red, 0), "رنگ روند نزولی", group = gTl)
 tlShowHistorical   = input.bool(true, "نمایش خطوط روند تاریخی (شکسته)", group = gTl)
 tlMaxPivots        = input.int(10, "تعداد Pivot نگهداری‌شده", minval = 4, maxval = 16, group = gTl)
 tlMinTouch         = input.int(2, "حداقل تعداد لمس", minval = 2, maxval = 6, group = gTl)
@@ -314,6 +328,12 @@ objExpireBars      = input.int(1200, "انقضای آبجکت‌های سیگن�
 displayMode        = input.string("Standard", "حالت نمایش",
      options   = ["Minimal", "Standard", "Full Analysis"], group = gUi)
 showPanel          = input.bool(true, "نمایش پنل اطلاعات", group = gUi)
+// این سه عنصر در نسخهٔ v5 اصلی وجود نداشتند؛ برای آنکه ظاهر چارت عوض نشود
+// پیش‌فرض خاموش‌اند و در صورت نیاز روشن می‌شوند.
+showNtsExtremeDot  = input.bool(false, "نمایش نقطهٔ Extreme موج (فقط v6)", group = gUi,
+     tooltip   = "در فیلتر اصلی v5 وجود نداشت؛ روشن‌کردن آن یک نقطهٔ خاکستری روی اکستریم موج اضافه می‌کند.")
+showDailyOpenLine  = input.bool(false, "نمایش خط Daily Open (فقط v6)", group = gUi)
+showFlipMarks      = input.bool(false, "نمایش لوزی تغییر روند NTS (فقط v6)", group = gUi)
 panelPosition      = input.string("top_right", "موقعیت پنل",
      options   = ["top_right", "top_left", "bottom_right", "bottom_left", "middle_right"], group = gUi)
 panelSize          = input.string("small", "اندازه متن پنل",
@@ -321,8 +341,9 @@ panelSize          = input.string("small", "اندازه متن پنل",
 colBuy             = input.color(color.new(#00C853, 0), "رنگ BUY", group = gUi)
 colSell            = input.color(color.new(#FF1744, 0), "رنگ SELL", group = gUi)
 colNeutral         = input.color(color.new(#9E9E9E, 0), "رنگ خنثی", group = gUi)
-colFibRetr         = input.color(color.new(#FFD54F, 20), "رنگ Retracement", group = gUi)
-colFibExt          = input.color(color.new(#4FC3F7, 25), "رنگ Extension", group = gUi)
+// رنگ سطوح Fib از پالت خودِ نسخهٔ v5 می‌آید (آرایهٔ fibColors در ماژول M12)
+// تا ظاهر خطوط دقیقاً مثل فیلتر اصلی باشد؛ بنابراین ورودی رنگ جداگانهٔ
+// Retracement/Extension حذف شد تا پیچ تنظیم بی‌اثر در پنل تنظیمات نماند.
 colPremium         = input.color(color.new(#FF1744, 88), "رنگ Premium", group = gUi)
 colDiscount        = input.color(color.new(#00C853, 88), "رنگ Discount", group = gUi)
 colEquilibrium     = input.color(color.new(#9E9E9E, 92), "رنگ Equilibrium", group = gUi)
@@ -547,6 +568,9 @@ f_arrGetTime(array<int> _a, int _i, int _d) =>
     _i >= 0 and _i < array.size(_a) ? array.get(_a, _i) : _d
 
 f_arrGetBool(array<bool> _a, int _i, bool _d) =>
+    _i >= 0 and _i < array.size(_a) ? array.get(_a, _i) : _d
+
+f_arrGetColor(array<color> _a, int _i, color _d) =>
     _i >= 0 and _i < array.size(_a) ? array.get(_a, _i) : _d
 
 f_safeStr(string _v, string _d) => na(_v) or _v == "" ? _d : _v
@@ -1578,38 +1602,82 @@ fibRefValid    = (fibUseCurrent ? ntsWaveValid : fibDoneDir != 0) and not na(fib
 fibRefMature   = fibRefValid and fibRefAge >= fibWaveMaturity
 fibRefFresh    = fibRefValid and fibRefAge <= fibWaveMaxAge
 
-f_fibRetrLevel(float _r) =>
-    fibRefValid and not na(_r) ? fibRefExtreme + (fibRefAnchor - fibRefExtreme) * f_clamp(_r, 0.0, 1.0) : na
-
-f_fibExtLevel(float _r) =>
-    fibRefValid and not na(_r) ? fibRefAnchor + float(fibRefDir) * fibRefSize * math.max(1.0, _r) : na
-
 // --- جدول سطوح: نسبت | دسته | گروه ---
 // دسته: 0 = Retracement کم‌عمق، 1 = Retracement اصلی، 2 = Normal Pullback،
 //       3 = Early Extension، 4 = Deep Reversal، 5 = Extreme Reversal
 // سه Retracement اصلی از ورودی کاربر می‌آیند (fibRetr1/2/3) و همیشه مرتب
 // می‌شوند تا دسته‌بندی کم‌عمق/اصلی با مقدار دلخواه کاربر هم سازگار بماند.
+// جدول نسبت‌ها دقیقاً همان مجموعهٔ نسخهٔ v5 اصلی است تا خطوط و شکل‌های روی
+// چارت همان‌جا قرار بگیرند که در فیلتر اول قرار داشتند:
+//   0.236/0.382       → Retracement کم‌عمق (پیش‌فرض خاموش؛ در v5 وجود نداشت)
+//   0.618/0.786/0.886 → سه Retracement اصلی (از ورودی کاربر)
+//   0.300/1.470/2.100 → Extension ادامه‌روند
+//   2.618/3.000       → Reversal B      4.414/4.764 → Reversal C
+//   6.618/8.618       → Reversal D      10.618      → Reversal E
+//   −0.468/−0.168     → Retracement عمیق (فقط رسم، بدون سیگنال)
 var array<float> fibRatios  = array.from(0.236, 0.382, 0.618, 0.786, 0.886,
-     1.168, 1.272, 1.414, 1.618, 2.000, 2.618, 3.618, 4.236, 6.854, 8.618)
+     0.300, 1.470, 2.100, 2.618, 3.000, 4.414, 4.764, 6.618, 8.618, 10.618,
+     -0.468, -0.168)
+// رنگ هر سطح = رنگ همان سطح در v5 (خطوط Extension و لیبل‌ها)
+var array<color> fibColors  = array.from(color.gray, color.gray, color.white,
+     color.orange, color.lime, color.yellow, color.lime, color.lime,
+     color.fuchsia, color.fuchsia, color.orange, color.orange, color.red,
+     color.red, color.purple, color.aqua, color.aqua)
 fibR1Sorted = math.min(fibRetr1, math.min(fibRetr2, fibRetr3))
 fibR3Sorted = math.max(fibRetr1, math.max(fibRetr2, fibRetr3))
 fibR2Sorted = fibRetr1 + fibRetr2 + fibRetr3 - fibR1Sorted - fibR3Sorted
+
+// شاخص هر سطح در جدول بالا (برای شکل‌های سیگنال و پلات سطوح Retracement)
+int FIB_I_R1    = 2
+int FIB_I_R2    = 3
+int FIB_I_R3    = 4
+int FIB_I_0300  = 5
+int FIB_I_1470  = 6
+int FIB_I_2100  = 7
+int FIB_I_2618  = 8
+int FIB_I_3000  = 9
+int FIB_I_4414  = 10
+int FIB_I_4764  = 11
+int FIB_I_6618  = 12
+int FIB_I_8618  = 13
+int FIB_I_10618 = 14
+
+// Retracement: همان فرمول v5 → extreme + (trail − extreme) × ratio
+f_fibRetrLevel(float _r) =>
+    fibRefValid and not na(_r) ? fibRefExtreme + (fibRefAnchor - fibRefExtreme) * f_clamp(_r, 0.0, 1.0) : na
+
+// Extension: همان فرمول v5 → fib1 + dir × |trail − fib1| × (ratio − 1.0)
+// (در v5 همهٔ سطوح Extension از روی سطح ۰٫۶۱۸ و با اندازهٔ موجِ trail→fib1
+//  ساخته می‌شدند؛ نسبت ۱٫۰ خودِ fib1 است و ۰٫۳۰۰ یعنی ۰٫۷ واحد پشتِ آن.)
+float fibRefFib1    = f_fibRetrLevel(fibR1Sorted)
+float fibRefExtSize = not na(fibRefFib1) ? math.abs(fibRefAnchor - fibRefFib1) : na
+
+f_fibExtLevel(float _r) =>
+    fibRefValid and not na(_r) and not na(fibRefFib1) and
+     f_safeNum(fibRefExtSize, 0.0) > syminfo.mintick ?
+     fibRefFib1 + float(fibRefDir) * f_safeNum(fibRefExtSize, 0.0) * (_r - 1.0) : na
 
 f_fibRatioAt(int _i) =>
     _i == 2 ? f_clamp(fibR1Sorted, 0.05, 0.95) :
      _i == 3 ? f_clamp(fibR2Sorted, 0.05, 0.98) :
      _i == 4 ? f_clamp(fibR3Sorted, 0.05, 0.99) : f_arrGetFloat(fibRatios, _i, na)
-var array<int>   fibCats    = array.from(0, 0, 1, 1, 1, 2, 2, 3, 3, 4, 4, 5, 5, 5, 5)
-var array<int>   fibGroups  = array.from(0, 0, 1, 1, 1, 2, 2, 3, 3, 4, 4, 5, 5, 6, 6)
+// دسته‌ها: 0 = کم‌عمق/عمیق بدون سیگنال، 1 = Retracement اصلی، 2 = ادامه‌روند،
+//          4 = Deep Reversal (2.618 به بعد)، 5 = Extreme Reversal
+var array<int>   fibCats    = array.from(0, 0, 1, 1, 1, 2, 2, 2, 4, 4, 4, 4, 5, 5, 5, 0, 0)
+var array<int>   fibGroups  = array.from(0, 0, 1, 1, 1, 2, 2, 2, 3, 3, 4, 4, 5, 5, 6, 7, 7)
 fibLevelCount = array.size(fibRatios)
 
 f_fibShowOn(int _g) =>
     _g == 0 ? fibShowRetrShallow : _g == 1 ? fibShowRetrOte : _g == 2 ? showFibExtA :
-     _g == 3 ? showFibExtB : _g == 4 ? showFibExtC : _g == 5 ? showFibExtD : showFibExtE
+     _g == 3 ? showFibExtB : _g == 4 ? showFibExtC : _g == 5 ? showFibExtD :
+     _g == 6 ? showFibExtE : showFibDeepRetr
 
 f_fibSigOn(int _g) =>
     _g == 0 ? fibSigRetrShallow : _g == 1 ? fibSigRetrOte : _g == 2 ? sigFibExtA :
-     _g == 3 ? sigFibExtB : _g == 4 ? sigFibExtC : _g == 5 ? sigFibExtD : sigFibExtE
+     _g == 3 ? sigFibExtB : _g == 4 ? sigFibExtC : _g == 5 ? sigFibExtD :
+     _g == 6 ? sigFibExtE : sigFibDeepRetr
+
+f_fibColorAt(int _i) => f_arrGetColor(fibColors, _i, color.gray)
 
 f_fibLevelPrice(int _i) =>
     float _r = f_fibRatioAt(_i)
@@ -1660,6 +1728,11 @@ var int   fibWaveId       = 0
 var array<bool> fibTouched = array.new<bool>()
 var array<bool> fibFired   = array.new<bool>()
 var array<int>  fibLastFire = array.new<int>()
+// آخرین کندلی که هر سطح در جهت BUY یا SELL شلیک شده است. این دو آرایه امکان
+// ساختن نشانگر تفکیک‌شدهٔ هر نسبت را می‌دهند (NTS BUY 0.300، Extension
+// Reversal 2.618/3.000 و …) یعنی دقیقاً همان ۲۲ شکل سیگنال نسخهٔ v5.
+var array<int>  fibBuyFireBar  = array.new<int>()
+var array<int>  fibSellFireBar = array.new<int>()
 var float fibBestBuyRatio  = na
 var float fibBestSellRatio = na
 var int   fibBestBuyBar    = -1000000000
@@ -1686,6 +1759,15 @@ f_fibMarkFired(int _i) =>
     if _i >= 0 and _i < array.size(fibLastFire)
         array.set(fibLastFire, _i, bar_index)
 
+f_fibMarkDirFired(int _i, bool _isBuy) =>
+    if _i >= 0
+        if _isBuy
+            if _i < array.size(fibBuyFireBar)
+                array.set(fibBuyFireBar, _i, bar_index)
+        else
+            if _i < array.size(fibSellFireBar)
+                array.set(fibSellFireBar, _i, bar_index)
+
 f_fibFlagGet(array<bool> _a, int _i) => _i >= 0 and _i < array.size(_a) ? array.get(_a, _i) : false
 
 f_fibFlagSet(array<bool> _a, int _i) =>
@@ -1701,6 +1783,14 @@ if array.size(fibLastFire) != fibLevelCount
     array.clear(fibLastFire)
     for _z = 0 to math.max(0, fibLevelCount - 1)
         array.push(fibLastFire, -1000000000)
+if array.size(fibBuyFireBar) != fibLevelCount
+    array.clear(fibBuyFireBar)
+    for _z = 0 to math.max(0, fibLevelCount - 1)
+        array.push(fibBuyFireBar, -1000000000)
+if array.size(fibSellFireBar) != fibLevelCount
+    array.clear(fibSellFireBar)
+    for _z = 0 to math.max(0, fibLevelCount - 1)
+        array.push(fibSellFireBar, -1000000000)
 
 bool  fibBuyEvent      = false
 bool  fibSellEvent     = false
@@ -1761,6 +1851,7 @@ if barstate.isconfirmed and fibRefValid and ntsReady
                 fibBestBuyBar    := bar_index
             f_fibFlagSet(fibFired, _i)
             f_fibMarkFired(_i)
+            f_fibMarkDirFired(_i, true)
         if _reactSellHere and _contOk
             fibSellEvent := true
             bool _betterSell = na(fibSellEventRatio) or _ratio > f_safeNum(fibSellEventRatio, 0.0)
@@ -1772,6 +1863,7 @@ if barstate.isconfirmed and fibRefValid and ntsReady
                 fibBestSellBar    := bar_index
             f_fibFlagSet(fibFired, _i)
             f_fibMarkFired(_i)
+            f_fibMarkDirFired(_i, false)
         if _fadeUpWave and _deepOkSell
             fibSellEvent := true
             bool _betterFadeSell = na(fibSellEventRatio) or _ratio > f_safeNum(fibSellEventRatio, 0.0)
@@ -1785,6 +1877,7 @@ if barstate.isconfirmed and fibRefValid and ntsReady
                 fibSellDeepEvent := true
             f_fibFlagSet(fibFired, _i)
             f_fibMarkFired(_i)
+            f_fibMarkDirFired(_i, false)
         if _fadeDnWave and _deepOkBuy
             fibBuyEvent := true
             bool _betterFadeBuy = na(fibBuyEventRatio) or _ratio > f_safeNum(fibBuyEventRatio, 0.0)
@@ -1798,6 +1891,7 @@ if barstate.isconfirmed and fibRefValid and ntsReady
                 fibBuyDeepEvent := true
             f_fibFlagSet(fibFired, _i)
             f_fibMarkFired(_i)
+            f_fibMarkDirFired(_i, true)
 
 fibAnyEvent      = fibBuyEvent or fibSellEvent
 fibBuyCatDeep    = fibBuyEventCat >= 4
@@ -1806,6 +1900,41 @@ fibBuyEventText  = na(fibBuyEventRatio) ? "—" : str.tostring(fibBuyEventRatio,
 fibSellEventText = na(fibSellEventRatio) ? "—" : str.tostring(fibSellEventRatio, "#.###")
 fibBuyEventKind  = fibBuyEventCat >= 4 ? "FADE" : fibBuyEventCat >= 2 ? "EXT" : "RETR"
 fibSellEventKind = fibSellEventCat >= 4 ? "FADE" : fibSellEventCat >= 2 ? "EXT" : "RETR"
+
+// ----------------------------------------------------------------------------
+//  نشانگرهای تفکیک‌شدهٔ هر سطح فیبوناچی — ظاهر v5، منطق v6
+// ----------------------------------------------------------------------------
+// هر نشانگر فقط وقتی روشن می‌شود که همان سطح در همان کندل شلیک شده باشد؛ یعنی
+// همهٔ دروازه‌های v6 (موج بالغ، لمس، واکنش تأییدشدهٔ بدنه/سایه، cooldown هر
+// سطح، فیلتر جهت موج، تأیید ساختاری/واگرایی برای سطوح عمیق و
+// barstate.isconfirmed) روی آن اعمال شده است.
+f_fibFiredNow(array<int> _a, int _i) => f_arrGetInt(_a, _i, -1000000000) == bar_index
+
+fibMarkRetrBuy   = fibBuyEvent and (f_fibFiredNow(fibBuyFireBar, FIB_I_R1) or
+     f_fibFiredNow(fibBuyFireBar, FIB_I_R2) or f_fibFiredNow(fibBuyFireBar, FIB_I_R3))
+fibMarkRetrSell  = fibSellEvent and (f_fibFiredNow(fibSellFireBar, FIB_I_R1) or
+     f_fibFiredNow(fibSellFireBar, FIB_I_R2) or f_fibFiredNow(fibSellFireBar, FIB_I_R3))
+fibMark0300Buy   = fibBuyEvent  and f_fibFiredNow(fibBuyFireBar, FIB_I_0300)
+fibMark0300Sell  = fibSellEvent and f_fibFiredNow(fibSellFireBar, FIB_I_0300)
+fibMark1470Buy   = fibBuyEvent  and f_fibFiredNow(fibBuyFireBar, FIB_I_1470)
+fibMark1470Sell  = fibSellEvent and f_fibFiredNow(fibSellFireBar, FIB_I_1470)
+fibMark2100Buy   = fibBuyEvent  and f_fibFiredNow(fibBuyFireBar, FIB_I_2100)
+fibMark2100Sell  = fibSellEvent and f_fibFiredNow(fibSellFireBar, FIB_I_2100)
+fibMark2618Buy   = fibBuyEvent and (f_fibFiredNow(fibBuyFireBar, FIB_I_2618) or
+     f_fibFiredNow(fibBuyFireBar, FIB_I_3000))
+fibMark2618Sell  = fibSellEvent and (f_fibFiredNow(fibSellFireBar, FIB_I_2618) or
+     f_fibFiredNow(fibSellFireBar, FIB_I_3000))
+fibMark4414Buy   = fibBuyEvent and (f_fibFiredNow(fibBuyFireBar, FIB_I_4414) or
+     f_fibFiredNow(fibBuyFireBar, FIB_I_4764))
+fibMark4414Sell  = fibSellEvent and (f_fibFiredNow(fibSellFireBar, FIB_I_4414) or
+     f_fibFiredNow(fibSellFireBar, FIB_I_4764))
+fibMark6618Buy   = fibBuyEvent and (f_fibFiredNow(fibBuyFireBar, FIB_I_6618) or
+     f_fibFiredNow(fibBuyFireBar, FIB_I_8618))
+fibMark6618Sell  = fibSellEvent and (f_fibFiredNow(fibSellFireBar, FIB_I_6618) or
+     f_fibFiredNow(fibSellFireBar, FIB_I_8618))
+fibMark10618Buy  = fibBuyEvent  and f_fibFiredNow(fibBuyFireBar, FIB_I_10618)
+fibMark10618Sell = fibSellEvent and f_fibFiredNow(fibSellFireBar, FIB_I_10618)
+
 
 // ============================================================================
 //  ▍M13 — Session Filter و Volume Filter
@@ -1935,7 +2064,7 @@ if barstate.isconfirmed and isStandard and showLiqLabels and liqAnySweep
 // فقط Daily Open پلات می‌شود (یک سهم از plot count). بقیهٔ سطوح مرجع
 // (PDH/PDL/PWH/PWL/Weekly Open) در ردیف «Weekly Levels» پنل و در تشخیص جاروی
 // نقدینگی استفاده می‌شوند؛ PDH/PDL هم که قبلاً در لایهٔ PD رسم شده‌اند.
-plot(showRefLevels and isStandard and dOpenValid ? dailyOpen : na, "Daily Open",
+plot(showDailyOpenLine and showRefLevels and isStandard and dOpenValid ? dailyOpen : na, "Daily Open",
      color = color.new(colNeutral, 45), style = plot.style_linebr, linewidth = 1, display = display.pane)
 
 // ============================================================================
@@ -2517,43 +2646,60 @@ tlActiveUp = tlShow and tlUpValid and not tlUpBroken
 tlActiveDn = tlShow and tlDnValid and not tlDnBroken
 
 // ============================================================================
-//  ▍M21 — لایه نمایش: حالت Minimal / Standard / Full Analysis
+//  ▍M21 — لایه نمایش: ظاهر دقیقاً مطابق نسخهٔ v5 اصلی
 // ============================================================================
-
+// سیاست این نسخه: آن‌چه روی چارت دیده می‌شود همان فیلتر اصلی v5 است — همان
+// عنوان‌های فارسی، همان رنگ‌ها، همان ضخامت خط‌ها و همان ۲۲ شکل سیگنال — و
+// فقط «منطق و دقت» موتور v6 است (امتیازدهی ترکیبی، MTF، واگرایی هوشمند،
+// آنتی‌ریپینت). عناصر بصریِ صرفاً v6 (نقطهٔ Extreme، روبان Hull، خط Daily
+// Open و لوزی‌های Flip) پیش‌فرض خاموش‌اند تا چارت شلوغ‌تر از v5 نشود.
+// پلات‌های Data Window حذف شده‌اند چون همان اعداد در ردیف‌های ۴۸ تا ۵۲ پنل
+// نمایش داده می‌شوند؛ این کار ۱۱ سهم از سقف ۶۴ تایی plot count را آزاد کرد
+// تا کل ظاهر v5 بدون قربانی‌کردن هشدارها جا شود.
 // ----------------------------------------------------------------------------
-//  پلات‌های پایه (رنگ BUY و SELL در تمام بخش‌ها یکسان است)
-// ----------------------------------------------------------------------------
-ntsTrailColor = ntsTrend == 1 ? colBuy : ntsTrend == -1 ? colSell : colNeutral
-plot(ntsReady ? ntsTrail : na, "NTS Trail", color = ntsTrailColor, linewidth = 2,
-     style = plot.style_linebr, display = display.pane)
-plot(showAtLeastStandard and ntsWaveValid ? ntsExtremeNow : na, "NTS Extreme",
-     color = color.new(colNeutral, 35), linewidth = 1, style = plot.style_circles,
-     display = display.pane)
 
-// سقفplot count در TradingView برابر ۶۴ است و هر plot/plotshape/alertcondition
-// و هر fill با رنگ series یک سهم از آن را مصرف می‌کند. بنابراین ابر فقط با سه
-// پلات (Basis و دو باند داخلی) و یک fill با رنگ input رسم می‌شود؛ باندهای بیرونی
-// در منطق و در پنل باقی می‌مانند ولی پلات جدا نمی‌گیرند.
-plot(isStandard and cloudUseFilter ? cloudBasis : na, "Cloud Basis",
-     color = color.new(colNeutral, 40), display = display.pane)
-cloudPlotDn1 = plot(isStandard and cloudUseFilter ? cloudDn1 : na, "Cloud −1",
-     color = color.new(colBuy, 78), display = display.pane)
-cloudPlotUp1 = plot(isStandard and cloudUseFilter ? cloudUp1 : na, "Cloud +1",
-     color = color.new(colSell, 78), display = display.pane)
-fill(cloudPlotUp1, cloudPlotDn1, color = color.new(colNeutral, 92), title = "ابر بازگشت")
+// --- Trail / Stop NTS — رنگ پویا دقیقاً مثل v5 (teal / red / gray) ---
+ntsTrailColor = ntsTrend == 1 ? color.teal : ntsTrend == -1 ? color.red : color.gray
+plot(ntsReady ? ntsTrail : na, "NTS Stop", color = ntsTrailColor, linewidth = 2)
 
-// ناحیه‌های Premium/Equilibrium/Discount با باکس رسم می‌شوند (بدون مصرف plot
-// count)؛ سه خط زیر فقط لبه‌ها و تعادل را نشان می‌دهند.
-plot(pdRangeValid and pdShowZones ? pdHigh : na, "PD High",
-     color = color.new(colSell, 45), style = plot.style_linebr, display = display.pane)
-plot(pdRangeValid and pdShowZones ? pdEq : na, "Equilibrium",
-     color = color.new(colNeutral, 35), style = plot.style_linebr, display = display.pane)
-plot(pdRangeValid and pdShowZones ? pdLow : na, "PD Low",
-     color = color.new(colBuy, 45), style = plot.style_linebr, display = display.pane)
+// --- سه Retracement اصلی: سفید / نارنجی / سبز، ضخامت ۲، style linebr ---
+plot(showAtLeastStandard and fibShowRetrOte ? f_fibLevelPrice(FIB_I_R1) : na, "NTS Fib 61.8",
+     color = color.new(color.white, 20), linewidth = 2, style = plot.style_linebr)
+plot(showAtLeastStandard and fibShowRetrOte ? f_fibLevelPrice(FIB_I_R2) : na, "NTS Fib 78.6",
+     color = color.new(color.orange, 20), linewidth = 2, style = plot.style_linebr)
+plot(showAtLeastStandard and fibShowRetrOte ? f_fibLevelPrice(FIB_I_R3) : na, "NTS Fib 88.6",
+     color = color.new(color.lime, 20), linewidth = 2, style = plot.style_linebr)
 
+// --- ابر بازگشت: چهار باند + دو ناحیهٔ تقاضا/عرضه (v5: aqua / fuchsia) ---
+cloudPlotDn1 = plot(showAtLeastStandard and cloudUseFilter ? cloudDn1 : na, "Cloud −1",
+     color = color.new(color.aqua, 70))
+cloudPlotUp1 = plot(showAtLeastStandard and cloudUseFilter ? cloudUp1 : na, "Cloud +1",
+     color = color.new(color.fuchsia, 70))
+cloudPlotDn2 = plot(showAtLeastStandard and cloudUseFilter ? cloudDn2 : na, "Cloud −2",
+     color = color.new(color.aqua, 85))
+cloudPlotUp2 = plot(showAtLeastStandard and cloudUseFilter ? cloudUp2 : na, "Cloud +2",
+     color = color.new(color.fuchsia, 85))
+fill(cloudPlotDn1, cloudPlotDn2, color = color.new(color.aqua, 88), title = "ناحیه تقاضای ابر")
+fill(cloudPlotUp1, cloudPlotUp2, color = color.new(color.fuchsia, 88), title = "ناحیه عرضه ابر")
+
+// --- تعادل داخلی و ناحیهٔ روز قبل: عنوان/رنگ/fill دقیقاً مثل v5 ---
+plot(showAtLeastStandard and pdRangeValid and pdShowZones ? pdEq : na, "EQ داخلی روز قبل",
+     color = color.new(color.gray, 40), style = plot.style_linebr)
+pdPlotHi = plot(showAtLeastStandard and pdRangeValid and pdShowZones ? pdHigh : na, "سقف روز قبل",
+     color = color.new(color.red, 55), style = plot.style_linebr)
+pdPlotEq = plot(showAtLeastStandard and pdRangeValid and pdShowZones ? pdEq : na, "EQ ناحیه روز قبل",
+     color = color.new(color.gray, 55), style = plot.style_linebr)
+pdPlotLo = plot(showAtLeastStandard and pdRangeValid and pdShowZones ? pdLow : na, "کف روز قبل",
+     color = color.new(color.green, 55), style = plot.style_linebr)
+fill(pdPlotHi, pdPlotEq, color = color.new(color.red, 90), title = "Premium روز قبل")
+fill(pdPlotEq, pdPlotLo, color = color.new(color.green, 90), title = "Discount روز قبل")
+
+// --- عناصر بصریِ صرفاً v6 (پیش‌فرض خاموش؛ با ورودی روشن می‌شوند) ---
+plot(showNtsExtremeDot and ntsWaveValid ? ntsExtremeNow : na, "NTS Extreme",
+     color = color.new(colNeutral, 35), linewidth = 1, style = plot.style_circles)
 plot(hullShowRibbon and hullReady and showAtLeastStandard ? hullValue : na, "Hull",
      color = hullBullish ? color.new(colBuy, 25) : hullBearish ? color.new(colSell, 25) : color.new(colNeutral, 45),
-     linewidth = 2, style = plot.style_linebr, display = display.pane)
+     linewidth = 2, style = plot.style_linebr)
 
 // ----------------------------------------------------------------------------
 //  ناحیه‌های Premium / Discount لبه‌دار (باکس) — یک منبع داده برای منطق و نمایش
@@ -2594,28 +2740,31 @@ if redrawFibGate and fibRefValid
         float _ratio = f_fibRatioAt(_i)
         int   _cat   = f_arrGetInt(fibCats, _i, 0)
         int   _grp   = f_arrGetInt(fibGroups, _i, 0)
-        if f_fibShowOn(_grp) and not na(_ratio)
+        // سه Retracement اصلی (0.618/0.786/0.886) در M21 به‌صورت plot رسم
+        // می‌شوند (سفید/نارنجی/سبز، دقیقاً مثل v5)؛ بنابراین اینجا رسم نمی‌شوند
+        // تا خط تکراری روی چارت نیفتد.
+        bool _isPlottedRetr = _i == FIB_I_R1 or _i == FIB_I_R2 or _i == FIB_I_R3
+        if f_fibShowOn(_grp) and not na(_ratio) and not _isPlottedRetr
             float _price = f_fibLevelPrice(_i)
             if not na(_price) and math.abs(_price - close) <= fibExtMaxAtr * chartAtrSafe * 3.0
-                bool  _isRetr = _cat <= 1
-                color _col    = _isRetr ? colFibRetr : colFibExt
-                int   _transp = _cat >= 4 ? 55 : _cat >= 2 ? 35 : 20
-                int   _width  = _cat >= 4 ? 1 : _cat <= 1 ? 2 : 1
-                // ثابت‌های line.style_* در Pine v6 از «نوع یکتا» (unique value type)
-                // هستند و نه int؛ بنابراین نمی‌توان آن‌ها را در متغیری با نوع
-                // صریح int نگه داشت. مقدار مستقیماً و به‌صورت سه‌تایی به پارامتر
-                // style خودِ line.new پاس داده می‌شود (همان الگویی که بقیهٔ
-                // فراخوانی‌های این اسکریپت استفاده می‌کنند).
+                // رنگ هر سطح = رنگ همان سطح در v5 (aqua/yellow/lime/fuchsia/
+                // orange/red/purple). ضخامت و سبک خط هم همان قاعدهٔ v5 است:
+                // نسبت‌های 4.414 به بالا ضخیم و توپُر، بقیه نازک و خط‌چین.
+                color _col = f_fibColorAt(_i)
+                // ثابت‌های line.style_* در Pine v6 از «نوع یکتا» (unique value
+                // type) هستند و نه int؛ بنابراین نمی‌توان آن‌ها را در متغیری با
+                // نوع صریح int نگه داشت. مقدار مستقیماً و به‌صورت سه‌تایی به
+                // پارامتر style خودِ line.new پاس داده می‌شود.
                 line _ln = line.new(_x1, _price, _x2, _price, xloc = xloc.bar_index,
-                     extend = tlExtendRight and _isRetr ? extend.right : extend.none,
-                     color = color.new(_col, _transp), width = _width,
-                     style = _isRetr ? line.style_solid : _cat >= 4 ? line.style_dotted : line.style_dashed)
+                     extend = tlExtendRight ? extend.right : extend.none,
+                     color = color.new(_col, 35), width = _ratio >= 4.414 ? 2 : 1,
+                     style = _ratio >= 4.414 ? line.style_solid : line.style_dashed)
                 array.push(omExtLines, _ln)
-                bool _wantLabel = _isRetr ? fibShowRetrLabel : fibShowExtLabel
+                bool _wantLabel = _cat <= 1 ? fibShowRetrLabel : fibShowExtLabel
                 if _wantLabel and f_labelSlotFree(true, _price, chartAtrSafe)
                     label _lb = label.new(_x2, _price, str.tostring(_ratio, "#.###"),
                          xloc = xloc.bar_index, yloc = yloc.price, style = label.style_label_left,
-                         color = color.new(_col, 45), textcolor = color.white, size = size.tiny)
+                         color = color.new(_col, 40), textcolor = color.white, size = size.tiny)
                     array.push(omExtLabels, _lb)
     while array.size(omExtLines) > math.max(1, maxExtLines)
         line.delete(array.shift(omExtLines))
@@ -2639,14 +2788,20 @@ if redrawFibGate and fibRefValid
                         float _ratio = f_fibRatioAt(_i)
                         int   _cat   = f_arrGetInt(fibCats, _i, 0)
                         int   _grp   = f_arrGetInt(fibGroups, _i, 0)
-                        if f_fibShowOn(_grp) and not na(_ratio) and _cat >= 1
-                            float _price = _cat <= 1 ? _hExt + (_hAnch - _hExt) * f_clamp(_ratio, 0.0, 1.0) :
-                                 _hAnch + float(_hDir) * _hSize * math.max(1.0, _ratio)
+                        // v5 هم برای موج‌های کامل‌شده فقط سطوح Extension را رسم
+                        // می‌کرد (Retracement تاریخی خط جدا نداشت). فرمول قیمت
+                        // دقیقاً همان v5 است: fib1 موجِ ذخیره‌شده + جهت ×
+                        // |trail − fib1| × (ratio − 1.0)
+                        if f_fibShowOn(_grp) and not na(_ratio) and _cat >= 2
+                            float _hFib1 = _hExt + (_hAnch - _hExt) * f_clamp(fibR1Sorted, 0.0, 1.0)
+                            float _hExtSize = math.abs(_hAnch - _hFib1)
+                            float _price = _hExtSize > syminfo.mintick ?
+                                 _hFib1 + float(_hDir) * _hExtSize * (_ratio - 1.0) : na
                             if not na(_price) and math.abs(_price - close) <= fibExtMaxAtr * chartAtrSafe * 3.0
                                 line _ln = line.new(math.max(0, math.min(_hTime, bar_index - 1)), _price,
                                      bar_index, _price,
                                      xloc = xloc.bar_index,
-                                     extend = extend.none, color = color.new(colNeutral, 78),
+                                     extend = extend.none, color = color.new(color.gray, 72),
                                      style = line.style_dotted, width = 1)
                                 f_omAddLineOnly(omFibLines, _ln, math.max(2, maxExtLines))
 
@@ -2678,12 +2833,12 @@ if tlRedraw
         float _pb = f_tlValueAt(tlDnAnchorBar, _pa, f_safeNum(tlDnSlope, 0.0), float(_b))
         line _ln = line.new(_a, _pa, _b, _pb, xloc = xloc.bar_index,
              extend = tlExtendRight ? extend.right : extend.none,
-             color = color.new(colSell, 15), style = line.style_solid, width = 2)
+             color = tlColDn, style = line.style_solid, width = 2)
         array.push(omTlLines, _ln)
         if tlShowLabels and f_labelSlotFree(false, _pb, chartAtrSafe)
-            label _lb = label.new(_b, _pb, "TL− ×" + str.tostring(f_safeInt(tlDnTouch, 0)),
+            label _lb = label.new(_b, _pb, "روند نزولی ×" + str.tostring(f_safeInt(tlDnTouch, 0)),
                  xloc = xloc.bar_index, yloc = yloc.price, style = label.style_label_down,
-                 color = color.new(colSell, 25), textcolor = color.white, size = size.tiny)
+                 color = color.new(color.red, 20), textcolor = color.white, size = size.small)
             array.push(omTlLabels, _lb)
     if tlActiveUp and not na(tlUpAnchorBar) and not na(tlUpLastBar)
         int   _a  = int(tlUpAnchorBar)
@@ -2692,12 +2847,12 @@ if tlRedraw
         float _pb = f_tlValueAt(tlUpAnchorBar, _pa, f_safeNum(tlUpSlope, 0.0), float(_b))
         line _ln = line.new(_a, _pa, _b, _pb, xloc = xloc.bar_index,
              extend = tlExtendRight ? extend.right : extend.none,
-             color = color.new(colBuy, 15), style = line.style_solid, width = 2)
+             color = tlColUp, style = line.style_solid, width = 2)
         array.push(omTlLines, _ln)
         if tlShowLabels and f_labelSlotFree(true, _pb, chartAtrSafe)
-            label _lb = label.new(_b, _pb, "TL+ ×" + str.tostring(f_safeInt(tlUpTouch, 0)),
+            label _lb = label.new(_b, _pb, "روند صعودی ×" + str.tostring(f_safeInt(tlUpTouch, 0)),
                  xloc = xloc.bar_index, yloc = yloc.price, style = label.style_label_up,
-                 color = color.new(colBuy, 25), textcolor = color.white, size = size.tiny)
+                 color = color.new(color.green, 20), textcolor = color.white, size = size.small)
             array.push(omTlLabels, _lb)
     if tlShowHistorical and array.size(tlHistA) > 0
         int _hCount = array.size(tlHistA)
@@ -2738,15 +2893,79 @@ if barstate.isconfirmed and isStandard and showStructLabels and structAnyEvent
 // ----------------------------------------------------------------------------
 //  شکل‌های سیگنال (plotshape)
 // ----------------------------------------------------------------------------
+// نشانگر نهایی Trend Confluence = سیگنال سطح CONFIRMED به بالا در موتور v6.
+// در v5 هم ntsKafSignal دقیقاً برابر finalBuySignal بود؛ همان الگو حفظ شده.
+// تعریف این دو متغیر باید بعد از ماژول سیگنال (M17) باشد چون sigIsPro و
+// sigIsConfirmed همان‌جا ساخته می‌شوند.
+sigFinalBuy      = sigBuy  and (sigIsConfirmed or sigIsPro)
+sigFinalSell     = sigSell and (sigIsConfirmed or sigIsPro)
+
+// ----------------------------------------------------------------------------
+//  شکل‌های سیگنال — دقیقاً همان ۲۲ نشانگر نسخهٔ v5
+// ----------------------------------------------------------------------------
+// عنوان، رنگ، اندازه، متن و مکان هر نشانگر عیناً مثل فیلتر اصلی v5 است؛ تنها
+// تفاوت در «منطق تولید» است که اکنون از موتور v6 می‌آید: امتیاز ترکیبی
+// مستقل خرید/فروش، هم‌راستایی MTF، تأیید ساختار (CHoCH/BOS)، واکنش تأییدشدهٔ
+// بدنه/سایه، cooldown هر سطح، موج بالغ و barstate.isconfirmed.
+plotshape(sigShowShapes and sigFinalBuy, title = "Final Trend Confluence BUY",
+     style = shape.triangleup, location = location.belowbar, color = color.green,
+     size = size.normal, text = "BUY")
+plotshape(sigShowShapes and sigFinalSell, title = "Final Trend Confluence SELL",
+     style = shape.triangledown, location = location.abovebar, color = color.red,
+     size = size.normal, text = "SELL")
+plotshape(sigShowShapes and fibMarkRetrBuy, title = "NTS Fib 1-3 BUY",
+     style = shape.labelup, location = location.belowbar, color = color.new(color.green, 0),
+     size = size.tiny, text = "FIB")
+plotshape(sigShowShapes and fibMarkRetrSell, title = "NTS Fib 1-3 SELL",
+     style = shape.labeldown, location = location.abovebar, color = color.new(color.red, 0),
+     size = size.tiny, text = "FIB")
+plotshape(sigShowShapes and fibMark0300Buy, title = "NTS BUY 0.300", style = shape.labelup,
+     location = location.belowbar, color = color.aqua, size = size.tiny, text = "0.300")
+plotshape(sigShowShapes and fibMark0300Sell, title = "NTS SELL 0.300", style = shape.labeldown,
+     location = location.abovebar, color = color.orange, size = size.tiny, text = "0.300")
+plotshape(sigShowShapes and fibMark1470Buy, title = "NTS BUY 1.470", style = shape.labelup,
+     location = location.belowbar, color = color.aqua, size = size.tiny, text = "1.470")
+plotshape(sigShowShapes and fibMark1470Sell, title = "NTS SELL 1.470", style = shape.labeldown,
+     location = location.abovebar, color = color.orange, size = size.tiny, text = "1.470")
+plotshape(sigShowShapes and fibMark2100Buy, title = "NTS BUY 2.100", style = shape.labelup,
+     location = location.belowbar, color = color.aqua, size = size.tiny, text = "2.100")
+plotshape(sigShowShapes and fibMark2100Sell, title = "NTS SELL 2.100", style = shape.labeldown,
+     location = location.abovebar, color = color.orange, size = size.tiny, text = "2.100")
+plotshape(sigShowShapes and fibMark2618Buy, title = "NTS Extension Reversal BUY 2.618/3.000",
+     style = shape.labelup, location = location.belowbar, color = color.fuchsia, size = size.tiny, text = "2.6/3")
+plotshape(sigShowShapes and fibMark2618Sell, title = "NTS Extension Reversal SELL 2.618/3.000",
+     style = shape.labeldown, location = location.abovebar, color = color.fuchsia, size = size.tiny, text = "2.6/3")
+plotshape(sigShowShapes and fibMark4414Buy, title = "NTS Extension Reversal BUY 4.414/4.764",
+     style = shape.labelup, location = location.belowbar, color = color.orange, size = size.tiny, text = "4.4/4.7")
+plotshape(sigShowShapes and fibMark4414Sell, title = "NTS Extension Reversal SELL 4.414/4.764",
+     style = shape.labeldown, location = location.abovebar, color = color.orange, size = size.tiny, text = "4.4/4.7")
+plotshape(sigShowShapes and fibMark6618Buy, title = "NTS Extension Reversal BUY 6.618/8.618",
+     style = shape.labelup, location = location.belowbar, color = color.red, size = size.tiny, text = "6.6/8.6")
+plotshape(sigShowShapes and fibMark6618Sell, title = "NTS Extension Reversal SELL 6.618/8.618",
+     style = shape.labeldown, location = location.abovebar, color = color.red, size = size.tiny, text = "6.6/8.6")
+plotshape(sigShowShapes and fibMark10618Buy, title = "NTS Extension Reversal BUY 10.618",
+     style = shape.labelup, location = location.belowbar, color = color.purple, size = size.tiny, text = "10.618")
+plotshape(sigShowShapes and fibMark10618Sell, title = "NTS Extension Reversal SELL 10.618",
+     style = shape.labeldown, location = location.abovebar, color = color.purple, size = size.tiny, text = "10.618")
+// در v5 هم ntsKafSignal دقیقاً برابر finalBuySignal بود؛ همان الگو حفظ شده است.
+plotshape(sigShowShapes and sigFinalBuy, title = "NTS KAF / Final BUY", style = shape.labelup,
+     location = location.belowbar, color = color.new(color.lime, 0), size = size.tiny,
+     text = "KAF", textcolor = color.black)
+plotshape(sigShowShapes and sigFinalSell, title = "NTS SAGHF / Final SELL", style = shape.labeldown,
+     location = location.abovebar, color = color.new(color.maroon, 0), size = size.tiny,
+     text = "SAGHF", textcolor = color.white)
+plotshape(sigShowShapes and sdShowConfirmed and sdBullConfirmed, title = "Smart Bullish Reversal",
+     style = shape.labelup, location = location.belowbar, color = color.aqua, size = size.tiny, text = "DIV")
+plotshape(sigShowShapes and sdShowConfirmed and sdBearConfirmed, title = "Smart Bearish Reversal",
+     style = shape.labeldown, location = location.abovebar, color = color.fuchsia, size = size.tiny, text = "DIV")
+// نشانگر PRO اضافهٔ موتور v6 است (قوی‌ترین سطح سیگنال) و در v5 وجود نداشت.
 plotshape(sigShowShapes and sigIsPro and sigBuy, title = "PRO BUY", style = shape.labelup,
      location = location.belowbar, color = colBuy, textcolor = color.white, size = size.normal, text = "PRO BUY")
 plotshape(sigShowShapes and sigIsPro and sigSell, title = "PRO SELL", style = shape.labeldown,
      location = location.abovebar, color = colSell, textcolor = color.white, size = size.normal, text = "PRO SELL")
-plotshape(sigShowShapes and sigIsConfirmed and sigBuy, title = "CONFIRMED BUY", style = shape.triangleup,
-     location = location.belowbar, color = color.new(colBuy, 15), size = size.small, text = "BUY")
-plotshape(sigShowShapes and sigIsConfirmed and sigSell, title = "CONFIRMED SELL", style = shape.triangledown,
-     location = location.abovebar, color = color.new(colSell, 15), size = size.small, text = "SELL")
-// سطح SETUP عمداً plotshape ندارد: سقف plot count در TradingView برابر ۶۴ است و
+// سطح SETUP عمداً plotshape ندارد: هم برای آنکه چارت شلوغ‌تر از v5 نشود و هم
+// چون سقف plot count در TradingView برابر ۶۴ است. سیگنال SETUP با لیبل
+// مدیریت‌شدهٔ زیر نشان داده می‌شود که اطلاعات کامل‌تری هم دارد.
 // هر plotshape یک سهم مصرف می‌کند. سیگنال SETUP با لیبل مدیریت‌شدهٔ زیر نشان
 // داده می‌شود که هم اطلاعات کامل‌تری دارد و هم سهم plot مصرف نمی‌کند.
 
@@ -2822,10 +3041,10 @@ if drawGate and isFull and fibRefValid
         label.delete(array.shift(omWaveLabels))
 
 // --- نشانگر تغییر روند NTS (فقط بصری) ---
-plotshape(isStandard and ntsBullFlip and barstate.isconfirmed, title = "NTS Bull Flip",
+plotshape(showFlipMarks and isStandard and ntsBullFlip and barstate.isconfirmed, title = "NTS Bull Flip",
      style = shape.diamond, location = location.belowbar, color = color.new(colBuy, 30),
      size = size.tiny, text = "NTS↑")
-plotshape(isStandard and ntsBearFlip and barstate.isconfirmed, title = "NTS Bear Flip",
+plotshape(showFlipMarks and isStandard and ntsBearFlip and barstate.isconfirmed, title = "NTS Bear Flip",
      style = shape.diamond, location = location.abovebar, color = color.new(colSell, 30),
      size = size.tiny, text = "NTS↓")
 
@@ -2973,7 +3192,7 @@ if barstate.islast and showPanel
          color.new(colNeutral, 20))
 
 // ============================================================================
-//  ▍M26 — پلات‌های Data Window (مقادیر قابل استناد در متن هشدارها)
+//  ▍M26 — مقادیر قابل استناد در متن هشدارها (بدون پلات Data Window)
 // ============================================================================
 // بودجهٔ plot count: سقف TradingView برابر ۶۴ است و هر plot / plotshape /
 // alertcondition و هر fill با رنگ series یک سهم مصرف می‌کند. کل مصرف این
@@ -2982,12 +3201,6 @@ if barstate.islast and showPanel
 // مقادیر تشخیصیِ بیشتر (نوسان‌نماها، امتیاز واگرایی، ابر، سطوح هفتگی، Period و
 // Factor پویا، نوسان درصدی، ADX و وضعیت PD) در ردیف‌های پنل نمایش داده می‌شوند
 // چون جدول هیچ سهمی از plot count مصرف نمی‌کند.
-plot(buyScore, "BuyScore", display = display.data_window)
-plot(sellScore, "SellScore", display = display.data_window)
-plot(sigLevelCode, "SignalLevel", display = display.data_window)
-plot(f_safeNum(ntsAtr, 0.0), "NTSATR", display = display.data_window)
-plot(f_safeNum(sigRatio, 0.0), "SignalFibRatio", display = display.data_window)
-plot(sigDirLevel, "SignalDir", display = display.data_window)
 
 // ============================================================================
 //  ▍M27 — هشدارها
@@ -3203,7 +3416,7 @@ if barstate.islast and showPanel and isFull
          color.new(colNeutral, 25))
 
 // ============================================================================
-//  ▍M30 — پلات‌های تشخیصی Data Window (بدون اثر بصری روی نمودار)
+//  ▍M30 — ردیف‌های تشخیصی پنل (بدون اثر بصری روی نمودار)
 // ============================================================================
 // ----------------------------------------------------------------------------
 //  پلات‌های تشخیصی Data Window — فقط ۶ مورد
@@ -3212,11 +3425,6 @@ if barstate.islast and showPanel and isFull
 // Factor پویا، اندازهٔ موج، نوسان درصدی و...) در ردیف‌های ۴۸ تا ۵۲ پنل نمایش
 // داده می‌شوند؛ جدول‌ها برخلاف plot هیچ سهمی از سقف ۶۴ تایی plot count مصرف
 // نمی‌کنند.
-plot(f_safeNum(structHigh, na), "StructureHigh", display = display.data_window)
-plot(f_safeNum(structLow, na), "StructureLow", display = display.data_window)
-plot(f_safeNum(tlUpValueNow, na), "TrendlineUp", display = display.data_window)
-plot(f_safeNum(tlDnValueNow, na), "TrendlineDown", display = display.data_window)
-plot(mtfAlignSum, "MtfAlignSum", display = display.data_window)
 
 // ============================================================================
 //  ▍M31 — خودآزمایی داخلی (Invariants) و تشخیص وضعیت ضد ری‌پینت
