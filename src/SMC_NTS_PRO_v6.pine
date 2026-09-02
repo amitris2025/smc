@@ -1,0 +1,3305 @@
+//@version=6
+// ============================================================================
+//  SMC + NTS PRO — XAUUSD M15 Multi-Timeframe Confluence Engine
+//  Pine Script v6 | نسخه نهایی، یکپارچه و بازنویسی‌شده
+// ============================================================================
+//
+//  معماری (۳۱ ماژول، به ترتیب اجرا):
+//    M01  ورودی‌ها و گروه‌بندی تنظیمات
+//    M02  توابع کمکی، NaN Guard و مدیریت مرکزی آبجکت‌ها (Object Manager)
+//    M03  تشخیص نماد و Auto-Tune ترکیبی
+//    M04  دروازه‌های نمایش (Minimal / Standard / Full Analysis)
+//    M05  هسته NTS و NTS Trail — کاملاً MTF داخل یک request.security واحد
+//    M06  ساختار بازار: Pivot تأییدشده، CHoCH، BOS، Supply / Demand
+//    M07  Premium / Equilibrium / Discount روزانه (یک منطق واحد)
+//    M08  Reversal Cloud پویا
+//    M09  نوسان‌نماهای واحد (RSI / Stoch / MACD / EMA / ATR نمودار)
+//    M10  Hull Suite به‌عنوان فیلتر تأیید
+//    M11  Smart Divergence با دو وضعیت Pending و Confirmed
+//    M12  موتور واحد Fib: Retracement و Extension + واکنش قیمت و Cooldown
+//    M13  Session Filter و Volume Filter
+//    M14  سطوح مرجع SMC و تشخیص جاروی نقدینگی (Liquidity Sweep)
+//    M15  ماتریس تأیید تایم‌فریم بالاتر (MTF Alignment)
+//    M16  سیستم امتیازدهی Confluence (Buy و Sell مستقل و متقارن)
+//    M17  موتور سیگنال: SETUP / CONFIRMED / PRO BUY / PRO SELL
+//    M18  مدیریت ریسک و Trade Plan (Entry / SL / TP / RR)
+//    M19  ساختار سشن‌های جهانی (London / New York)
+//    M20  موتور خطوط روند خودکار و تاریخی (Price Action)
+//    M21  لایه نمایش: پلات‌های Trail، Cloud، PD و Hull
+//    M22  رسم سطوح Fib، ناحیه‌های S/D و لیبل سیگنال‌ها
+//    M23  تصویرسازی موج NTS و نشانگرهای رویداد (Flip / TL Break)
+//    M24  جدول لاگ سیگنال‌ها (اثبات عدم تکرار و عدم تناقض)
+//    M25  پنل اطلاعات اصلی
+//    M26  پلات‌های Data Window
+//    M27  هشدارها: alert() پویا و alertcondition() های ثابت
+//    M28  تکمیل پنل: ماتریس HTF، Trade Plan و وضعیت فیلترها
+//    M29  آمار روزانه موتور سیگنال
+//    M30  پلات‌های تشخیصی Data Window
+//    M31  خودآزمایی داخلی (Invariants) و گزارش وضعیت ضد ری‌پینت
+//
+//  قراردادهای قطعی این نسخه:
+//    1) تمام داده‌های مؤثر بر سیگنال با barmerge.lookahead_off گرفته می‌شوند.
+//       هیچ lookahead_on در مسیر سیگنال، Score، فیلتر یا هشدار وجود ندارد.
+//    2) تمام سیگنال‌ها فقط روی کندل بسته‌شده (barstate.isconfirmed) صادر می‌شوند.
+//    3) اگر تایم‌فریم نمودار پایین‌تر از تایم‌فریم پایه NTS باشد، سیگنال فقط روی
+//       اولین کندلِ بعد از بسته‌شدن کندل NTS صادر می‌شود (ntsSampled) تا سیگنال
+//       تکراری ساخته نشود.
+//    4) دو قرارداد Fib کاملاً تفکیک شده‌اند:
+//         Retracement : level = extreme - dir * |extreme - origin| * ratio   (0..1)
+//         Extension   : level = origin  + dir * |extreme - origin| * ratio   (>=1)
+//       بنابراین «1.618» یعنی ۱۶۱.۸٪ کل موج، نه نسبتی مبهم به Fib1.
+//       نسبت‌های کمتر از ۱ (و دسته‌های ۲ و ۳) فقط واکنش هم‌جهت تولید می‌کنند و
+//       نسبت‌های >= 1 در دسته‌های ۴ و ۵ واکنش خلاف‌جهت (خستگی موج) می‌سازند که
+//       بدون تأیید ساختاری/واگرایی هم‌جهت فعال نمی‌شود.
+//    5) برای هر رویداد حداکثر یک سیگنال و حداکثر یک هشدار صادر می‌شود.
+//    6) هر line / label / box در استخر اختصاصی همان ماژول ثبت و بازیافت می‌شود؛
+//       پاک‌سازی یک ماژول هرگز آبجکت ماژول دیگر را حذف نمی‌کند.
+//    7) Period و Factor پویای NTS واقعاً روی محاسبه ATR و Trail اثر می‌گذارند
+//       (نه فقط نمایش) و تغییر آن‌ها در هر کندل پایه محدود است.
+//    8) Cooldown هر سطح Fib مستقل است و ورودی‌های fibCooldownRetr/Ext اجرایی
+//       می‌شوند؛ واحدها به کندل پایه تبدیل می‌شوند تا در LTF درست عمل کنند.
+// ============================================================================
+
+indicator("SMC + NTS PRO — MTF Confluence Engine [v6]",
+     shorttitle        = "NTS PRO v6",
+     overlay           = true,
+     format            = format.mintick,
+     max_bars_back     = 5000,
+     max_lines_count   = 500,
+     max_labels_count  = 500,
+     max_boxes_count   = 500)
+
+// ============================================================================
+//  ▍M01 — ورودی‌ها
+// ============================================================================
+gCore  = "۰۱ | هسته NTS و Trail (MTF)"
+gFib   = "۰۲ | Fib Retracement و Extension"
+gStr   = "۰۳ | ساختار بازار — CHoCH و BOS"
+gPd    = "۰۴ | Premium / Equilibrium / Discount روزانه"
+gCloud = "۰۵ | Reversal Cloud"
+gHull  = "۰۶ | Hull Suite — فیلتر تأیید"
+gDiv   = "۰۷ | Smart Divergence"
+gTl    = "۰۸ | خطوط روند خودکار و تاریخی"
+gSes   = "۰۹ | Session و Volume"
+gScore = "۱۰ | سیستم امتیازدهی Confluence"
+gSig   = "۱۱ | سیگنال‌ها و Cooldown"
+gObj   = "۱۲ | مدیریت آبجکت‌ها"
+gUi    = "۱۳ | نمایش، پنل و رنگ‌ها"
+gAlert = "۱۴ | هشدارها"
+gAuto  = "۱۵ | تنظیم خودکار نماد"
+
+// --- ۰۱ هسته NTS ---
+ntsTradingMode     = input.string("ترید روزانه", "حالت تریدینگ",
+     options   = ["اسکالپینگ", "ترید روزانه", "سوینگ تریدینگ", "پوزیشن تریدینگ"],
+     group     = gCore,
+     tooltip   = "فقط وزن پیش‌فرض Period/Factor را تغییر می‌دهد؛ منطق ثابت است.")
+ntsBaseTimeframe   = input.timeframe("15", "تایم‌فریم پایه NTS", group = gCore,
+     tooltip   = "تمام محاسبات NTS (TR, ATR, Trail, Trend, ADX, DI, Regime) در این تایم‌فریم انجام می‌شود.")
+ntsTrailType       = input.string("modified", "نوع True Range",
+     options   = ["modified", "classic"], group = gCore,
+     tooltip   = "modified = High-Low با سقف ۱.۵× میانگین رنج (مناسب گپ طلا)؛ classic = TR استاندارد.")
+ntsAtrLen          = input.int(14, "طول Wilder ATR", minval = 2, maxval = 100, group = gCore)
+ntsAdxLen          = input.int(14, "طول ADX / DI", minval = 2, maxval = 100, group = gCore)
+ntsRangeSmaLen     = input.int(14, "طول میانگین رنج (برای TR اصلاح‌شده)", minval = 2, maxval = 100, group = gCore)
+ntsReadyBars       = input.int(30, "کندل پایه لازم برای Warm-up", minval = 5, maxval = 300, group = gCore,
+     tooltip   = "تا این تعداد کندل پایه، روند مقداردهی اولیه نمی‌شود و سیگنال صادر نمی‌گردد.")
+ntsMildAdx         = input.float(18.0, "آستانه ADX — بازار رنج", minval = 5.0, maxval = 60.0, step = 0.5, group = gCore)
+ntsStrongAdx       = input.float(26.0, "آستانه ADX — روند قوی", minval = 10.0, maxval = 80.0, step = 0.5, group = gCore)
+ntsRegimeHyst      = input.float(2.0, "هیسترزیس رژیم (جلوگیری از نوسان ADX)", minval = 0.0, maxval = 10.0, step = 0.5, group = gCore)
+ntsAtrNormLen      = input.int(100, "طول مرجع ATR نرمال‌شده", minval = 20, maxval = 400, group = gCore)
+ntsMinPeriod       = input.int(5, "حداقل Period پویا", minval = 2, maxval = 40, group = gCore)
+ntsMaxPeriod       = input.int(34, "حداکثر Period پویا", minval = 5, maxval = 80, group = gCore)
+ntsMinFactor       = input.float(1.8, "حداقل Factor پویا", minval = 0.5, maxval = 10.0, step = 0.1, group = gCore)
+ntsMaxFactor       = input.float(9.0, "حداکثر Factor پویا", minval = 1.0, maxval = 25.0, step = 0.1, group = gCore)
+ntsPeriodDrift     = input.float(0.25, "حداکثر تغییر Period در هر کندل پایه", minval = 0.0, maxval = 2.0, step = 0.05, group = gCore,
+     tooltip   = "پارامترهای Adaptive در هر کندل پایه حداکثر به این اندازه جابه‌جا می‌شوند؛ ناپایداری حذف می‌شود.")
+ntsFactorDrift     = input.float(0.15, "حداکثر تغییر Factor در هر کندل پایه", minval = 0.0, maxval = 1.0, step = 0.05, group = gCore)
+ntsMinWaveAtr      = input.float(1.2, "حداقل اندازه موج (× ATR)", minval = 0.0, maxval = 20.0, step = 0.1, group = gCore,
+     tooltip   = "موج‌های کوچک‌تر از این حد معتبر نیستند و Fib از آن‌ها ساخته نمی‌شود.")
+
+// --- ۰۲ Fib ---
+fibRetr1           = input.float(0.618, "Retracement ۱", minval = 0.05, maxval = 0.95, step = 0.001, group = gFib)
+fibRetr2           = input.float(0.786, "Retracement ۲", minval = 0.05, maxval = 0.98, step = 0.001, group = gFib)
+fibRetr3           = input.float(0.886, "Retracement ۳", minval = 0.05, maxval = 0.99, step = 0.001, group = gFib)
+fibShowRetrShallow = input.bool(true, "نمایش Retracement کم‌عمق 0.236 / 0.382", group = gFib, inline = "fr0")
+fibSigRetrShallow  = input.bool(true, "سیگنال Retracement کم‌عمق", group = gFib, inline = "fr0")
+fibShowRetrOte     = input.bool(true, "نمایش Retracement اصلی 0.618 / 0.786 / 0.886", group = gFib, inline = "fr1")
+fibSigRetrOte      = input.bool(true, "سیگنال Retracement اصلی", group = gFib, inline = "fr1")
+fibShowRetrLabel   = input.bool(true, "لیبل سطوح Retracement", group = gFib, inline = "fr1")
+fibShowExtLabel    = input.bool(false, "لیبل سطوح Extension", group = gFib, inline = "fa")
+showFibExtA        = input.bool(true, "Ext A — Normal Pullback 1.168 / 1.272", group = gFib, inline = "fa")
+sigFibExtA         = input.bool(true, "سیگنال Ext A", group = gFib, inline = "fa")
+showFibExtB        = input.bool(true, "Ext B — Early Extension 1.414 / 1.618", group = gFib, inline = "fb")
+sigFibExtB         = input.bool(true, "سیگنال Ext B", group = gFib, inline = "fb")
+showFibExtC        = input.bool(true, "Ext C — Deep Reversal 2.000 / 2.618", group = gFib, inline = "fc")
+sigFibExtC         = input.bool(true, "سیگنال Ext C", group = gFib, inline = "fc")
+showFibExtD        = input.bool(false, "Ext D — Extreme Reversal 3.618 / 4.236", group = gFib, inline = "fd")
+sigFibExtD         = input.bool(false, "سیگنال Ext D", group = gFib, inline = "fd")
+showFibExtE        = input.bool(false, "Ext E — Extreme Reversal 6.854 / 8.618", group = gFib, inline = "fe")
+sigFibExtE         = input.bool(false, "سیگنال Ext E", group = gFib, inline = "fe")
+fibExtMaxAtr       = input.float(9.0, "حداکثر فاصله سطح فعال (× ATR)", minval = 1.0, maxval = 60.0, step = 0.5, group = gFib,
+     tooltip   = "سطوح بسیار دور فقط کمرنگ رسم می‌شوند و سیگنال عملیاتی تولید نمی‌کنند.")
+fibPenetrationAtr  = input.float(0.05, "حداقل نفوذ معتبر (× ATR)", minval = 0.0, maxval = 2.0, step = 0.01, group = gFib)
+fibMinReactionAtr  = input.float(0.15, "حداقل فاصله واکنش (× ATR)", minval = 0.0, maxval = 3.0, step = 0.05, group = gFib)
+fibMinBodyRatio    = input.float(0.40, "حداقل نسبت بدنه کندل واکنش", minval = 0.10, maxval = 0.90, step = 0.05, group = gFib)
+fibMinWickRatio    = input.float(0.50, "حداقل سایه رد قیمت (× بدنه)", minval = 0.0, maxval = 3.0, step = 0.05, group = gFib)
+fibRequireWick     = input.bool(true, "الزام سایه رد قیمت (یا Engulfing)", group = gFib)
+fibRequireRsiTurn  = input.bool(true, "الزام چرخش RSI برای واکنش", group = gFib)
+fibWaveMode        = input.string("موج جاری (پویا)", "مرجع موج Fib",
+     options   = ["موج جاری (پویا)", "موج تکمیل‌شده (ثابت)"], group = gFib,
+     tooltip   = "موج جاری برای سیگنال عملیاتی؛ موج تکمیل‌شده فقط برای اهداف ثابت و رسم تاریخی.")
+fibHistoryWaves    = input.int(2, "تعداد موج تاریخی رسم‌شده", minval = 0, maxval = 6, group = gFib)
+fibMaxSavedWaves   = input.int(40, "حداکثر موج ذخیره‌شده", minval = 5, maxval = 100, group = gFib)
+fibWaveMaturity    = input.int(2, "حداقل سن موج برای Pullback", minval = 1, maxval = 30, group = gFib)
+fibWaveMaxAge      = input.int(60, "حداکثر سن موج برای سیگنال ادامه‌روند", minval = 5, maxval = 400, group = gFib)
+deepNeedConfirm    = input.bool(true, "الزام واگرایی Confirmed یا شکست ساختار برای سطوح Deep/Extreme",
+     group     = gFib,
+     tooltip   = "برای دسته‌های Deep و Extreme، وضعیت Pending به‌تنهایی کافی نیست.")
+
+// --- ۰۳ ساختار بازار ---
+structPivotLen     = input.int(5, "طول Pivot ساختار", minval = 2, maxval = 30, group = gStr)
+structMinBody      = input.float(0.35, "حداقل نسبت بدنه کندل شکست", minval = 0.10, maxval = 0.90, step = 0.05, group = gStr)
+structMinDistAtr   = input.float(0.10, "حداقل فاصله بسته‌شدن از سطح (× ATR)", minval = 0.0, maxval = 2.0, step = 0.05, group = gStr)
+structRequireVol   = input.bool(false, "الزام حجم بالاتر از میانگین برای شکست", group = gStr)
+showStructLevels   = input.bool(true, "نمایش سطوح ساختار", group = gStr)
+showStructLabels   = input.bool(true, "نمایش لیبل CHoCH / BOS", group = gStr)
+structMaxLabels    = input.int(30, "حداکثر لیبل ساختار", minval = 0, maxval = 100, group = gStr)
+
+// --- ۰۴ Premium / Discount ---
+pdShowZones        = input.bool(true, "نمایش نواحی روز قبل", group = gPd)
+pdPremiumPct       = input.float(25.0, "شروع Premium (٪ بالای EQ)", minval = 1.0, maxval = 50.0, step = 0.5, group = gPd,
+     tooltip   = "Premium = از EQ + این درصدِ رنج روز قبل تا PD High.")
+pdDiscountPct      = input.float(25.0, "پایان Discount (٪ پایین EQ)", minval = 1.0, maxval = 50.0, step = 0.5, group = gPd,
+     tooltip   = "Discount = از PD Low تا EQ - این درصدِ رنج روز قبل.")
+pdUseFilter        = input.bool(true, "فیلتر معاملاتی PD (خرید در Discount / فروش در Premium)", group = gPd)
+pdAllowEquilibrium = input.bool(true, "اجازه سیگنال در ناحیه Equilibrium", group = gPd)
+pdSessionStart     = input.int(0, "شروع روز معاملاتی (ساعت UTC)", minval = 0, maxval = 23, group = gPd,
+     tooltip   = "برای طلا ۰ مناسب است؛ مبنای PD همان High/Low روز قبل تقویمی است.")
+showRefLevels      = input.bool(true, "نمایش سطوح مرجع (PDH/PDL/PWH/PWL/Open)", group = gPd)
+showLiqLabels      = input.bool(true, "نمایش لیبل جاروی نقدینگی", group = gPd,
+     tooltip   = "جارو = شکست سطح با سایه و بازگشت بدنه به داخل؛ فقط روی کندل بسته‌شده.")
+
+// --- ۰۵ Reversal Cloud ---
+cloudEmaLen        = input.int(50, "مبنای ابر (EMA)", minval = 5, maxval = 300, group = gCloud)
+cloudAtrLen        = input.int(20, "ATR ابر", minval = 2, maxval = 200, group = gCloud)
+cloudDev1          = input.float(0.50, "انحراف ابر ۱", minval = 0.05, maxval = 5.0, step = 0.05, group = gCloud)
+cloudDev2          = input.float(1.00, "انحراف ابر ۲", minval = 0.05, maxval = 6.0, step = 0.05, group = gCloud)
+cloudDev3          = input.float(1.618, "انحراف ابر ۳", minval = 0.05, maxval = 8.0, step = 0.05, group = gCloud)
+cloudUseFilter     = input.bool(true, "استفاده از ابر به‌عنوان فیلتر", group = gCloud)
+cloudRecentBars    = input.int(6, "اعتبار تماس اخیر (کندل نمودار)", minval = 1, maxval = 40, group = gCloud)
+cloudProximityAtr  = input.float(0.35, "حداکثر فاصله از مبنای ابر (× ATR)", minval = 0.0, maxval = 4.0, step = 0.05, group = gCloud)
+cloudVolatilityAdj = input.bool(true, "تنظیم انحراف با نوسان جاری", group = gCloud)
+
+// --- ۰۶ Hull ---
+hullSrc            = input.source(close, "منبع Hull", group = gHull)
+hullMode           = input.string("Hma", "نوع Hull", options = ["Hma", "Ehma", "Thma"], group = gHull)
+hullLen            = input.int(34, "طول Hull", minval = 4, maxval = 300, group = gHull)
+hullLenMult        = input.float(1.0, "ضریب طول Hull", minval = 0.5, maxval = 3.0, step = 0.1, group = gHull)
+hullUseHtf         = input.bool(false, "تأیید Hull از تایم‌فریم بالاتر", group = gHull,
+     tooltip   = "با lookahead_off مقدارِ کندل بسته‌شده تایم‌فریم بالاتر گرفته می‌شود؛ ری‌پینت ندارد.")
+hullHtf            = input.timeframe("60", "تایم‌فریم Hull", group = gHull)
+hullRequireAligned = input.bool(true, "رد سیگنال در صورت تناقض Hull و NTS", group = gHull,
+     tooltip   = "روشن = سیگنال مخالف Hull رد می‌شود؛ خاموش = فقط امتیاز کمتری می‌گیرد.")
+hullShowRibbon     = input.bool(true, "نمایش Hull", group = gHull)
+
+// --- ۰۶ب نوسان‌نماهای واحد (یک تعریف برای همه ماژول‌ها) ---
+oscRsiLen          = input.int(14, "دوره RSI", minval = 2, maxval = 200, group = gHull)
+oscRsiBuyMax       = input.float(45.0, "RSI — سقف ناحیه خرید", minval = 5.0, maxval = 60.0, step = 1.0, group = gHull)
+oscRsiSellMin      = input.float(55.0, "RSI — کف ناحیه فروش", minval = 40.0, maxval = 95.0, step = 1.0, group = gHull)
+oscStochLen        = input.int(14, "دوره Stochastic", minval = 2, maxval = 200, group = gHull)
+oscKSmooth         = input.int(3, "همواری K", minval = 1, maxval = 30, group = gHull)
+oscDSmooth         = input.int(3, "همواری D", minval = 1, maxval = 30, group = gHull)
+oscKdBuyMax        = input.float(45.0, "KD — سقف ناحیه خرید", minval = 5.0, maxval = 60.0, step = 1.0, group = gHull)
+oscKdSellMin       = input.float(55.0, "KD — کف ناحیه فروش", minval = 40.0, maxval = 95.0, step = 1.0, group = gHull)
+oscMacdFast        = input.int(12, "MACD سریع", minval = 2, maxval = 100, group = gHull)
+oscMacdSlow        = input.int(26, "MACD کند", minval = 5, maxval = 200, group = gHull)
+oscMacdSignalLen   = input.int(9, "MACD سیگنال", minval = 2, maxval = 100, group = gHull)
+
+// --- ۰۷ Smart Divergence ---
+sdEnabled          = input.bool(true, "فعال‌سازی Smart Divergence", group = gDiv)
+sdPivotLeft        = input.int(4, "Pivot چپ", minval = 2, maxval = 12, group = gDiv)
+sdPivotRight       = input.int(2, "Pivot راست (تأخیر تأیید)", minval = 1, maxval = 8, group = gDiv)
+sdMinBars          = input.int(8, "حداقل فاصله دو Pivot", minval = 3, maxval = 60, group = gDiv)
+sdMaxBars          = input.int(80, "حداکثر فاصله دو Pivot", minval = 20, maxval = 300, group = gDiv)
+sdMinMoveAtr       = input.float(1.0, "حداقل جابه‌جایی قیمت بین دو Pivot (× ATR)", minval = 0.1, maxval = 10.0, step = 0.1, group = gDiv)
+sdRsiDelta         = input.float(1.8, "حداقل اختلاف RSI بین دو Pivot", minval = 0.0, maxval = 15.0, step = 0.1, group = gDiv)
+sdPendingMinScore  = input.int(45, "حداقل امتیاز وضعیت Pending", minval = 20, maxval = 90, group = gDiv)
+sdConfirmMinScore  = input.int(60, "حداقل امتیاز وضعیت Confirmed", minval = 30, maxval = 95, group = gDiv)
+sdExpireBars       = input.int(24, "انقضای Pending (کندل)", minval = 5, maxval = 200, group = gDiv)
+sdRequireBothOsc   = input.bool(true, "الزام RSI + MACD برای Confirmed", group = gDiv)
+sdRequireTwist     = input.bool(true, "الزام ناحیه پیچش / کندل ردکننده", group = gDiv)
+sdShowPending      = input.bool(true, "نمایش Pending (فقط بصری)", group = gDiv)
+sdShowConfirmed    = input.bool(true, "نمایش Confirmed", group = gDiv)
+sdShowZones        = input.bool(false, "نمایش ناحیه واگرایی", group = gDiv)
+
+// --- ۰۸ خطوط روند ---
+tlShow             = input.bool(true, "نمایش خطوط روند فعال", group = gTl)
+tlShowHistorical   = input.bool(true, "نمایش خطوط روند تاریخی (شکسته)", group = gTl)
+tlMaxPivots        = input.int(10, "تعداد Pivot نگهداری‌شده", minval = 4, maxval = 16, group = gTl)
+tlMinTouch         = input.int(2, "حداقل تعداد لمس", minval = 2, maxval = 6, group = gTl)
+tlTouchTolAtr      = input.float(0.45, "تلورانس لمس (× ATR همان کندل)", minval = 0.05, maxval = 3.0, step = 0.05, group = gTl)
+tlBreakTolAtr      = input.float(0.35, "تلورانس شکست (× ATR همان کندل)", minval = 0.05, maxval = 3.0, step = 0.05, group = gTl)
+tlMinSlopeAtr      = input.float(0.02, "حداقل شیب در هر کندل (× ATR)", minval = 0.0, maxval = 2.0, step = 0.01, group = gTl,
+     tooltip   = "صفر = فیلتر شیب خاموش؛ خطوط تقریباً افقی حذف می‌شوند.")
+tlMaxLines         = input.int(20, "حداکثر خط روند", minval = 2, maxval = 60, group = gTl)
+tlMaxHistory       = input.int(8, "حداکثر خط تاریخی", minval = 0, maxval = 30, group = gTl)
+tlExtendRight      = input.bool(true, "امتداد خط به سمت راست", group = gTl)
+tlOnlyOnConfirmed  = input.bool(true, "بازطراحی فقط روی کندل بسته‌شده", group = gTl)
+tlShowLabels       = input.bool(true, "نمایش لیبل تعداد لمس", group = gTl)
+tlLookbackBars     = input.int(300, "محدوده نگاه‌به‌عقب (کندل)", minval = 50, maxval = 1000, group = gTl)
+
+// --- ۰۹ Session و Volume ---
+useSessionFilter   = input.bool(true, "فعال‌سازی فیلتر سشن", group = gSes)
+sessionString      = input.session("0430-0830", "بازه سشن اصلی", group = gSes,
+     tooltip   = "فرمت HHMM-HHMM؛ پیش‌فرض ۰۴:۳۰ تا ۰۸:۳۰ به وقت تهران.")
+sessionTimezone    = input.string("Asia/Tehran", "Timezone سشن",
+     options   = ["Asia/Tehran", "UTC", "Europe/London", "America/New_York", "Asia/Tokyo", "Australia/Sydney"],
+     group     = gSes)
+goldenHourString   = input.session("0630-0830", "Golden Hour", group = gSes)
+useGoldenHourBoost = input.bool(true, "امتیاز ویژه Golden Hour", group = gSes)
+useVolumeFilter    = input.bool(true, "فعال‌سازی فیلتر حجم", group = gSes,
+     tooltip   = "اگر حجم نماد معتبر نباشد (Tick Volume صفر یا NaN) فیلتر به‌صورت خودکار خنثی می‌شود.")
+volMaLen           = input.int(20, "میانگین حجم", minval = 5, maxval = 200, group = gSes)
+volMult            = input.float(1.05, "ضریب حداقل حجم", minval = 0.5, maxval = 3.0, step = 0.05, group = gSes)
+volFailMode        = input.string("خنثی", "رفتار در صورت حجم نامعتبر",
+     options   = ["خنثی", "رد سیگنال"], group = gSes)
+minAtrPct          = input.float(0.06, "حداقل نوسان مجاز (ATR٪ قیمت)", minval = 0.0, maxval = 2.0, step = 0.01, group = gSes)
+
+// --- ۱۰ امتیازدهی ---
+scoreSetup         = input.float(52.0, "آستانه SETUP", minval = 10.0, maxval = 95.0, step = 1.0, group = gScore)
+scoreConfirmed     = input.float(68.0, "آستانه CONFIRMED", minval = 20.0, maxval = 100.0, step = 1.0, group = gScore)
+scorePro           = input.float(84.0, "آستانه PRO", minval = 30.0, maxval = 100.0, step = 1.0, group = gScore)
+wTrend             = input.float(16.0, "وزن جهت NTS", minval = 0.0, maxval = 30.0, step = 1.0, group = gScore)
+wPd                = input.float(12.0, "وزن ناحیه PD", minval = 0.0, maxval = 30.0, step = 1.0, group = gScore)
+wFib               = input.float(18.0, "وزن واکنش Fib", minval = 0.0, maxval = 30.0, step = 1.0, group = gScore)
+wCloud             = input.float(10.0, "وزن Reversal Cloud", minval = 0.0, maxval = 25.0, step = 1.0, group = gScore)
+wHull              = input.float(12.0, "وزن Hull", minval = 0.0, maxval = 25.0, step = 1.0, group = gScore)
+wRsi               = input.float(8.0,  "وزن RSI", minval = 0.0, maxval = 20.0, step = 1.0, group = gScore)
+wStruct            = input.float(10.0, "وزن CHoCH / BOS", minval = 0.0, maxval = 25.0, step = 1.0, group = gScore)
+wDiv               = input.float(12.0, "وزن واگرایی تأییدشده", minval = 0.0, maxval = 25.0, step = 1.0, group = gScore)
+wVol               = input.float(6.0,  "وزن حجم", minval = 0.0, maxval = 20.0, step = 1.0, group = gScore)
+wSession           = input.float(8.0,  "وزن سشن", minval = 0.0, maxval = 20.0, step = 1.0, group = gScore)
+wTrendStrength     = input.float(8.0,  "وزن قدرت روند (ADX)", minval = 0.0, maxval = 20.0, step = 1.0, group = gScore)
+wCandle            = input.float(6.0,  "وزن ساختار کندل", minval = 0.0, maxval = 20.0, step = 1.0, group = gScore)
+
+// --- ۱۱ سیگنال ---
+sigEnabled         = input.bool(true, "فعال‌سازی موتور سیگنال", group = gSig)
+sigDirection       = input.string("هر دو جهت", "جهت مجاز سیگنال",
+     options   = ["هر دو جهت", "فقط BUY", "فقط SELL", "بدون سیگنال"], group = gSig)
+sigLevels          = input.string("همه سطح‌ها", "سطح سیگنال نمایشی",
+     options   = ["همه سطح‌ها", "فقط Confirmed و PRO", "فقط PRO"], group = gSig)
+buyCooldown        = input.int(4, "Cooldown مستقل BUY (کندل پایه)", minval = 0, maxval = 200, group = gSig)
+sellCooldown       = input.int(4, "Cooldown مستقل SELL (کندل پایه)", minval = 0, maxval = 200, group = gSig)
+fibCooldownRetr    = input.int(3, "Cooldown سطح Retracement", minval = 0, maxval = 100, group = gSig)
+fibCooldownExt     = input.int(5, "Cooldown سطح Extension", minval = 0, maxval = 100, group = gSig)
+sigRepeatLevelBars = input.int(8, "حداقل فاصله تکرار یک سطح (کندل پایه)", minval = 1, maxval = 100, group = gSig)
+sigShowLabels      = input.bool(true, "نمایش لیبل سیگنال", group = gSig)
+sigShowShapes      = input.bool(true, "نمایش شکل سیگنال", group = gSig)
+sigAllowDynamic    = input.bool(true, "ارسال هشدار پویا alert()", group = gSig)
+
+// --- ۱۲ مدیریت آبجکت ---
+maxSignalLabels    = input.int(120, "سقف لیبل سیگنال", minval = 10, maxval = 400, group = gObj)
+maxDivLabels       = input.int(40,  "سقف لیبل واگرایی", minval = 5, maxval = 200, group = gObj)
+maxDivLines        = input.int(40,  "سقف خط واگرایی", minval = 5, maxval = 200, group = gObj)
+maxDivBoxes        = input.int(20,  "سقف باکس واگرایی", minval = 0, maxval = 100, group = gObj)
+maxTrendLines      = input.int(20,  "سقف خط روند", minval = 2, maxval = 60, group = gObj)
+maxBoxes           = input.int(30,  "سقف باکس", minval = 0, maxval = 150, group = gObj)
+maxExtLines        = input.int(40,  "سقف خط Extension", minval = 5, maxval = 150, group = gObj)
+objExpireBars      = input.int(1200, "انقضای آبجکت‌های سیگنال (کندل)", minval = 100, maxval = 5000, group = gObj)
+
+// --- ۱۳ نمایش ---
+displayMode        = input.string("Standard", "حالت نمایش",
+     options   = ["Minimal", "Standard", "Full Analysis"], group = gUi)
+showPanel          = input.bool(true, "نمایش پنل اطلاعات", group = gUi)
+panelPosition      = input.string("top_right", "موقعیت پنل",
+     options   = ["top_right", "top_left", "bottom_right", "bottom_left", "middle_right"], group = gUi)
+panelSize          = input.string("small", "اندازه متن پنل",
+     options   = ["tiny", "small", "normal"], group = gUi)
+colBuy             = input.color(color.new(#00C853, 0), "رنگ BUY", group = gUi)
+colSell            = input.color(color.new(#FF1744, 0), "رنگ SELL", group = gUi)
+colNeutral         = input.color(color.new(#9E9E9E, 0), "رنگ خنثی", group = gUi)
+colFibRetr         = input.color(color.new(#FFD54F, 20), "رنگ Retracement", group = gUi)
+colFibExt          = input.color(color.new(#4FC3F7, 25), "رنگ Extension", group = gUi)
+colPremium         = input.color(color.new(#FF1744, 88), "رنگ Premium", group = gUi)
+colDiscount        = input.color(color.new(#00C853, 88), "رنگ Discount", group = gUi)
+colEquilibrium     = input.color(color.new(#9E9E9E, 92), "رنگ Equilibrium", group = gUi)
+labelMinGapAtr     = input.float(0.60, "حداقل فاصله عمودی لیبل‌ها (× ATR)", minval = 0.0, maxval = 5.0, step = 0.05, group = gUi,
+     tooltip   = "از انباشته‌شدن لیبل‌ها روی یک قیمت جلوگیری می‌کند.")
+
+// --- ۱۴ هشدار ---
+alertUsePro        = input.bool(true, "هشدار PRO BUY / PRO SELL", group = gAlert)
+alertUseConfirmed  = input.bool(true, "هشدار CONFIRMED BUY / SELL", group = gAlert)
+alertUseSetup      = input.bool(false, "هشدار SETUP BUY / SELL", group = gAlert)
+alertUseFlip       = input.bool(true, "هشدار تغییر روند NTS", group = gAlert)
+alertUseStruct     = input.bool(true, "هشدار CHoCH / BOS", group = gAlert)
+alertUseDiv        = input.bool(true, "هشدار واگرایی تأییدشده", group = gAlert)
+alertUseHull       = input.bool(false, "هشدار تغییر حالت Hull", group = gAlert)
+
+// --- ۱۵ Auto-Tune ---
+autoTune           = input.bool(true, "تنظیم خودکار بر اساس نماد", group = gAuto,
+     tooltip   = "پیش‌فرض‌های Period/Factor و حداقل نوسان را با نوع نماد ترکیب می‌کند؛ ورودی‌های کاربر حذف نمی‌شوند.")
+showAutoTuneRow    = input.bool(true, "نمایش وضعیت Auto-Tune در پنل", group = gAuto)
+
+
+
+// --- ۱۶ تأیید چندتایم‌فریمی (فقط بازشده، بدون lookahead) ---
+gMtf  = "۱۶ | ماتریس تأیید تایم‌فریم بالاتر"
+mtfShowMatrix  = input.bool(true, "نمایش ماتریس روند در پنل", group = gMtf)
+mtfTf1         = input.timeframe("60", "تایم‌فریم تأیید ۱", group = gMtf)
+mtfTf2         = input.timeframe("240", "تایم‌فریم تأیید ۲", group = gMtf)
+mtfTf3         = input.timeframe("1W", "تایم‌فریم تأیید ۳", group = gMtf)
+mtfEmaLen      = input.int(50, "EMA مبنای روند HTF", minval = 5, maxval = 300, group = gMtf)
+mtfRsiLen      = input.int(14, "RSI مبنای HTF", minval = 2, maxval = 100, group = gMtf)
+mtfWeightUse   = input.bool(true, "تأثیر ماتریس HTF بر امتیاز (تا ±۶٪)", group = gMtf)
+
+// --- ۱۷ مدیریت ریسک و Trade Plan ---
+gPlan = "۱۷ | مدیریت ریسک و Trade Plan"
+planShow       = input.bool(true, "نمایش بلوک ریسک در پنل", group = gPlan)
+planSlAtrMult  = input.float(1.5, "فاصله Stop Loss (× ATR NTS)", minval = 0.2, maxval = 10.0, step = 0.1, group = gPlan)
+planTpAtrMult  = input.float(2.5, "فاصله Take Profit (× ATR NTS)", minval = 0.2, maxval = 20.0, step = 0.1, group = gPlan)
+planUseStruct  = input.bool(true, "اولویت Stop پشت سطح ساختار", group = gPlan)
+planRiskPct    = input.float(1.0, "ریسک هر معامله (٪ سرمایه)", minval = 0.1, maxval = 10.0, step = 0.1, group = gPlan)
+planAccount    = input.float(10000.0, "سرمانه مبنا (برای محاسبه اندازه پوزیشن)", minval = 100.0, step = 100.0, group = gPlan)
+planShowLines  = input.bool(true, "نمایش خطوط Entry / SL / TP سیگنال آخر", group = gPlan)
+
+// --- ۱۸ ساختار سشن‌های جهانی ---
+gSess = "۱۸ | ساختار سشن‌های جهانی"
+sessShowLondon = input.bool(false, "نمایش باکس سشن لندن", group = gSess)
+sessLondonStr  = input.session("1030-1430", "سشن لندن (Asia/Tehran)", group = gSess)
+sessShowNy     = input.bool(false, "نمایش باکس سشن نیویورک", group = gSess)
+sessNyStr      = input.session("1630-2130", "سشن نیویورک (Asia/Tehran)", group = gSess)
+sessTz         = input.string("Asia/Tehran", "Timezone سشن‌های جهانی",
+     options   = ["Asia/Tehran", "UTC", "Europe/London", "America/New_York"], group = gSess)
+sessMaxBoxes   = input.int(24, "حداکثر باکس سشن", minval = 4, maxval = 60, group = gSess)
+
+// --- ۱۹ لاگ سیگنال و خودآزمایی ---
+gLog   = "۱۹ | لاگ سیگنال و خودآزمایی"
+showSigLog      = input.bool(true, "نمایش جدول آخرین سیگنال‌ها", group = gLog)
+sigLogCount     = input.int(5, "تعداد سطر لاگ سیگنال", minval = 2, maxval = 8, group = gLog)
+sigLogPosition  = input.string("bottom_right", "موقعیت جدول لاگ",
+     options   = ["bottom_right", "bottom_left", "top_right", "top_left", "middle_right"], group = gLog)
+showSelfTest    = input.bool(true, "نمایش خودآزمایی داخلی (Invariants)", group = gLog,
+     tooltip   = "تناقض BUY/SELL، محدوده Score، سقف آبجکت‌ها و وضعیت ضد ری‌پینت را بررسی می‌کند.")
+invFailAlert    = input.bool(false, "هشدار در صورت نقض قرارداد داخلی (ویژه تست)", group = gLog)
+
+// ============================================================================
+//  ▍M02 — توابع کمکی، NaN Guard و مدیریت مرکزی آبجکت‌ها
+// ============================================================================
+// هیچ آبجکتی مستقیماً با line.new / label.new / box.new در منطق پخش نمی‌شود؛
+// همه از این استخرهای مرکزی عبور می‌کنند تا سقف تعداد و انقضا کنترل شود.
+// استخر لیبل سیگنال‌ها
+var array<label> omSigLabels    = array.new<label>()
+var array<int>   omSigLabelBars = array.new<int>()
+// استخر لیبل/خط/باکس واگرایی
+var array<label> omDivLabels    = array.new<label>()
+var array<int>   omDivLabelBars = array.new<int>()
+var array<line>  omDivLines     = array.new<line>()
+var array<int>   omDivLineBars  = array.new<int>()
+var array<box>   omDivBoxes     = array.new<box>()
+var array<int>   omDivBoxBars   = array.new<int>()
+// استخرهای بازشده‌شونده (هر بار کامل پاک و دوباره ساخته می‌شوند)
+var array<box>   omSdBoxes      = array.new<box>()
+var array<box>   omPdBoxes      = array.new<box>()
+var array<line>  omExtLines     = array.new<line>()
+var array<label> omExtLabels    = array.new<label>()
+var array<line>  omFibLines     = array.new<line>()
+var array<line>  omTlLines      = array.new<line>()
+var array<label> omTlLabels     = array.new<label>()
+var array<line>  omPlanLines    = array.new<line>()
+// استخرهای سقف‌دار بدون انقضا
+var array<label> omStructLbl    = array.new<label>()
+var array<line>  omWaveLines    = array.new<line>()
+var array<label> omWaveLabels   = array.new<label>()
+var array<box>   omSessBoxes    = array.new<box>()
+
+// --- توابع پایه ---
+f_safeNum(float _v, float _d) => na(_v) ? _d : _v
+
+f_safeInt(int _v, int _d) => na(_v) ? _d : _v
+
+f_txt(float _v, string _fmt) => na(_v) ? "—" : str.tostring(_v, _fmt)
+
+// ثابت‌های format.* باید مستقیم به پارامتر همان built-in پاس داده شوند؛
+// بنابراین برای قالب mintick یک تابع اختصاصی داریم تا این ثابت هیچ‌گاه
+// به‌عنوان آرگومانِ تابعی با پارامتر string جابه‌جا نشود.
+f_txtTick(float _v) => na(_v) ? "—" : str.tostring(_v, format.mintick)
+
+f_txtInt(int _v) => na(_v) ? "—" : str.tostring(_v)
+
+f_txtNum(float _v) => na(_v) ? "—" : str.tostring(math.round(_v))
+
+f_boolTxt(bool _c, string _yes, string _no) => _c ? _yes : _no
+
+f_posTxt(string _p) =>
+    _p == "top_right" ? position.top_right :
+     _p == "top_left" ? position.top_left :
+     _p == "bottom_right" ? position.bottom_right :
+     _p == "bottom_left" ? position.bottom_left : position.middle_right
+
+f_sizeTxt(string _s) =>
+    _s == "tiny" ? size.tiny : _s == "small" ? size.small : size.normal
+
+f_denom(float _v) => math.abs(_v) < 1e-12 ? 1e-12 : _v
+
+f_pct(float _part, float _whole) => na(_whole) or math.abs(_whole) < 1e-12 ? 0.0 : 100.0 * _part / _whole
+
+f_clamp(float _v, float _lo, float _hi) => math.max(_lo, math.min(_hi, _v))
+
+f_clampInt(int _v, int _lo, int _hi) => math.max(_lo, math.min(_hi, _v))
+
+f_ratio(float _num, float _den) => na(_den) or math.abs(_den) < 1e-12 ? 0.0 : _num / _den
+
+f_atrMultiple(float _distance, float _atr) => na(_atr) or _atr <= 0 ? 0.0 : math.abs(_distance) / _atr
+
+// --- حذف آبجکت‌های منقضی از یک استخر عمومی ---
+f_omExpire(array<label> _objs, array<int> _bars, int _maxAge) =>
+    if array.size(_objs) > 0 and _maxAge > 0
+        int _cutoff = bar_index - _maxAge
+        while array.size(_bars) > 0 and array.get(_bars, 0) < _cutoff
+            label.delete(array.shift(_objs))
+            array.shift(_bars)
+
+f_omExpireLines(array<line> _objs, array<int> _bars, int _maxAge) =>
+    if array.size(_objs) > 0 and _maxAge > 0
+        int _cutoff = bar_index - _maxAge
+        while array.size(_bars) > 0 and array.get(_bars, 0) < _cutoff
+            line.delete(array.shift(_objs))
+            array.shift(_bars)
+
+f_omExpireBoxes(array<box> _objs, array<int> _bars, int _maxAge) =>
+    if array.size(_objs) > 0 and _maxAge > 0
+        int _cutoff = bar_index - _maxAge
+        while array.size(_bars) > 0 and array.get(_bars, 0) < _cutoff
+            box.delete(array.shift(_objs))
+            array.shift(_bars)
+
+// --- ثبت در استخر با اعمال سقف تعداد ---
+f_omAddLabel(array<label> _objs, array<int> _bars, label _lb, int _cap, int _maxAge) =>
+    if not na(_lb)
+        array.push(_objs, _lb)
+        array.push(_bars, bar_index)
+        f_omExpire(_objs, _bars, _maxAge)
+        while array.size(_objs) > math.max(1, _cap)
+            label.delete(array.shift(_objs))
+            array.shift(_bars)
+
+f_omAddLine(array<line> _objs, array<int> _bars, line _ln, int _cap, int _maxAge) =>
+    if not na(_ln)
+        array.push(_objs, _ln)
+        array.push(_bars, bar_index)
+        f_omExpireLines(_objs, _bars, _maxAge)
+        while array.size(_objs) > math.max(1, _cap)
+            line.delete(array.shift(_objs))
+            array.shift(_bars)
+
+f_omAddBox(array<box> _objs, array<int> _bars, box _bx, int _cap, int _maxAge) =>
+    if not na(_bx)
+        array.push(_objs, _bx)
+        array.push(_bars, bar_index)
+        f_omExpireBoxes(_objs, _bars, _maxAge)
+        while array.size(_objs) > math.max(1, _cap)
+            box.delete(array.shift(_objs))
+            array.shift(_bars)
+
+// --- استخرهای بدون تاریخ انقضا (فقط سقف تعداد) ---
+f_omAddLabelOnly(array<label> _objs, label _lb, int _cap) =>
+    if not na(_lb)
+        array.push(_objs, _lb)
+        while array.size(_objs) > math.max(1, _cap)
+            label.delete(array.shift(_objs))
+
+f_omAddLineOnly(array<line> _objs, line _ln, int _cap) =>
+    if not na(_ln)
+        array.push(_objs, _ln)
+        while array.size(_objs) > math.max(1, _cap)
+            line.delete(array.shift(_objs))
+
+// --- پاکسازی کامل یک استخر (برای بازطراحی) ---
+f_omClearLabels(array<label> _objs) =>
+    if array.size(_objs) > 0
+        for _i = 0 to array.size(_objs) - 1
+            label.delete(array.get(_objs, _i))
+        array.clear(_objs)
+
+f_omClearLines(array<line> _objs) =>
+    if array.size(_objs) > 0
+        for _i = 0 to array.size(_objs) - 1
+            line.delete(array.get(_objs, _i))
+        array.clear(_objs)
+
+f_omClearBoxes(array<box> _objs) =>
+    if array.size(_objs) > 0
+        for _i = 0 to array.size(_objs) - 1
+            box.delete(array.get(_objs, _i))
+        array.clear(_objs)
+
+// --- دسترسی امن به آرایه: قبل از array.get همیشه اندازه بررسی می‌شود ---
+f_arrGetFloat(array<float> _a, int _i, float _d) =>
+    _i >= 0 and _i < array.size(_a) ? array.get(_a, _i) : _d
+
+f_arrGetInt(array<int> _a, int _i, int _d) =>
+    _i >= 0 and _i < array.size(_a) ? array.get(_a, _i) : _d
+
+f_arrGetTime(array<int> _a, int _i, int _d) =>
+    _i >= 0 and _i < array.size(_a) ? array.get(_a, _i) : _d
+
+f_arrGetBool(array<bool> _a, int _i, bool _d) =>
+    _i >= 0 and _i < array.size(_a) ? array.get(_a, _i) : _d
+
+f_safeStr(string _v, string _d) => na(_v) or _v == "" ? _d : _v
+
+f_arrGetStr(array<string> _a, int _i, string _d) =>
+    _i >= 0 and _i < array.size(_a) ? f_safeStr(array.get(_a, _i), _d) : _d
+
+// --- ضد انباشتگی لیبل‌ها ---
+// در Pine v6 یک تابع نمی‌تواند متغیر global را با «:=» بازنویسی کند
+// (خطای Cannot modify global variable in function)، اما تغییرِ محتوای یک
+// آرایهٔ global با array.set() مجاز است. پس وضعیت اسلات لیبل در دو آرایه
+// نگه داشته می‌شود؛ خانهٔ ۰ = لیبل رو به بالا، خانهٔ ۱ = لیبل رو به پایین.
+var array<float> omLabelSlotPrice = array.new<float>(2)
+var array<int>   omLabelSlotBar   = array.from(-1000000000, -1000000000)
+
+f_labelSlotFree(bool _isUp, float _price, float _atr) =>
+    float _gap  = math.max(0.0, labelMinGapAtr) * f_safeNum(_atr, 0.0)
+    int   _k    = _isUp ? 0 : 1
+    float _prev = f_arrGetFloat(omLabelSlotPrice, _k, na)
+    int   _pbar = f_arrGetInt(omLabelSlotBar, _k, -1000000000)
+    bool  _far  = bar_index - _pbar > math.max(2, objExpireBars / 60)
+    bool  _ok   = na(_prev) or _far or _gap <= 0.0 or math.abs(_price - _prev) >= _gap
+    if _ok and not na(_price)
+        array.set(omLabelSlotPrice, _k, _price)
+        array.set(omLabelSlotBar, _k, bar_index)
+    _ok
+
+// ============================================================================
+//  ▍M03 — تشخیص نماد و Auto-Tune ترکیبی
+// ============================================================================
+// syminfo.title در Pine v6 وجود ندارد (Undeclared identifier)؛ نام توصیف نماد
+// در v6 برابر syminfo.description است.
+symUpper        = str.upper(syminfo.ticker + " " + syminfo.description + " " +
+     syminfo.basecurrency + " " + syminfo.currency)
+symIsGold       = str.contains(symUpper, "XAU") or str.contains(symUpper, "GOLD")
+symIsSilver     = str.contains(symUpper, "XAG") or str.contains(symUpper, "SILVER")
+symIsCrypto     = str.contains(symUpper, "BTC") or str.contains(symUpper, "ETH") or str.contains(symUpper, "SOL") or
+     str.contains(symUpper, "XRP") or str.contains(symUpper, "USDT")
+symIsFx         = not symIsGold and not symIsSilver and not symIsCrypto and
+     (str.contains(symUpper, "EUR") or str.contains(symUpper, "GBP") or str.contains(symUpper, "JPY") or
+      str.contains(symUpper, "AUD") or str.contains(symUpper, "CAD") or str.contains(symUpper, "CHF") or
+      str.contains(symUpper, "NZD") or str.contains(symUpper, "USD"))
+symTypeText     = symIsGold ? "GOLD" : symIsSilver ? "SILVER" : symIsCrypto ? "CRYPTO" : symIsFx ? "FOREX" : "OTHER"
+
+// پیش‌فرض وزنی هر نماد؛ فقط Period/Factor/حداقل نوسان را تنظیم می‌کند.
+symPeriodBase   = symIsGold ? 10.0 : symIsSilver ? 12.0 : symIsCrypto ? 14.0 : symIsFx ? 8.0 : 10.0
+symFactorBase   = symIsGold ? 3.5 : symIsSilver ? 4.0 : symIsCrypto ? 5.0 : symIsFx ? 3.0 : 3.5
+symMinAtrPct    = symIsGold ? 0.06 : symIsSilver ? 0.08 : symIsCrypto ? 0.20 : symIsFx ? 0.05 : 0.06
+
+modePeriodBase  = ntsTradingMode == "اسکالپینگ" ? 6.0 : ntsTradingMode == "ترید روزانه" ? 10.0 :
+     ntsTradingMode == "سوینگ تریدینگ" ? 15.0 : 20.0
+modeFactorBase  = ntsTradingMode == "اسکالپینگ" ? 2.2 : ntsTradingMode == "ترید روزانه" ? 3.5 :
+     ntsTradingMode == "سوینگ تریدینگ" ? 5.0 : 7.0
+
+chartTfSeconds  = f_safeNum(timeframe.in_seconds(timeframe.period), 900.0)
+
+f_tfSec(string _tf) => f_safeNum(timeframe.in_seconds(_tf), 900.0)
+
+// آیا تایم‌فریم نمودار از تایم‌فریم دادهٔ خواسته‌شده پایین‌تر است؟
+// در این حالت باید مقدارِ کندل بسته‌شدهٔ تایم‌فریم بالاتر لچ شود.
+f_tfChartIsLower(string _tf) => chartTfSeconds < f_tfSec(_tf)
+
+baseTfSeconds   = f_safeNum(timeframe.in_seconds(ntsBaseTimeframe), 900.0)
+// وزن تایم‌فریم پایه: هرچه تایم‌فریم پایه بزرگ‌تر، Period/Factor سنگین‌تر.
+tfPeriodWeight  = baseTfSeconds <= 60 ? 0.80 : baseTfSeconds <= 300 ? 0.90 : baseTfSeconds <= 900 ? 1.00 :
+     baseTfSeconds <= 1800 ? 1.12 : baseTfSeconds <= 3600 ? 1.25 : 1.45
+tfFactorWeight  = baseTfSeconds <= 60 ? 0.75 : baseTfSeconds <= 300 ? 0.88 : baseTfSeconds <= 900 ? 1.00 :
+     baseTfSeconds <= 1800 ? 1.15 : baseTfSeconds <= 3600 ? 1.30 : 1.50
+
+autoPeriodTarget = autoTune ? symPeriodBase * modePeriodBase / 10.0 * tfPeriodWeight : modePeriodBase
+autoFactorTarget = autoTune ? symFactorBase * modeFactorBase / 3.5 * tfFactorWeight : modeFactorBase
+minAtrPctEff     = autoTune ? symMinAtrPct : minAtrPct
+
+ntsChartIsLower = chartTfSeconds < baseTfSeconds
+ntsChartIsEqual = chartTfSeconds == baseTfSeconds
+// هر چند کندل نمودار داخل یک کندل پایه قرار می‌گیرد (برای Cooldown و تکرار سیگنال).
+ntsBarsPerBase  = ntsChartIsLower ? math.max(1.0, math.round(baseTfSeconds / f_denom(chartTfSeconds))) : 1.0
+
+// ============================================================================
+//  ▍M04 — دروازه‌های نمایش (قبل از هر بخش رسم تعریف می‌شوند)
+// ============================================================================
+isMinimal  = displayMode == "Minimal"
+isStandard = displayMode == "Standard"
+isFull     = displayMode == "Full Analysis"
+showAtLeastStandard = isStandard or isFull
+
+// رسم فقط روی آخرین کندل؛ در حالت پیش‌فرض فقط پس از بسته‌شدن آن کندل.
+// بنابراین در حالت Realtime هیچ آبجکتی با حرکت قیمت جابه‌جا نمی‌شود (ضد ری‌پینت).
+drawGate      = barstate.islast and (not tlOnlyOnConfirmed or barstate.isconfirmed)
+redrawFibGate = drawGate and (isStandard or isFull)
+
+// ============================================================================
+//  ▍M05 — هسته NTS و NTS Trail (کاملاً MTF)
+// ============================================================================
+// تمام موارد زیر داخل یک تابع واحد و در تایم‌فریم پایه NTS محاسبه می‌شوند:
+//   True Range (classic / modified) • Wilder Smoothing • Wilder ATR
+//   Trail Up / Trail Down • Trend State (1 / -1) • Bull Flip / Bear Flip
+//   Extreme موج جاری • Anchor موج (مبدأ Fib) • اندازه موج • سن موج
+//   ADX • DI+ • DI- • ATR نرمال‌شده • رژیم نوسان • Period/Factor پویا
+// هیچ بخشی از این مقادیر روی تایم‌فریم نمودار محاسبه نمی‌شود؛ بنابراین وقتی
+// تایم‌فریم نمودار M5 و تایم‌فریم پایه M15 است، Wilder ATR معادل ۱۴ کندل M15
+// می‌ماند و با تکرار کندل HTF روی LTF خراب نمی‌شود.
+// ----------------------------------------------------------------------------
+
+// --- هموارسازی Wilder با طول پویا (بدون ta.* تا length متغیر مجاز باشد) ---
+f_wilderStep(float _prev, float _src, float _len) =>
+    float _p = f_safeNum(_prev, _src)
+    float _l = math.max(1.0, f_safeNum(_len, 14.0))
+    _p + (_src - _p) / _l
+
+// --- محدودسازی تغییر پارامتر Adaptive در هر کندل پایه ---
+f_driftTo(float _prev, float _target, float _maxStep) =>
+    float _p = f_safeNum(_prev, _target)
+    float _t = f_safeNum(_target, _p)
+    float _s = math.max(0.0, _maxStep)
+    _p + math.max(-_s, math.min(_s, _t - _p))
+
+// --- هدف Period/Factor (روی تایم‌فریم نمودار محاسبه و به تابع پاس داده می‌شود) ---
+ntsPeriodTarget = f_clamp(autoPeriodTarget, float(ntsMinPeriod), float(ntsMaxPeriod))
+ntsFactorTarget = f_clamp(autoFactorTarget, ntsMinFactor, ntsMaxFactor)
+
+// ----------------------------------------------------------------------------
+//  تابع هسته NTS — خروجی tuple با ۱۵ عضو
+//  نقش هر طول ورودی:
+//    _atrLen  → هموارسازی Wilder برای DI+ / DI-
+//    _adxLen  → هموارسازی Wilder برای DX (خروجی ADX)
+//    _smaLen  → میانگین رنج برای سقف TR اصلاح‌شده
+//    _normLen → مرجع ATR نرمال‌شده
+//    _periodTarget / _factorTarget → Period و Factor پویای محدودشده
+//  کد بازگشتی ntsCode: 0 = آماده نیست | 1 = آماده | 2 = آماده + Bull Flip
+//                       3 = آماده + Bear Flip
+// ----------------------------------------------------------------------------
+f_ntsCore(simple int _atrLen, simple int _adxLen, simple int _smaLen, simple int _normLen,
+     float _periodTarget, float _factorTarget, float _minWaveAtr) =>
+    // --------------------------------------------------------------
+    //  ترتیب محاسبات (ثابت و عمدی است؛ خروجی هر مرحله ورودی مرحله بعد است):
+    //    ۱) نمونه‌شماری و Warm-up
+    //    ۲) True Range
+    //    ۳) Wilder ATR با Period پویای کندل قبل
+    //    ۴) ATR نرمال‌شده
+    //    ۵) DI+ / DI- / DX / ADX
+    //    ۶) رژیم بازار با هیسترزیس
+    //    ۷) به‌روزرسانی محدود Period و Factor پویا
+    //    ۸) باند، روند، Trail (با Factor پویا)
+    //    ۹) Extreme / Anchor / اندازه و سن موج
+    //   ۱۰) کد وضعیت خروجی
+    // --------------------------------------------------------------
+
+    // --- ۱) نمونه‌شماری ---
+    var int samples = 0
+    samples += 1
+    bool dataOk = not na(high) and not na(low) and not na(close)
+
+    // --- ۲) True Range ---
+    float prevClose = nz(close[1], close)
+    float rawRange  = math.max(high - low, syminfo.mintick)
+    float hRef      = math.abs(high - prevClose)
+    float lRef      = math.abs(low - prevClose)
+    float rangeSma  = f_safeNum(ta.sma(high - low, _smaLen), rawRange)
+    float cappedHl  = math.min(rawRange, 1.5 * math.max(rangeSma, syminfo.mintick))
+    float trNow     = ntsTrailType == "modified" ?
+         math.max(cappedHl, math.max(hRef, lRef)) :
+         math.max(rawRange, math.max(hRef, lRef))
+    trNow := math.max(trNow, syminfo.mintick)
+
+    // --- ۳) Wilder ATR ---
+    var float periodDyn = na
+    var float factorDyn = na
+    var float atrWild   = na
+    float periodPrev = f_safeNum(periodDyn, _periodTarget)
+    atrWild := dataOk ? f_wilderStep(atrWild, trNow, periodPrev) : atrWild
+    float atrEff = f_safeNum(atrWild, trNow)
+
+    // --- ۴) ATR نرمال‌شده ---
+    float atrRef  = f_safeNum(ta.sma(atrEff, _normLen), atrEff)
+    float atrNorm = f_clamp(f_ratio(atrEff, f_denom(atrRef)), 0.50, 2.50)
+
+    // --- ۵) DI / DX / ADX ---
+    float upMove   = high - nz(high[1], high)
+    float downMove = nz(low[1], low) - low
+    float plusDm   = upMove > downMove and upMove > 0 ? upMove : 0.0
+    float minusDm  = downMove > upMove and downMove > 0 ? downMove : 0.0
+    var float plusDmS  = na
+    var float minusDmS = na
+    var float dxS      = na
+    plusDmS  := dataOk ? f_wilderStep(plusDmS, plusDm, float(_atrLen)) : plusDmS
+    minusDmS := dataOk ? f_wilderStep(minusDmS, minusDm, float(_atrLen)) : minusDmS
+    float atrSafe = math.max(atrEff, syminfo.mintick)
+    float diPlus  = f_clamp(100.0 * f_ratio(plusDmS, atrSafe), 0.0, 100.0)
+    float diMinus = f_clamp(100.0 * f_ratio(minusDmS, atrSafe), 0.0, 100.0)
+    float diSum   = diPlus + diMinus
+    float dxNow   = diSum > 0 ? f_clamp(100.0 * math.abs(diPlus - diMinus) / diSum, 0.0, 100.0) : 0.0
+    dxS      := dataOk ? f_wilderStep(dxS, dxNow, float(_adxLen)) : dxS
+    float adxEff = f_safeNum(dxS, dxNow)
+
+    // --- ۶) رژیم بازار با هیسترزیس ---
+    var int regime = 0
+    int   regimePrev = regime
+    float hyst = math.max(0.0, ntsRegimeHyst)
+    if samples >= ntsReadyBars
+        if regimePrev <= 0
+            regime := adxEff >= ntsStrongAdx ? 2 :
+                 adxEff >= ntsMildAdx and atrNorm >= 1.20 ? 1 :
+                 adxEff < ntsMildAdx - hyst and atrNorm < 1.10 ? -1 : regimePrev
+        else
+            regime := adxEff < ntsMildAdx - hyst ? -1 :
+                 adxEff >= ntsMildAdx + hyst and atrNorm >= 1.20 ? 1 :
+                 adxEff >= ntsStrongAdx + hyst ? 2 : regimePrev
+        regime := f_clampInt(regime, -1, 2)
+
+    // --- ۷) Period / Factor پویا با تغییر محدود در هر کندل پایه ---
+    float periodTgt = _periodTarget * (regime == -1 ? 1.20 : regime == 2 ? 0.85 : regime == 1 ? 0.93 : 1.00)
+    float factorTgt = _factorTarget * (regime == -1 ? 1.10 : regime == 2 ? 0.92 : 1.00)
+    periodDyn := f_driftTo(periodDyn, periodTgt, ntsPeriodDrift)
+    factorDyn := f_driftTo(factorDyn, factorTgt, ntsFactorDrift)
+    periodDyn := f_clamp(periodDyn, float(ntsMinPeriod), float(ntsMaxPeriod))
+    factorDyn := f_clamp(factorDyn, ntsMinFactor, ntsMaxFactor)
+
+    // --- ۸) باند، روند و Trail (Factor پویا واقعاً روی Trail اثر می‌گذارد) ---
+    float factorEff = f_safeNum(factorDyn, _factorTarget)
+    float loss      = atrEff * math.max(0.1, factorEff)
+    float midPrev   = nz(close[1], close)
+    var float upBand = na
+    var float dnBand = na
+    var float trail  = na
+    var int   trendNow = 0
+    float upRaw = midPrev - loss
+    float dnRaw = midPrev + loss
+    upBand := na(upBand) ? upRaw : (midPrev > upBand ? math.max(upRaw, upBand) : upRaw)
+    dnBand := na(dnBand) ? dnRaw : (midPrev < dnBand ? math.min(dnRaw, dnBand) : dnRaw)
+    int prevTrend = trendNow
+    if samples >= ntsReadyBars and dataOk and not na(upBand) and not na(dnBand)
+        if trendNow == 0
+            trendNow := close >= prevClose ? 1 : -1
+        else
+            trendNow := close > dnBand ? 1 : close < upBand ? -1 : trendNow
+    trail := trendNow == 1 ? upBand : trendNow == -1 ? dnBand : na
+
+    // --- ۹) Extreme / Anchor / اندازه موج / سن موج ---
+    var float waveAnchor  = na
+    var float waveExtreme = na
+    var float waveSize    = na
+    var int   waveAge     = 0
+    bool initWave = samples >= ntsReadyBars and prevTrend == 0 and trendNow != 0
+    bool flipBull = prevTrend == -1 and trendNow == 1
+    bool flipBear = prevTrend == 1 and trendNow == -1
+    bool flipped  = flipBull or flipBear or initWave
+    if flipped and dataOk
+        // مبدأ موج جدید = Extreme موج قبلی (نوسان واقعی)، نه Trail و نه low[1].
+        // در همان لحظهٔ Flip، waveExtreme هنوز مقدار کندل قبل را دارد.
+        float _pivot = f_safeNum(waveExtreme, trendNow == 1 ? low : high)
+        waveAnchor  := flipBull or flipBear ? _pivot : (trendNow == 1 ? low : high)
+        waveExtreme := trendNow == 1 ? high : low
+        waveAge     := 1
+    else if trendNow != 0 and dataOk
+        waveAnchor  := f_safeNum(waveAnchor, trendNow == 1 ? low : high)
+        waveExtreme := trendNow == 1 ?
+             math.max(f_safeNum(waveExtreme, high), high) :
+             math.min(f_safeNum(waveExtreme, low), low)
+        waveAge     += 1
+    // Anchor باید همیشه در سمت درست موج بماند.
+    if trendNow == 1 and not na(waveAnchor) and not na(waveExtreme) and waveAnchor > waveExtreme
+        waveAnchor := waveExtreme
+    if trendNow == -1 and not na(waveAnchor) and not na(waveExtreme) and waveAnchor < waveExtreme
+        waveAnchor := waveExtreme
+    waveSize := na(waveAnchor) or na(waveExtreme) ? na : math.abs(waveExtreme - waveAnchor)
+
+    // --- ۱۰) کد وضعیت ---
+    bool isReady = samples >= ntsReadyBars and trendNow != 0 and not na(trail) and
+         not na(waveAnchor) and not na(waveSize) and
+         waveSize >= atrEff * math.max(0.0, _minWaveAtr)
+    int code = not isReady ? 0 : flipBull ? 2 : flipBear ? 3 : 1
+
+    [trendNow, trail, waveAnchor, waveSize, waveAge, time, atrEff, atrNorm, adxEff,
+     diPlus, diMinus, regime, periodDyn, factorDyn, code]
+
+// --- فراخوانی MTF: یک request.security واحد، gaps_off و lookahead_off ---
+ntsTicker = ticker.new(syminfo.prefix, syminfo.ticker)
+
+// مقادیر خام HTF. با lookahead_off، روی تایم‌فریم نمودارِ پایین‌تر این مقادیر در
+// طول دورهٔ جاری تایم‌فریم پایه «در حال شکل‌گیری» هستند؛ به همین دلیل بلافاصله
+// بعد از این فراخوانی لچ می‌شوند (نگاه کنید به بخش بعد).
+[ntsRawTrend, ntsRawTrail, ntsRawAnchor, ntsRawWaveSize, ntsRawWaveAge, ntsRawTime,
+ ntsRawAtr, ntsRawAtrNorm, ntsRawAdx, ntsRawDiPlus, ntsRawDiMinus, ntsRawRegime,
+ ntsRawPeriodDyn, ntsRawFactorDyn, ntsRawCode] =
+ request.security(ntsTicker, ntsBaseTimeframe,
+     f_ntsCore(ntsAtrLen, ntsAdxLen, ntsRangeSmaLen, ntsAtrNormLen,
+         ntsPeriodTarget, ntsFactorTarget, ntsMinWaveAtr),
+     gaps     = barmerge.gaps_off,
+     lookahead = barmerge.lookahead_off)
+
+// ----------------------------------------------------------------------------
+//  لچ کردن مقادیر بسته‌شدهٔ تایم‌فریم پایه (ضد ری‌پینت واقعی روی LTF)
+// ----------------------------------------------------------------------------
+// در تایم‌فریم نمودار پایین‌تر از پایه، در هر دورهٔ HTF مقدار raw به‌تدریج با
+// بسته‌شدن کندل‌های LTF تغییر می‌کند (کندل HTF هنوز باز است). آخرین مقدارِ
+// کاملاً بسته‌شدهٔ HTF در تاریخ [1]ِ همان کندلی قرار دارد که دوره عوض می‌شود،
+// زیرا آخرین کندل LTFِ دورهٔ قبل دقیقاً با بسته‌شدن کندل HTF منطبق است.
+// آن مقدار در متغیرهای var ذخیره و در کل دورهٔ جاری ثابت نگه داشته می‌شود؛
+// بنابراین نه ری‌پینت وجود دارد و نه سیگنال تکراری.
+var int   latchTrend     = 0
+var float latchTrail     = na
+var float latchAnchor    = na
+var float latchWaveSize  = na
+var int   latchWaveAge   = 0
+var int   latchTime      = 0
+var float latchAtr       = na
+var float latchAtrNorm   = na
+var float latchAdx       = na
+var float latchDiPlus    = na
+var float latchDiMinus   = na
+var int   latchRegime    = 0
+var float latchPeriodDyn = na
+var float latchFactorDyn = na
+var int   latchCode      = 0
+var bool  latchPrimed    = false
+
+ntsSampleEdge = na(ntsRawTime[1]) or ntsRawTime != ntsRawTime[1]
+
+if ntsChartIsLower and ntsSampleEdge
+    latchTrend     := ntsRawTrend[1]
+    latchTrail     := ntsRawTrail[1]
+    latchAnchor    := ntsRawAnchor[1]
+    latchWaveSize  := ntsRawWaveSize[1]
+    latchWaveAge   := ntsRawWaveAge[1]
+    latchTime      := ntsRawTime[1]
+    latchAtr       := ntsRawAtr[1]
+    latchAtrNorm   := ntsRawAtrNorm[1]
+    latchAdx       := ntsRawAdx[1]
+    latchDiPlus    := ntsRawDiPlus[1]
+    latchDiMinus   := ntsRawDiMinus[1]
+    latchRegime    := ntsRawRegime[1]
+    latchPeriodDyn := ntsRawPeriodDyn[1]
+    latchFactorDyn := ntsRawFactorDyn[1]
+    latchCode      := ntsRawCode[1]
+    latchPrimed    := true
+
+// اگر تایم‌فریم نمودار پایین‌تر است، کل خروجی‌ها از لچ خوانده می‌شوند؛ در غیر
+// این صورت (نمودار هم‌سطح یا بالاتر از پایه) مقدار raw خودش معتبر و بسته است.
+ntsTime      = ntsChartIsLower and latchPrimed ? latchTime      : ntsRawTime
+ntsTrend     = ntsChartIsLower and latchPrimed ? latchTrend     : ntsRawTrend
+ntsTrail     = ntsChartIsLower and latchPrimed ? latchTrail     : ntsRawTrail
+ntsAnchor    = ntsChartIsLower and latchPrimed ? latchAnchor    : ntsRawAnchor
+ntsWaveSize  = ntsChartIsLower and latchPrimed ? latchWaveSize  : ntsRawWaveSize
+ntsWaveAge   = ntsChartIsLower and latchPrimed ? latchWaveAge   : ntsRawWaveAge
+ntsAtr       = ntsChartIsLower and latchPrimed ? latchAtr       : ntsRawAtr
+ntsAtrNorm   = ntsChartIsLower and latchPrimed ? latchAtrNorm   : ntsRawAtrNorm
+ntsAdx       = ntsChartIsLower and latchPrimed ? latchAdx       : ntsRawAdx
+ntsDiPlus    = ntsChartIsLower and latchPrimed ? latchDiPlus    : ntsRawDiPlus
+ntsDiMinus   = ntsChartIsLower and latchPrimed ? latchDiMinus   : ntsRawDiMinus
+ntsRegime    = ntsChartIsLower and latchPrimed ? latchRegime    : ntsRawRegime
+ntsPeriodDyn = ntsChartIsLower and latchPrimed ? latchPeriodDyn : ntsRawPeriodDyn
+ntsFactorDyn = ntsChartIsLower and latchPrimed ? latchFactorDyn : ntsRawFactorDyn
+ntsCode      = ntsChartIsLower and latchPrimed ? latchCode      : ntsRawCode
+
+// --- دروازه نمونه‌برداری: فقط یک بار به ازای هر کندل بسته‌شده تایم‌فریم پایه ---
+// اگر تایم‌فریم نمودار پایین‌تر از NTS باشد، مقادیر HTF روی چند کندل تکرار
+// می‌شوند؛ ntsSampled جلوی سیگنال تکراری را می‌گیرد.
+ntsNewSample   = ntsSampleEdge
+ntsSampled     = (not ntsChartIsLower) or ntsNewSample
+ntsReady       = ntsCode >= 1
+ntsCoreReady   = ntsReady and ntsSampled
+ntsBullFlip    = ntsSampled and ntsCode == 2
+ntsBearFlip    = ntsSampled and ntsCode == 3
+ntsTrendFlip   = ntsBullFlip or ntsBearFlip
+ntsBullish     = ntsReady and ntsTrend == 1
+ntsBearish     = ntsReady and ntsTrend == -1
+ntsTrendText   = not ntsReady ? "WARM-UP" : ntsTrend == 1 ? "BULL" : "BEAR"
+ntsRegimeText  = ntsRegime == 2 ? "STRONG TREND" : ntsRegime == 1 ? "TREND" :
+     ntsRegime == -1 ? "CHOP / RANGE" : "NEUTRAL"
+
+// --- مقادیر موج جاری ---
+ntsWaveDir     = ntsReady ? (ntsTrend == 1 ? 1 : -1) : 0
+ntsExtremeNow  = ntsReady ? ntsAnchor + float(ntsWaveDir) * f_safeNum(ntsWaveSize, 0.0) : na
+ntsWaveValid   = ntsReady and not na(ntsAnchor) and not na(ntsWaveSize) and
+     ntsWaveSize >= f_safeNum(ntsAtr, 0.0) * math.max(0.0, ntsMinWaveAtr) and ntsWaveSize > syminfo.mintick * 4
+ntsWaveAgeInt  = f_safeInt(ntsWaveAge, 0)
+ntsWaveMature  = ntsWaveValid and ntsWaveAgeInt >= fibWaveMaturity
+ntsWaveFresh   = ntsWaveValid and ntsWaveAgeInt <= fibWaveMaxAge
+
+// --- شناسه موج و bar_index شروع موج روی نمودار ---
+// برای رسم با xloc.bar_index به جای نگاشت time→bar_index (که در تایم‌فریم‌های
+// غیرمضرب یکدیگر معتبر نیست)، همان کندلی که flip در آن دیده می‌شود ذخیره
+// می‌گردد. ntsSampled تضمین می‌کند این اتفاق دقیقاً یک بار بیفتد.
+var int  ntsWaveStartBar = 0
+var bool ntsWaveStartSet = false
+int  ntsPrevWaveStartBar = ntsWaveStartBar
+if ntsReady and not ntsWaveStartSet
+    ntsWaveStartBar := bar_index
+    ntsWaveStartSet := true
+if ntsTrendFlip
+    ntsWaveStartBar := bar_index
+ntsWaveId = ntsWaveStartBar
+
+// --- ATR نمودار (فقط برای تلورانس رسم، فاصله لیبل و تلورانس خط روند) ---
+chartAtr       = ta.atr(ntsAtrLen)
+chartAtrSafe   = math.max(f_safeNum(chartAtr, 0.0), syminfo.mintick)
+atrForDraw     = math.max(f_safeNum(ntsAtr, chartAtrSafe), chartAtrSafe)
+
+// ============================================================================
+//  ▍M06 — ساختار بازار: Pivot تأییدشده، CHoCH، BOS، Supply / Demand
+// ============================================================================
+// نکات مهندسی این بخش:
+//   • فقط از Pivot تأییدشده استفاده می‌شود؛ ta.pivothigh/ta.pivotlow به اندازه
+//     structPivotLen کندل تأخیر دارند و این تأخیر در bar_index پیوت لحاظ شده است.
+//   • سطح شکست در var ذخیره می‌شود و با هر کندل تغییر نمی‌کند.
+//   • رویداد فقط روی کندل بسته‌شده ثبت می‌شود و برای هر سطح حداکثر یک بار.
+//   • CHoCH = اولین شکست خلاف جهت ساختار جاری؛ BOS = شکست هم‌جهت ساختار جاری.
+// ----------------------------------------------------------------------------
+pivotHighNow = ta.pivothigh(high, structPivotLen, structPivotLen)
+pivotLowNow  = ta.pivotlow(low, structPivotLen, structPivotLen)
+pivotOffset  = structPivotLen
+
+// --- استخر Pivotها ---
+var array<float> structHighPrices = array.new<float>()
+var array<int>   structHighBars   = array.new<int>()
+var array<float> structLowPrices  = array.new<float>()
+var array<int>   structLowBars    = array.new<int>()
+
+if not na(pivotHighNow)
+    array.push(structHighPrices, pivotHighNow)
+    array.push(structHighBars, bar_index - pivotOffset)
+    while array.size(structHighPrices) > math.max(4, tlMaxPivots)
+        array.shift(structHighPrices)
+        array.shift(structHighBars)
+
+if not na(pivotLowNow)
+    array.push(structLowPrices, pivotLowNow)
+    array.push(structLowBars, bar_index - pivotOffset)
+    while array.size(structLowPrices) > math.max(4, tlMaxPivots)
+        array.shift(structLowPrices)
+        array.shift(structLowBars)
+
+// --- سطوح پایدار ساختار ---
+var float structHigh = na
+var int   structHighBar = na
+var float structLow = na
+var int   structLowBar = na
+var int   structTrendDir = 0
+
+if not na(pivotHighNow)
+    structHigh    := pivotHighNow
+    structHighBar := bar_index - pivotOffset
+if not na(pivotLowNow)
+    structLow    := pivotLowNow
+    structLowBar := bar_index - pivotOffset
+
+// --- معیارهای اعتبار شکست ---
+candleRange   = math.max(high - low, syminfo.mintick)
+candleBody    = math.abs(close - open)
+candleBodyPct = f_clamp(f_ratio(candleBody, candleRange), 0.0, 1.0)
+candleBullish = close > open
+candleBearish = close < open
+upperWick     = high - math.max(open, close)
+lowerWick     = math.min(open, close) - low
+
+volumeNow     = f_safeNum(volume, 0.0)
+volumeMa      = ta.sma(volumeNow, volMaLen)
+volumeValid   = not na(volume) and volumeNow > 0 and not na(volumeMa) and volumeMa > 0
+volumeBoost   = volumeValid and volumeNow > volumeMa * volMult
+volumeOk      = not useVolumeFilter ? true : not volumeValid ? volFailMode == "خنثی" : volumeBoost
+
+structDistMin   = structMinDistAtr * chartAtrSafe
+structBodyOk    = candleBodyPct >= structMinBody
+structVolOk     = not structRequireVol or not volumeValid or volumeBoost
+structBreakUp   = barstate.isconfirmed and not na(structHigh) and close > structHigh and
+     close - structHigh >= structDistMin and structBodyOk and candleBullish and structVolOk
+structBreakDown = barstate.isconfirmed and not na(structLow) and close < structLow and
+     structLow - close >= structDistMin and structBodyOk and candleBearish and structVolOk
+
+// --- ثبت رویداد CHoCH / BOS ---
+var bool  structBullEvent = false
+var bool  structBearEvent = false
+var bool  structBullChoch = false
+var bool  structBearChoch = false
+var bool  structBullBos   = false
+var bool  structBearBos   = false
+var float structEventLevel = na
+var int   structEventBar   = na
+var int   structBullChochBar = na
+var int   structBearChochBar = na
+var int   structBullBosBar   = na
+var int   structBearBosBar   = na
+var int   structEventsTotal  = 0
+
+structBullEvent := false
+structBearEvent := false
+structBullChoch := false
+structBearChoch := false
+structBullBos   := false
+structBearBos   := false
+
+if structBreakUp
+    structEventLevel := structHigh
+    structEventBar   := f_safeInt(structHighBar, bar_index)
+    structBullEvent  := true
+    if structTrendDir == -1
+        structBullChoch    := true
+        structBullChochBar := bar_index
+    else
+        structBullBos    := true
+        structBullBosBar := bar_index
+    structTrendDir   := 1
+    structEventsTotal += 1
+
+if structBreakDown
+    structEventLevel := structLow
+    structEventBar   := f_safeInt(structLowBar, bar_index)
+    structBearEvent  := true
+    if structTrendDir == 1
+        structBearChoch    := true
+        structBearChochBar := bar_index
+    else
+        structBearBos    := true
+        structBearBosBar := bar_index
+    structTrendDir   := -1
+    structEventsTotal += 1
+
+// هرگز BUY و SELL ساختاری هم‌زمان ثبت نمی‌شوند؛ اولویت با شکست قوی‌تر است.
+if structBullEvent and structBearEvent
+    if candleBodyPct >= structMinBody and close > open
+        structBearEvent := false
+        structBearChoch := false
+        structBearBos   := false
+    else
+        structBullEvent := false
+        structBullChoch := false
+        structBullBos   := false
+
+structAnyEvent    = structBullEvent or structBearEvent
+structBullSupport = structBullChoch or structBullBos
+structBearSupport = structBearChoch or structBearBos
+structBullRecent  = bar_index - f_safeInt(structBullChochBar, -100000) <= fibWaveMaxAge or
+     bar_index - f_safeInt(structBullBosBar, -100000) <= fibWaveMaxAge
+structBearRecent  = bar_index - f_safeInt(structBearChochBar, -100000) <= fibWaveMaxAge or
+     bar_index - f_safeInt(structBearBosBar, -100000) <= fibWaveMaxAge
+
+// --- نواحی عرضه / تقاضا از آخرین Pivot تأییدشده ---
+sdZoneHeight  = math.max(chartAtrSafe * 0.60, syminfo.mintick * 10)
+supplyTop     = f_safeNum(structHigh, high)
+supplyBottom  = supplyTop - sdZoneHeight
+demandBottom  = f_safeNum(structLow, low)
+demandTop     = demandBottom + sdZoneHeight
+inSupplyZone  = high >= supplyBottom and close <= supplyTop
+inDemandZone  = low <= demandTop and close >= demandBottom
+nearSupply    = math.abs(high - supplyTop) <= chartAtrSafe * 0.75
+nearDemand    = math.abs(low - demandBottom) <= chartAtrSafe * 0.75
+
+// --- Displacement (کندل جابه‌جایی) به‌عنوان تأیید مومنتوم ---
+displacementUp   = barstate.isconfirmed and candleBullish and candleBodyPct >= 0.55 and
+     close > high[1] + 0.35 * chartAtrSafe
+displacementDown = barstate.isconfirmed and candleBearish and candleBodyPct >= 0.55 and
+     close < low[1] - 0.35 * chartAtrSafe
+
+// ============================================================================
+//  ▍M07 — Premium / Equilibrium / Discount روزانه (یک منطق واحد)
+// ============================================================================
+// تنها منبع داده: High/Low روز قبل با gaps_off و lookahead_off.
+// هم منطق معاملاتی و هم منطق نمایشی از همین pdHigh/pdLow ساخته می‌شوند؛
+// هیچ تعریف ۵۰/۵۰ یا ۹۵/۵ موازی وجود ندارد.
+[pdHigh, pdLow] = request.security(syminfo.tickerid, "1D", [high[1], low[1]],
+     gaps     = barmerge.gaps_off,
+     lookahead = barmerge.lookahead_off)
+
+pdRange       = f_safeNum(pdHigh - pdLow, 0.0)
+pdRangeValid  = not na(pdHigh) and not na(pdLow) and pdRange > syminfo.mintick * 4
+pdEq          = pdRangeValid ? (pdHigh + pdLow) / 2.0 : na
+pdPremiumEdge = pdRangeValid ? pdEq + pdRange * f_clamp(pdPremiumPct, 0.0, 50.0) / 100.0 : na
+pdDiscountEdge = pdRangeValid ? pdEq - pdRange * f_clamp(pdDiscountPct, 0.0, 50.0) / 100.0 : na
+
+inPremiumZone   = pdRangeValid and not na(pdPremiumEdge) and close >= pdPremiumEdge
+inDiscountZone  = pdRangeValid and not na(pdDiscountEdge) and close <= pdDiscountEdge
+inEquilibrium   = pdRangeValid and not inPremiumZone and not inDiscountZone
+abovePdHigh     = pdRangeValid and close > pdHigh
+belowPdLow      = pdRangeValid and close < pdLow
+
+pdZoneCode  = not pdRangeValid ? 0 : inPremiumZone ? 2 : inDiscountZone ? -2 : 1
+pdZoneText  = not pdRangeValid ? "—" : abovePdHigh ? "ABOVE PD HIGH" : belowPdLow ? "BELOW PD LOW" :
+     inPremiumZone ? "PREMIUM" : inDiscountZone ? "DISCOUNT" : "EQUILIBRIUM"
+pdPositionPct = pdRangeValid ? f_clamp(f_pct(close - pdLow, pdRange), -50.0, 150.0) : na
+
+// فیلتر معاملاتی PD — برای BUY فقط Discount (و در صورت اجازه EQ) مجاز است.
+pdBuyAllowed  = not pdUseFilter or not pdRangeValid or inDiscountZone or (pdAllowEquilibrium and inEquilibrium)
+pdSellAllowed = not pdUseFilter or not pdRangeValid or inPremiumZone or (pdAllowEquilibrium and inEquilibrium)
+pdBuyIdeal    = pdRangeValid and inDiscountZone
+pdSellIdeal   = pdRangeValid and inPremiumZone
+
+// ============================================================================
+//  ▍M08 — Reversal Cloud پویا
+// ============================================================================
+// ابر از EMA + ATR ساخته می‌شود و انحراف آن با نوسان نرمال‌شده NTS تنظیم می‌گردد.
+// فیلتر «تماس اخیر» بدون نزدیک‌بودن قیمت فعلی به مبنا پذیرفته نمی‌شود؛
+// در نتیجه تماس ۱۲ کندل قبل به‌تنهایی مجوز برگشت نیست.
+cloudBasis   = ta.ema(close, cloudEmaLen)
+cloudRange   = math.max(f_safeNum(ta.atr(cloudAtrLen), chartAtrSafe), syminfo.mintick)
+cloudVolAdj  = cloudVolatilityAdj ? f_clamp(0.80 + f_safeNum(ntsAtrNorm, 1.0) * 0.20, 0.70, 1.40) : 1.0
+cloudDev1Eff = cloudDev1 * cloudVolAdj
+cloudDev2Eff = cloudDev2 * cloudVolAdj
+cloudDev3Eff = cloudDev3 * cloudVolAdj
+
+cloudUp1 = cloudBasis + cloudRange * cloudDev1Eff
+cloudUp2 = cloudBasis + cloudRange * cloudDev2Eff
+cloudUp3 = cloudBasis + cloudRange * cloudDev3Eff
+cloudDn1 = cloudBasis - cloudRange * cloudDev1Eff
+cloudDn2 = cloudBasis - cloudRange * cloudDev2Eff
+cloudDn3 = cloudBasis - cloudRange * cloudDev3Eff
+
+cloudSellTouch   = high >= cloudUp1
+cloudBuyTouch    = low <= cloudDn1
+cloudSellDeep    = close >= cloudUp2
+cloudBuyDeep     = close <= cloudDn2
+cloudSellExtreme = close >= cloudUp3
+cloudBuyExtreme  = close <= cloudDn3
+
+cloudSellBarsSince = ta.barssince(cloudSellTouch)
+cloudBuyBarsSince  = ta.barssince(cloudBuyTouch)
+cloudSellRecent    = not na(cloudSellBarsSince) and cloudSellBarsSince <= cloudRecentBars
+cloudBuyRecent     = not na(cloudBuyBarsSince) and cloudBuyBarsSince <= cloudRecentBars
+cloudBuyNear       = close <= cloudBasis + cloudRange * cloudProximityAtr
+cloudSellNear      = close >= cloudBasis - cloudRange * cloudProximityAtr
+
+cloudBuyLocation  = cloudBuyTouch or cloudBuyRecent
+cloudSellLocation = cloudSellTouch or cloudSellRecent
+cloudBuyOk        = not cloudUseFilter or (cloudBuyLocation and cloudBuyNear)
+cloudSellOk       = not cloudUseFilter or (cloudSellLocation and cloudSellNear)
+
+// ============================================================================
+//  ▍M09 — نوسان‌نماهای واحد (یک تعریف استاندارد برای کل اندیکاتور)
+// ============================================================================
+// قبلاً RSI، ATR، DMI و Stoch چند بار با طول‌های متفاوت تعریف می‌شدند و بخش‌های
+// مختلف اندیکاتور مقادیر متفاوتی برای یک مفهوم داشتند. اکنون هر مفهوم یک تعریف
+// قابل تنظیم دارد و همه ماژول‌ها از همین مقادیر استفاده می‌کنند.
+oscRsi      = ta.rsi(close, oscRsiLen)
+oscRsiPrev  = nz(oscRsi[1], oscRsi)
+oscRsiPrev2 = nz(oscRsi[2], oscRsi)
+rsiTurnUp   = oscRsi > oscRsiPrev and oscRsiPrev <= oscRsiPrev2
+rsiTurnDown = oscRsi < oscRsiPrev and oscRsiPrev >= oscRsiPrev2
+rsiBuyZone  = oscRsi <= oscRsiBuyMax
+rsiSellZone = oscRsi >= oscRsiSellMin
+
+oscStochRaw = ta.stoch(close, high, low, oscStochLen)
+oscStochK   = ta.sma(oscStochRaw, oscKSmooth)
+oscStochD   = ta.sma(oscStochK, oscDSmooth)
+kdCrossUp   = ta.crossover(oscStochK, oscStochD)
+kdCrossDown = ta.crossunder(oscStochK, oscStochD)
+kdBuyZone   = kdCrossUp and oscStochK < oscKdBuyMax
+kdSellZone  = kdCrossDown and oscStochK > oscKdSellMin
+
+[oscMacd, oscMacdSignal, oscMacdHist] = ta.macd(close, oscMacdFast, oscMacdSlow, oscMacdSignalLen)
+oscMacdRising = oscMacdHist > nz(oscMacdHist[1], oscMacdHist)
+oscMacdFalling = oscMacdHist < nz(oscMacdHist[1], oscMacdHist)
+
+oscEma20  = ta.ema(close, 20)
+oscEma50  = ta.ema(close, 50)
+oscEma200 = ta.ema(close, 200)
+
+// مبنای مکان ابر برای مومنتوم
+cloudBuyMomentum  = rsiBuyZone or kdBuyZone or oscMacdRising
+cloudSellMomentum = rsiSellZone or kdSellZone or oscMacdFalling
+
+// ============================================================================
+//  ▍M10 — Hull Suite (فقط فیلتر تأیید، نه تولیدکننده سیگنال)
+// ============================================================================
+f_hullMa(float _src, simple int _len, simple float _mult, simple string _mode) =>
+    int   _calc  = math.max(4, int(math.round(float(_len) * math.max(0.5, _mult))))
+    int   _half  = math.max(2, int(math.round(float(_calc) / 2.0)))
+    int   _third = math.max(2, int(math.round(float(_calc) / 3.0)))
+    int   _sqrt  = math.max(2, int(math.round(math.sqrt(float(_calc)))))
+    float _hma   = ta.wma(2.0 * ta.wma(_src, _half) - ta.wma(_src, _calc), _sqrt)
+    float _ehma  = ta.ema(2.0 * ta.ema(_src, _half) - ta.ema(_src, _calc), _sqrt)
+    float _thma  = ta.wma(3.0 * ta.wma(ta.wma(_src, _third), _half) - ta.wma(_src, _calc), _half)
+    _mode == "Ehma" ? _ehma : _mode == "Thma" ? _thma : _hma
+
+hullChart = f_hullMa(hullSrc, hullLen, hullLenMult, hullMode)
+
+// Hull در تایم‌فریم بالاتر: درخواست با lookahead_off و بدون [1]. اما چون روی
+// نمودار M15 مقدار H1 در طول ساعتِ جاری «در حال شکل‌گیری» است، همان الگوی لچِ
+// هسته NTS اینجا هم اعمال می‌شود: در اولین کندلِ هر دورهٔ H1، مقدارِ بسته‌شدهٔ
+// دورهٔ قبل از تاریخ [1] خوانده و برای کل دوره ثابت نگه داشته می‌شود.
+// نتیجه: بدون lookahead_on، بدون دادهٔ آینده، بدون ری‌پینت و بدون تأخیر اضافی.
+f_hullHtf(simple int _len, simple float _mult, simple string _mode, float _src) =>
+    [f_hullMa(_src, _len, _mult, _mode), time]
+
+hullHtfIsLower = f_tfChartIsLower(hullHtf)
+[hullHtfRaw, hullHtfTime] = request.security(syminfo.tickerid, hullHtf,
+     f_hullHtf(hullLen, hullLenMult, hullMode, hullSrc),
+     gaps     = barmerge.gaps_off,
+     lookahead = barmerge.lookahead_off)
+
+var float hullLatch      = na
+var bool  hullLatchReady = false
+hullSampleEdge = na(hullHtfTime[1]) or hullHtfTime != hullHtfTime[1]
+if hullHtfIsLower and hullSampleEdge
+    hullLatch      := hullHtfRaw[1]
+    hullLatchReady := true
+hullHtfValue = hullHtfIsLower and hullLatchReady ? hullLatch : hullHtfRaw
+
+hullValue   = hullUseHtf ? f_safeNum(hullHtfValue, hullChart) : hullChart
+hullSlopeUp = not na(hullValue[1]) and hullValue > hullValue[1]
+hullSlopeDn = not na(hullValue[1]) and hullValue < hullValue[1]
+hullBullish = not na(hullValue[1]) and not na(hullValue[2]) and hullSlopeUp and hullValue > nz(hullValue[2], hullValue)
+hullBearish = not na(hullValue[1]) and not na(hullValue[2]) and hullSlopeDn and hullValue < nz(hullValue[2], hullValue)
+hullTurnUp  = ta.crossover(hullValue, nz(hullValue[2], hullValue))
+hullTurnDown = ta.crossunder(hullValue, nz(hullValue[2], hullValue))
+hullNeutral = not hullBullish and not hullBearish
+hullReady   = not na(hullValue) and not na(hullValue[2])
+
+// --- حل تناقض Hull / NTS در یک نقطه واحد ---
+// اگر hullRequireAligned روشن باشد، سیگنال مخالف Hull رد می‌شود؛
+// اگر خاموش باشد، فقط امتیاز Hull از Score کسر می‌شود (در M13 اعمال می‌گردد).
+hullBuyAligned  = hullReady and hullBullish
+hullSellAligned = hullReady and hullBearish
+hullBuyGate     = not hullRequireAligned or hullBuyAligned
+hullSellGate    = not hullRequireAligned or hullSellAligned
+hullConflictsNts = (ntsBullish and hullBearish) or (ntsBearish and hullBullish)
+hullAgreesNts    = (ntsBullish and hullBullish) or (ntsBearish and hullBearish)
+
+// ============================================================================
+//  ▍M11 — Smart Divergence با دو وضعیت کاملاً جدا: Pending و Confirmed
+// ============================================================================
+//  Pending   : فقط کاندیدا. مجاز برای نمایش، غیرمجاز برای ورود قطعی.
+//              امتیاز آن در Score با ضریب کاهش‌یافته لحاظ می‌شود.
+//  Confirmed : واگرایی قیمت + RSI/MACD + شکست سطح ساختار + مومنتوم +
+//              کندل بسته‌شده + امتیاز حداقل + انقضای منطقی.
+// فاصله دو Pivot هم حداقل و هم حداکثر دارد؛ جابه‌جایی قیمت هم با ATR سنجیده
+// می‌شود تا واگرایی بین دو Pivot بسیار نزدیک یا بسیار دور پذیرفته نشود.
+// ----------------------------------------------------------------------------
+sdRsi      = oscRsi
+sdMacd     = oscMacd
+sdMacdHist = oscMacdHist
+sdStoch    = oscStochK
+sdAtr      = chartAtrSafe
+
+sdPriceLowPivot  = ta.pivotlow(low, sdPivotLeft, sdPivotRight)
+sdPriceHighPivot = ta.pivothigh(high, sdPivotLeft, sdPivotRight)
+sdPivotBarIdx    = bar_index - sdPivotRight
+
+f_sdBullReject(int _off) =>
+    float _body  = math.abs(close[_off] - open[_off])
+    float _range = math.max(high[_off] - low[_off], syminfo.mintick)
+    float _lw    = math.min(open[_off], close[_off]) - low[_off]
+    float _uw    = high[_off] - math.max(open[_off], close[_off])
+    bool  _strong = _body / _range >= 0.55 and close[_off] > open[_off]
+    bool  _hammer = _lw > _body * 1.5 and _lw > _uw * 1.25
+    _strong or _hammer
+
+f_sdBearReject(int _off) =>
+    float _body  = math.abs(close[_off] - open[_off])
+    float _range = math.max(high[_off] - low[_off], syminfo.mintick)
+    float _lw    = math.min(open[_off], close[_off]) - low[_off]
+    float _uw    = high[_off] - math.max(open[_off], close[_off])
+    bool  _strong = _body / _range >= 0.55 and close[_off] < open[_off]
+    bool  _star   = _uw > _body * 1.5 and _uw > _lw * 1.25
+    _strong or _star
+
+var int   sdPrevLowBar    = na
+var float sdPrevLowPrice  = na
+var float sdPrevLowRsi    = na
+var float sdPrevLowMacd   = na
+var int   sdPrevHighBar   = na
+var float sdPrevHighPrice = na
+var float sdPrevHighRsi   = na
+var float sdPrevHighMacd  = na
+
+var bool  sdBullPending   = false
+var float sdBullLevel     = na
+var float sdBullScore     = na
+var int   sdBullExpire    = na
+var int   sdBullStartBar  = na
+var bool  sdBearPending   = false
+var float sdBearLevel     = na
+var float sdBearScore     = na
+var int   sdBearExpire    = na
+var int   sdBearStartBar  = na
+
+bool  sdBullCandidate = false
+bool  sdBearCandidate = false
+float sdBullCandidateScore = na
+float sdBearCandidateScore = na
+bool  sdBullConfirmed = false
+bool  sdBearConfirmed = false
+bool  sdBullJustPending = false
+bool  sdBearJustPending = false
+
+sdBullTrendCtx = close > oscEma50 and oscEma50 > oscEma200 and ntsDiPlus > ntsDiMinus
+sdBearTrendCtx = close < oscEma50 and oscEma50 < oscEma200 and ntsDiMinus > ntsDiPlus
+sdTrendAdj     = f_safeNum(ntsAdx, 0.0) > 35.0 ? 2.0 : f_safeNum(ntsAdx, 0.0) > 25.0 ? 1.0 : 0.0
+sdAtrPct       = close > 0 ? sdAtr / close * 100.0 : 0.0
+sdVolAdj       = volumeValid ? (volumeBoost ? 3.0 : 0.0) : (sdAtrPct > 1.5 ? 1.0 : 0.0)
+
+sdDistanceOk(int _oldBar, int _newBar) =>
+    int _d = _newBar - _oldBar
+    _d >= sdMinBars and _d <= sdMaxBars
+
+// ----------------------------------------------------------------------------
+//  کاندیدای واگرایی صعودی
+// ----------------------------------------------------------------------------
+if sdEnabled and barstate.isconfirmed and not na(sdPriceLowPivot)
+    if not na(sdPrevLowBar) and sdDistanceOk(f_safeInt(sdPrevLowBar, 0), sdPivotBarIdx)
+        float _pivotAtr   = f_safeNum(sdAtr[sdPivotRight], sdAtr)
+        bool  _lowerLow   = sdPriceLowPivot < f_safeNum(sdPrevLowPrice, sdPriceLowPivot)
+        float _rsiNow     = nz(sdRsi[sdPivotRight], sdRsi)
+        float _macdNow    = nz(sdMacd[sdPivotRight], sdMacd)
+        bool  _rsiHl      = _rsiNow > f_safeNum(sdPrevLowRsi, _rsiNow) + sdRsiDelta
+        bool  _macdHl     = _macdNow > f_safeNum(sdPrevLowMacd, _macdNow)
+        bool  _rsiDiv     = _lowerLow and _rsiHl
+        bool  _macdDiv    = _lowerLow and _macdHl
+        bool  _moveOk     = math.abs(sdPriceLowPivot - f_safeNum(sdPrevLowPrice, sdPriceLowPivot)) >= _pivotAtr * sdMinMoveAtr
+        bool  _rsiOs      = _rsiNow <= 38.0
+        bool  _stochOs    = nz(sdStoch[sdPivotRight], sdStoch) <= 28.0
+        bool  _stretch    = nz(oscEma20[sdPivotRight], oscEma20) - sdPriceLowPivot >= _pivotAtr * 0.35
+        bool  _reject     = f_sdBullReject(sdPivotRight)
+        int   _twistHits  = (_rsiOs ? 1 : 0) + (_stochOs ? 1 : 0) + (_stretch ? 1 : 0) + (_reject ? 1 : 0)
+        bool  _twist      = _twistHits >= 2
+        float _score      = (_rsiDiv ? 28.0 : 0.0) + (_macdDiv ? 18.0 : 0.0) +
+             (_rsiDiv and _macdDiv ? 16.0 : 0.0) + (_moveOk ? 8.0 : 0.0) +
+             (_rsiOs ? 8.0 : 0.0) + (_stochOs ? 6.0 : 0.0) + (_twist ? 12.0 : 0.0) +
+             (sdBullTrendCtx ? 4.0 : 0.0) + sdTrendAdj + sdVolAdj
+        _score := f_clamp(_score, 0.0, 100.0)
+        sdBullCandidate      := _rsiDiv and _moveOk and (not sdRequireBothOsc or _macdDiv) and
+             (not sdRequireTwist or _twist)
+        sdBullCandidateScore := _score
+        if sdBullCandidate and _score >= float(sdPendingMinScore)
+            float _newScore = _score
+            bool  _better   = not sdBullPending or _newScore > f_safeNum(sdBullScore, 0.0)
+            if _better
+                sdBullPending     := true
+                sdBullScore       := _newScore
+                sdBullLevel       := f_safeNum(structHigh, high[sdPivotRight])
+                sdBullExpire      := bar_index + sdExpireBars
+                sdBullStartBar    := bar_index
+                sdBullJustPending := true
+                if sdShowPending
+                    line _ln = line.new(f_safeInt(sdPrevLowBar, sdPivotBarIdx), f_safeNum(sdPrevLowPrice, sdPriceLowPivot),
+                         sdPivotBarIdx, sdPriceLowPivot, xloc = xloc.bar_index,
+                         color = color.new(colBuy, 25), width = 2, style = line.style_dashed)
+                    f_omAddLine(omDivLines, omDivLineBars, _ln, maxDivLines, objExpireBars)
+                    label _lb = label.new(sdPivotBarIdx, sdPriceLowPivot, "DIV?", xloc = xloc.bar_index, yloc = yloc.price,
+                         style = label.style_label_up, color = color.new(colBuy, 55),
+                         textcolor = color.white, size = size.tiny)
+                    f_omAddLabel(omDivLabels, omDivLabelBars, _lb, maxDivLabels, objExpireBars)
+                if sdShowZones
+                    box _bx = box.new(f_safeInt(sdPrevLowBar, sdPivotBarIdx),
+                         math.min(f_safeNum(sdPrevLowPrice, sdPriceLowPivot), sdPriceLowPivot) + sdAtr * 0.30,
+                         bar_index, sdPriceLowPivot - sdAtr * 0.15, xloc = xloc.bar_index,
+                         bgcolor = color.new(colBuy, 90), border_color = color.new(colBuy, 60))
+                    f_omAddBox(omDivBoxes, omDivBoxBars, _bx, maxDivBoxes, objExpireBars)
+    sdPrevLowBar   := sdPivotBarIdx
+    sdPrevLowPrice := sdPriceLowPivot
+    sdPrevLowRsi   := nz(sdRsi[sdPivotRight], sdRsi)
+    sdPrevLowMacd  := nz(sdMacd[sdPivotRight], sdMacd)
+
+// ----------------------------------------------------------------------------
+//  کاندیدای واگرایی نزولی
+// ----------------------------------------------------------------------------
+if sdEnabled and barstate.isconfirmed and not na(sdPriceHighPivot)
+    if not na(sdPrevHighBar) and sdDistanceOk(f_safeInt(sdPrevHighBar, 0), sdPivotBarIdx)
+        float _pivotAtr   = f_safeNum(sdAtr[sdPivotRight], sdAtr)
+        bool  _higherHigh = sdPriceHighPivot > f_safeNum(sdPrevHighPrice, sdPriceHighPivot)
+        float _rsiNow     = nz(sdRsi[sdPivotRight], sdRsi)
+        float _macdNow    = nz(sdMacd[sdPivotRight], sdMacd)
+        bool  _rsiLh      = _rsiNow < f_safeNum(sdPrevHighRsi, _rsiNow) - sdRsiDelta
+        bool  _macdLh     = _macdNow < f_safeNum(sdPrevHighMacd, _macdNow)
+        bool  _rsiDiv     = _higherHigh and _rsiLh
+        bool  _macdDiv    = _higherHigh and _macdLh
+        bool  _moveOk     = math.abs(sdPriceHighPivot - f_safeNum(sdPrevHighPrice, sdPriceHighPivot)) >= _pivotAtr * sdMinMoveAtr
+        bool  _rsiOb      = _rsiNow >= 62.0
+        bool  _stochOb    = nz(sdStoch[sdPivotRight], sdStoch) >= 72.0
+        bool  _stretch    = sdPriceHighPivot - nz(oscEma20[sdPivotRight], oscEma20) >= _pivotAtr * 0.35
+        bool  _reject     = f_sdBearReject(sdPivotRight)
+        int   _twistHits  = (_rsiOb ? 1 : 0) + (_stochOb ? 1 : 0) + (_stretch ? 1 : 0) + (_reject ? 1 : 0)
+        bool  _twist      = _twistHits >= 2
+        float _score      = (_rsiDiv ? 28.0 : 0.0) + (_macdDiv ? 18.0 : 0.0) +
+             (_rsiDiv and _macdDiv ? 16.0 : 0.0) + (_moveOk ? 8.0 : 0.0) +
+             (_rsiOb ? 8.0 : 0.0) + (_stochOb ? 6.0 : 0.0) + (_twist ? 12.0 : 0.0) +
+             (sdBearTrendCtx ? 4.0 : 0.0) + sdTrendAdj + sdVolAdj
+        _score := f_clamp(_score, 0.0, 100.0)
+        sdBearCandidate      := _rsiDiv and _moveOk and (not sdRequireBothOsc or _macdDiv) and
+             (not sdRequireTwist or _twist)
+        sdBearCandidateScore := _score
+        if sdBearCandidate and _score >= float(sdPendingMinScore)
+            float _newScore = _score
+            bool  _better   = not sdBearPending or _newScore > f_safeNum(sdBearScore, 0.0)
+            if _better
+                sdBearPending     := true
+                sdBearScore       := _newScore
+                sdBearLevel       := f_safeNum(structLow, low[sdPivotRight])
+                sdBearExpire      := bar_index + sdExpireBars
+                sdBearStartBar    := bar_index
+                sdBearJustPending := true
+                if sdShowPending
+                    line _ln = line.new(f_safeInt(sdPrevHighBar, sdPivotBarIdx), f_safeNum(sdPrevHighPrice, sdPriceHighPivot),
+                         sdPivotBarIdx, sdPriceHighPivot, xloc = xloc.bar_index,
+                         color = color.new(colSell, 25), width = 2, style = line.style_dashed)
+                    f_omAddLine(omDivLines, omDivLineBars, _ln, maxDivLines, objExpireBars)
+                    label _lb = label.new(sdPivotBarIdx, sdPriceHighPivot, "DIV?", xloc = xloc.bar_index, yloc = yloc.price,
+                         style = label.style_label_down, color = color.new(colSell, 55),
+                         textcolor = color.white, size = size.tiny)
+                    f_omAddLabel(omDivLabels, omDivLabelBars, _lb, maxDivLabels, objExpireBars)
+                if sdShowZones
+                    box _bx = box.new(f_safeInt(sdPrevHighBar, sdPivotBarIdx),
+                         sdPriceHighPivot + sdAtr * 0.15, bar_index,
+                         math.max(f_safeNum(sdPrevHighPrice, sdPriceHighPivot), sdPriceHighPivot) - sdAtr * 0.30,
+                         xloc = xloc.bar_index, bgcolor = color.new(colSell, 90),
+                         border_color = color.new(colSell, 60))
+                    f_omAddBox(omDivBoxes, omDivBoxBars, _bx, maxDivBoxes, objExpireBars)
+    sdPrevHighBar   := sdPivotBarIdx
+    sdPrevHighPrice := sdPriceHighPivot
+    sdPrevHighRsi   := nz(sdRsi[sdPivotRight], sdRsi)
+    sdPrevHighMacd  := nz(sdMacd[sdPivotRight], sdMacd)
+
+// ----------------------------------------------------------------------------
+//  تبدیل Pending به Confirmed: شکست ساختار + مومنتوم + کندل بسته‌شده
+// ----------------------------------------------------------------------------
+sdBullAlive = sdBullPending and bar_index <= f_safeInt(sdBullExpire, bar_index)
+sdBearAlive = sdBearPending and bar_index <= f_safeInt(sdBearExpire, bar_index)
+
+sdBullBreak = sdBullAlive and not na(sdBullLevel) and close > sdBullLevel and
+     nz(close[1], close) <= sdBullLevel
+sdBearBreak = sdBearAlive and not na(sdBearLevel) and close < sdBearLevel and
+     nz(close[1], close) >= sdBearLevel
+
+if barstate.isconfirmed and sdBullBreak and candleBullish and candleBodyPct >= 0.28 and
+     f_safeNum(sdBullScore, 0.0) >= float(sdConfirmMinScore) and (oscRsi > oscRsiPrev or oscMacdRising)
+    sdBullConfirmed := true
+
+if barstate.isconfirmed and sdBearBreak and candleBearish and candleBodyPct >= 0.28 and
+     f_safeNum(sdBearScore, 0.0) >= float(sdConfirmMinScore) and (oscRsi < oscRsiPrev or oscMacdFalling)
+    sdBearConfirmed := true
+
+// انقضا و پاک‌سازی وضعیت‌ها
+if sdBullPending and bar_index > f_safeInt(sdBullExpire, bar_index)
+    sdBullPending := false
+    sdBullScore   := na
+    sdBullLevel   := na
+if sdBearPending and bar_index > f_safeInt(sdBearExpire, bar_index)
+    sdBearPending := false
+    sdBearScore   := na
+    sdBearLevel   := na
+if sdBullConfirmed
+    sdBullPending := false
+if sdBearConfirmed
+    sdBearPending := false
+// واگرایی مخالف، کاندیدای جهت دیگر را باطل می‌کند (جلوگیری از سیگنال متناقض).
+if sdBullConfirmed and sdBearPending
+    sdBearPending := false
+    sdBearScore   := na
+if sdBearConfirmed and sdBullPending
+    sdBullPending := false
+    sdBullScore   := na
+
+if sdBullConfirmed and sdShowConfirmed
+    label _lb = label.new(bar_index, low, "DIV✔ " + str.tostring(math.round(f_safeNum(sdBullScore, 0.0))),
+         xloc = xloc.bar_index, style = label.style_label_up, color = color.new(colBuy, 10),
+         textcolor = color.white, size = size.small)
+    f_omAddLabel(omDivLabels, omDivLabelBars, _lb, maxDivLabels, objExpireBars)
+if sdBearConfirmed and sdShowConfirmed
+    label _lb = label.new(bar_index, high, "DIV✔ " + str.tostring(math.round(f_safeNum(sdBearScore, 0.0))),
+         xloc = xloc.bar_index, style = label.style_label_down, color = color.new(colSell, 10),
+         textcolor = color.white, size = size.small)
+    f_omAddLabel(omDivLabels, omDivLabelBars, _lb, maxDivLabels, objExpireBars)
+
+// --- خروجی برای امتیازدهی: Pending و Confirmed وزن متفاوت دارند ---
+sdBullForScore = sdBullConfirmed or (sdBullPending and sdShowPending)
+sdBearForScore = sdBearConfirmed or (sdBearPending and sdShowPending)
+sdBullWeight   = sdBullConfirmed ? 1.0 : sdBullPending ? 0.40 : 0.0
+sdBearWeight   = sdBearConfirmed ? 1.0 : sdBearPending ? 0.40 : 0.0
+
+// ============================================================================
+//  ▍M12 — موتور واحد Fib: Retracement و Extension
+// ============================================================================
+// دو قرارداد شفاف و غیرمتناقض:
+//   Retracement : level = extreme + (anchor - extreme) * ratio        (0 < r < 1)
+//   Extension   : level = anchor + dir * |extreme - anchor| * ratio   (r >= 1)
+// یعنی 1.618 دقیقاً ۱۶۱.۸٪ اندازه موج از مبدأ موج است، نه نسبتی مبهم به Fib1.
+// یک رویداد در هر سطح برای هر موج حداکثر یک بار ثبت می‌شود (bitmask).
+// ----------------------------------------------------------------------------
+
+// --- Snapshot موج تکمیل‌شده (برای مرجع ثابت و خطوط تاریخی) ---
+var int   fibDoneDir   = 0
+var float fibDoneAnchor = na
+var float fibDoneExtreme = na
+var float fibDoneSize  = na
+var int   fibDoneStart = 0
+var int   fibDoneAge   = 0
+
+var array<int>   histWaveDirs    = array.new<int>()
+var array<float> histWaveAnchors = array.new<float>()
+var array<float> histWaveExts    = array.new<float>()
+var array<float> histWaveSizes   = array.new<float>()
+var array<int>   histWaveStarts  = array.new<int>()
+
+if barstate.isconfirmed and ntsTrendFlip and ntsSampled
+    int   _cDir   = -f_safeInt(ntsTrend, 0)
+    float _cAnch  = ntsAnchor[1]
+    float _cSize  = f_safeNum(ntsWaveSize[1], 0.0)
+    float _cExt   = na(_cAnch) ? na : _cAnch + float(_cDir) * _cSize
+    fibDoneDir    := _cDir
+    fibDoneAnchor := _cAnch
+    fibDoneExtreme := _cExt
+    fibDoneSize   := _cSize
+    fibDoneStart  := f_safeInt(ntsPrevWaveStartBar, bar_index)
+    fibDoneAge    := f_safeInt(ntsWaveAge[1], 0)
+    if not na(_cAnch) and _cSize > syminfo.mintick * 4
+        array.push(histWaveDirs, _cDir)
+        array.push(histWaveAnchors, _cAnch)
+        array.push(histWaveExts, _cExt)
+        array.push(histWaveSizes, _cSize)
+        array.push(histWaveStarts, f_safeInt(ntsPrevWaveStartBar, bar_index))
+        while array.size(histWaveDirs) > math.max(5, fibMaxSavedWaves)
+            array.shift(histWaveDirs)
+            array.shift(histWaveAnchors)
+            array.shift(histWaveExts)
+            array.shift(histWaveSizes)
+            array.shift(histWaveStarts)
+
+// --- انتخاب مرجع موج ---
+fibUseCurrent  = fibWaveMode == "موج جاری (پویا)"
+fibRefDir      = fibUseCurrent ? ntsWaveDir : fibDoneDir
+fibRefAnchor   = fibUseCurrent ? ntsAnchor : fibDoneAnchor
+fibRefExtreme  = fibUseCurrent ? ntsExtremeNow : fibDoneExtreme
+fibRefSize     = fibUseCurrent ? f_safeNum(ntsWaveSize, 0.0) : f_safeNum(fibDoneSize, 0.0)
+fibRefStartBar = fibUseCurrent ? ntsWaveStartBar : f_safeInt(fibDoneStart, bar_index)
+fibRefAge      = fibUseCurrent ? ntsWaveAgeInt : f_safeInt(fibDoneAge, 0)
+fibRefAtr      = f_safeNum(ntsAtr, chartAtrSafe)
+fibRefValid    = (fibUseCurrent ? ntsWaveValid : fibDoneDir != 0) and not na(fibRefAnchor) and
+     not na(fibRefExtreme) and fibRefSize > syminfo.mintick * 4 and
+     fibRefSize >= fibRefAtr * math.max(0.0, ntsMinWaveAtr)
+fibRefMature   = fibRefValid and fibRefAge >= fibWaveMaturity
+fibRefFresh    = fibRefValid and fibRefAge <= fibWaveMaxAge
+
+f_fibRetrLevel(float _r) =>
+    fibRefValid and not na(_r) ? fibRefExtreme + (fibRefAnchor - fibRefExtreme) * f_clamp(_r, 0.0, 1.0) : na
+
+f_fibExtLevel(float _r) =>
+    fibRefValid and not na(_r) ? fibRefAnchor + float(fibRefDir) * fibRefSize * math.max(1.0, _r) : na
+
+// --- جدول سطوح: نسبت | دسته | گروه ---
+// دسته: 0 = Retracement کم‌عمق، 1 = Retracement اصلی، 2 = Normal Pullback،
+//       3 = Early Extension، 4 = Deep Reversal، 5 = Extreme Reversal
+// سه Retracement اصلی از ورودی کاربر می‌آیند (fibRetr1/2/3) و همیشه مرتب
+// می‌شوند تا دسته‌بندی کم‌عمق/اصلی با مقدار دلخواه کاربر هم سازگار بماند.
+var array<float> fibRatios  = array.from(0.236, 0.382, 0.618, 0.786, 0.886,
+     1.168, 1.272, 1.414, 1.618, 2.000, 2.618, 3.618, 4.236, 6.854, 8.618)
+fibR1Sorted = math.min(fibRetr1, math.min(fibRetr2, fibRetr3))
+fibR3Sorted = math.max(fibRetr1, math.max(fibRetr2, fibRetr3))
+fibR2Sorted = fibRetr1 + fibRetr2 + fibRetr3 - fibR1Sorted - fibR3Sorted
+
+f_fibRatioAt(int _i) =>
+    _i == 2 ? f_clamp(fibR1Sorted, 0.05, 0.95) :
+     _i == 3 ? f_clamp(fibR2Sorted, 0.05, 0.98) :
+     _i == 4 ? f_clamp(fibR3Sorted, 0.05, 0.99) : f_arrGetFloat(fibRatios, _i, na)
+var array<int>   fibCats    = array.from(0, 0, 1, 1, 1, 2, 2, 3, 3, 4, 4, 5, 5, 5, 5)
+var array<int>   fibGroups  = array.from(0, 0, 1, 1, 1, 2, 2, 3, 3, 4, 4, 5, 5, 6, 6)
+fibLevelCount = array.size(fibRatios)
+
+f_fibShowOn(int _g) =>
+    _g == 0 ? fibShowRetrShallow : _g == 1 ? fibShowRetrOte : _g == 2 ? showFibExtA :
+     _g == 3 ? showFibExtB : _g == 4 ? showFibExtC : _g == 5 ? showFibExtD : showFibExtE
+
+f_fibSigOn(int _g) =>
+    _g == 0 ? fibSigRetrShallow : _g == 1 ? fibSigRetrOte : _g == 2 ? sigFibExtA :
+     _g == 3 ? sigFibExtB : _g == 4 ? sigFibExtC : _g == 5 ? sigFibExtD : sigFibExtE
+
+f_fibLevelPrice(int _i) =>
+    float _r = f_fibRatioAt(_i)
+    int   _c = f_arrGetInt(fibCats, _i, 0)
+    _c <= 1 ? f_fibRetrLevel(_r) : f_fibExtLevel(_r)
+
+f_fibBodyMin(int _c) =>
+    float _base = fibMinBodyRatio
+    float _adj  = _c <= 1 ? 0.0 : _c == 2 ? 0.02 : _c == 3 ? 0.05 : _c == 4 ? 0.10 : 0.15
+    f_clamp(_base + _adj, 0.15, 0.85)
+
+// --- توابع واکنش قیمت ---
+f_penetrationOk(float _level, bool _isBuy) =>
+    not na(_level) and (_isBuy ?
+     (math.min(open, close) - low) >= fibPenetrationAtr * chartAtrSafe :
+     (high - math.max(open, close)) >= fibPenetrationAtr * chartAtrSafe)
+
+f_rejectWickOk(bool _isBuy) =>
+    not fibRequireWick or (_isBuy ?
+     lowerWick >= candleBody * fibMinWickRatio :
+     upperWick >= candleBody * fibMinWickRatio)
+
+// لمس + نفوذ معتبر + بسته‌شدن مجدد در سمت صحیح + جهت کندل + نسبت بدنه +
+// سایه رد قیمت + حداقل فاصله واکنش بر اساس ATR + چرخش RSI (اختیاری)
+f_reactBuy(float _level, float _bodyMin) =>
+    bool _engulf = not na(_level) and open < _level and close > _level
+    not na(_level) and low <= _level and close > _level and candleBullish and
+     candleBodyPct >= _bodyMin and
+     close - _level >= fibMinReactionAtr * chartAtrSafe and
+     (f_rejectWickOk(true) or _engulf) and f_penetrationOk(_level, true) and
+     (not fibRequireRsiTurn or rsiTurnUp)
+
+f_reactSell(float _level, float _bodyMin) =>
+    bool _engulf = not na(_level) and open > _level and close < _level
+    not na(_level) and high >= _level and close < _level and candleBearish and
+     candleBodyPct >= _bodyMin and
+     _level - close >= fibMinReactionAtr * chartAtrSafe and
+     (f_rejectWickOk(false) or _engulf) and f_penetrationOk(_level, false) and
+     (not fibRequireRsiTurn or rsiTurnDown)
+
+f_levelReachable(float _level) =>
+    not na(_level) and math.abs(_level - close) <= fibExtMaxAtr * chartAtrSafe
+
+// --- وضعیت لمس/شلیک هر سطح برای موج جاری ---
+// Pine Script عملگر بیت‌ای ندارد؛ وضعیت لمس/شلیک هر سطح در آرایهٔ بولین
+// نگهداری می‌شود و با تغییر موج کاملاً پاک می‌گردد.
+var int   fibWaveId       = 0
+var array<bool> fibTouched = array.new<bool>()
+var array<bool> fibFired   = array.new<bool>()
+var array<int>  fibLastFire = array.new<int>()
+var float fibBestBuyRatio  = na
+var float fibBestSellRatio = na
+var int   fibBestBuyBar    = -1000000000
+var int   fibBestSellBar   = -1000000000
+
+f_fibFlagReset(int _n) =>
+    array.clear(fibTouched)
+    array.clear(fibFired)
+    for _z = 0 to math.max(0, _n - 1)
+        array.push(fibTouched, false)
+        array.push(fibFired, false)
+
+// Cooldown مستقل هر سطح: Retracement و Extension آستانهٔ جداگانه دارند.
+f_fibLevelCooldown(int _cat) =>
+    int _base = _cat <= 1 ? fibCooldownRetr : fibCooldownExt
+    int(math.round(float(math.max(0, _base)) * math.max(1.0, ntsBarsPerBase)))
+
+f_fibCooldownOk(int _i, int _cat) =>
+    int _last = _i >= 0 and _i < array.size(fibLastFire) ? array.get(fibLastFire, _i) : -1000000000
+    int _cd   = f_fibLevelCooldown(_cat)
+    _cd <= 0 or _last < 0 or bar_index - _last >= _cd
+
+f_fibMarkFired(int _i) =>
+    if _i >= 0 and _i < array.size(fibLastFire)
+        array.set(fibLastFire, _i, bar_index)
+
+f_fibFlagGet(array<bool> _a, int _i) => _i >= 0 and _i < array.size(_a) ? array.get(_a, _i) : false
+
+f_fibFlagSet(array<bool> _a, int _i) =>
+    if _i >= 0 and _i < array.size(_a)
+        array.set(_a, _i, true)
+
+int   fibWaveIdNow = f_safeInt(ntsWaveId, 0)
+bool  fibWaveReset = fibWaveIdNow != fibWaveId or ntsTrendFlip or array.size(fibTouched) != fibLevelCount
+if fibWaveReset
+    fibWaveId := fibWaveIdNow
+    f_fibFlagReset(fibLevelCount)
+if array.size(fibLastFire) != fibLevelCount
+    array.clear(fibLastFire)
+    for _z = 0 to math.max(0, fibLevelCount - 1)
+        array.push(fibLastFire, -1000000000)
+
+bool  fibBuyEvent      = false
+bool  fibSellEvent     = false
+float fibBuyEventRatio = na
+float fibSellEventRatio = na
+int   fibBuyEventCat   = -1
+int   fibSellEventCat  = -1
+float fibBuyEventLevel = na
+float fibSellEventLevel = na
+bool  fibBuyDeepEvent  = false
+bool  fibSellDeepEvent = false
+
+if barstate.isconfirmed and fibRefValid and ntsReady
+    for _i = 0 to math.max(0, fibLevelCount - 1)
+        float _ratio   = f_fibRatioAt(_i)
+        int   _cat     = f_arrGetInt(fibCats, _i, 0)
+        int   _grp     = f_arrGetInt(fibGroups, _i, 0)
+        float _price   = f_fibLevelPrice(_i)
+        bool  _shown   = f_fibShowOn(_grp)
+        bool  _sigOn   = f_fibSigOn(_grp)
+        bool  _usable  = not na(_price) and _shown and _sigOn and f_levelReachable(_price)
+        bool  _fired   = f_fibFlagGet(fibFired, _i)
+        bool  _touched = f_fibFlagGet(fibTouched, _i)
+        bool  _touchNow = _usable and not na(_ratio) and (_ratio < 1.0 ?
+             (fibRefDir == 1 and low <= _price) or (fibRefDir == -1 and high >= _price) :
+             (fibRefDir == 1 and high >= _price) or (fibRefDir == -1 and low <= _price))
+        if _touchNow and not _touched
+            f_fibFlagSet(fibTouched, _i)
+        // ترتیب اجباری: موج باید بالغ باشد، سپس لمس رخ دهد، سپس واکنش تأیید شود.
+        bool  _orderOk = _touchNow or _touched
+        // دسته‌های ۰ تا ۳ = واکنش هم‌جهت (ادامه‌روند)؛ دسته‌های ۴ و ۵ = واکنش
+        // خلاف‌جهت (خستگی موج). هر سطح حداکثر یک نوع رویداد تولید می‌کند.
+        bool  _withTrend = not na(_ratio) and (_ratio < 1.0 or _cat <= 3)
+        bool  _counterTrend = not na(_ratio) and _ratio >= 1.0 and _cat >= 4
+        bool  _cdOk      = f_fibCooldownOk(_i, _cat)
+        bool  _reactBuyHere  = _usable and _orderOk and fibRefMature and not _fired and _cdOk and
+             _withTrend and fibRefDir == 1 and f_reactBuy(_price, f_fibBodyMin(_cat))
+        bool  _reactSellHere = _usable and _orderOk and fibRefMature and not _fired and _cdOk and
+             _withTrend and fibRefDir == -1 and f_reactSell(_price, f_fibBodyMin(_cat))
+        bool  _fadeUpWave = _usable and _orderOk and fibRefMature and not _fired and _cdOk and
+             _counterTrend and fibRefDir == 1 and f_reactSell(_price, f_fibBodyMin(_cat))
+        bool  _fadeDnWave = _usable and _orderOk and fibRefMature and not _fired and _cdOk and
+             _counterTrend and fibRefDir == -1 and f_reactBuy(_price, f_fibBodyMin(_cat))
+        // موج‌های جوان فقط برای سطوح نزدیک مجازند؛ سطوح دور به موج بالغ نیاز ندارند
+        // اما تأیید ساختاری/واگرایی می‌خواهند.
+        bool  _contOk  = not na(_ratio) and _ratio < 1.618 ? fibRefFresh : true
+        // تأیید لازم برای واکنش باید هم‌جهت با خودِ رویداد باشد.
+        bool  _deepOkBuy  = not deepNeedConfirm or sdBullConfirmed or structBullChoch or structBullBos
+        bool  _deepOkSell = not deepNeedConfirm or sdBearConfirmed or structBearChoch or structBearBos
+        if _reactBuyHere and _contOk
+            fibBuyEvent := true
+            bool _betterBuy = na(fibBuyEventRatio) or _ratio > f_safeNum(fibBuyEventRatio, 0.0)
+            if _betterBuy
+                fibBuyEventRatio := _ratio
+                fibBuyEventCat   := _cat
+                fibBuyEventLevel := _price
+                fibBestBuyRatio  := _ratio
+                fibBestBuyBar    := bar_index
+            f_fibFlagSet(fibFired, _i)
+            f_fibMarkFired(_i)
+        if _reactSellHere and _contOk
+            fibSellEvent := true
+            bool _betterSell = na(fibSellEventRatio) or _ratio > f_safeNum(fibSellEventRatio, 0.0)
+            if _betterSell
+                fibSellEventRatio := _ratio
+                fibSellEventCat   := _cat
+                fibSellEventLevel := _price
+                fibBestSellRatio  := _ratio
+                fibBestSellBar    := bar_index
+            f_fibFlagSet(fibFired, _i)
+            f_fibMarkFired(_i)
+        if _fadeUpWave and _deepOkSell
+            fibSellEvent := true
+            bool _betterFadeSell = na(fibSellEventRatio) or _ratio > f_safeNum(fibSellEventRatio, 0.0)
+            if _betterFadeSell
+                fibSellEventRatio := _ratio
+                fibSellEventCat   := _cat
+                fibSellEventLevel := _price
+                fibBestSellRatio  := _ratio
+                fibBestSellBar    := bar_index
+            if _cat >= 4
+                fibSellDeepEvent := true
+            f_fibFlagSet(fibFired, _i)
+            f_fibMarkFired(_i)
+        if _fadeDnWave and _deepOkBuy
+            fibBuyEvent := true
+            bool _betterFadeBuy = na(fibBuyEventRatio) or _ratio > f_safeNum(fibBuyEventRatio, 0.0)
+            if _betterFadeBuy
+                fibBuyEventRatio := _ratio
+                fibBuyEventCat   := _cat
+                fibBuyEventLevel := _price
+                fibBestBuyRatio  := _ratio
+                fibBestBuyBar    := bar_index
+            if _cat >= 4
+                fibBuyDeepEvent := true
+            f_fibFlagSet(fibFired, _i)
+            f_fibMarkFired(_i)
+
+fibAnyEvent      = fibBuyEvent or fibSellEvent
+fibBuyCatDeep    = fibBuyEventCat >= 4
+fibSellCatDeep   = fibSellEventCat >= 4
+fibBuyEventText  = na(fibBuyEventRatio) ? "—" : str.tostring(fibBuyEventRatio, "#.###")
+fibSellEventText = na(fibSellEventRatio) ? "—" : str.tostring(fibSellEventRatio, "#.###")
+fibBuyEventKind  = fibBuyEventCat >= 4 ? "FADE" : fibBuyEventCat >= 2 ? "EXT" : "RETR"
+fibSellEventKind = fibSellEventCat >= 4 ? "FADE" : fibSellEventCat >= 2 ? "EXT" : "RETR"
+
+// ============================================================================
+//  ▍M13 — Session Filter و Volume Filter
+// ============================================================================
+sessionActiveRaw = not na(time(timeframe.period, sessionString, sessionTimezone))
+goldenHourActive = not na(time(timeframe.period, goldenHourString, sessionTimezone))
+sessionOk        = not useSessionFilter or sessionActiveRaw
+volatilityPct    = close > 0 ? chartAtrSafe / close * 100.0 : 0.0
+volatilityOk     = minAtrPctEff <= 0.0 or volatilityPct >= minAtrPctEff or
+     f_safeNum(ntsAtrNorm, 1.0) >= 0.75
+tradeContextOk   = sessionOk and volatilityOk and volumeOk
+sessionText      = goldenHourActive ? "GOLDEN HOUR" : sessionActiveRaw ? "OPEN" : "CLOSED"
+
+// ============================================================================
+//  ▍M14 — سطوح مرجع SMC و جاروی نقدینگی (Liquidity Sweep)
+// ============================================================================
+// سطوح مرجع: PDH / PDL / PWH / PWL / Daily Open / Weekly Open / Session Open
+// همه با gaps_off و lookahead_off از تایم‌فریم بالاتر گرفته می‌شوند؛ یعنی
+// مقدارِ دورهٔ بسته‌شدهٔ قبلی است و در طول دوره جاری تغییر نمی‌کند.
+// ----------------------------------------------------------------------------
+[pwHigh, pwLow] = request.security(syminfo.tickerid, "1W", [high[1], low[1]],
+     gaps     = barmerge.gaps_off,
+     lookahead = barmerge.lookahead_off)
+dailyOpen = request.security(syminfo.tickerid, "1D", open,
+     gaps     = barmerge.gaps_off,
+     lookahead = barmerge.lookahead_off)
+weeklyOpenSafe = request.security(syminfo.tickerid, "1W", open,
+     gaps     = barmerge.gaps_off,
+     lookahead = barmerge.lookahead_off)
+
+pdhValid = not na(pdHigh)
+pdlValid = not na(pdLow)
+pwhValid = not na(pwHigh)
+pwlValid = not na(pwLow)
+dOpenValid = not na(dailyOpen)
+wOpenValid = not na(weeklyOpenSafe)
+
+// --- تعریف واحد جاروی نقدینگی ---
+// جارو = کندلی که با سایه یک سطح نقدینگی را می‌شکند اما بدنه آن را پس می‌گیرد.
+// فقط روی کندل بسته‌شده و با حداقل پس‌گیری بر حسب ATR اعتبار دارد.
+liqMinRetraceAtr = 0.15
+
+f_sweepBull(float _level) =>
+    bool _ok = false
+    if not na(_level) and barstate.isconfirmed
+        float _retrace = close - _level
+        _ok := low < _level and close > _level and candleBullish and
+             _retrace >= liqMinRetraceAtr * chartAtrSafe
+    _ok
+
+f_sweepBear(float _level) =>
+    bool _ok = false
+    if not na(_level) and barstate.isconfirmed
+        float _retrace = _level - close
+        _ok := high > _level and close < _level and candleBearish and
+             _retrace >= liqMinRetraceAtr * chartAtrSafe
+    _ok
+
+sweepPdlBull = f_sweepBull(pdLow)
+sweepPwlBull = f_sweepBull(pwLow)
+sweepStructBull = f_sweepBull(structLow)
+sweepDopenBull = f_sweepBull(dailyOpen)
+
+sweepPdhBear = f_sweepBear(pdHigh)
+sweepPwhBear = f_sweepBear(pwHigh)
+sweepStructBear = f_sweepBear(structHigh)
+sweepDopenBear = f_sweepBear(dailyOpen)
+
+liqBullSweep = sweepPdlBull or sweepPwlBull or sweepStructBull or sweepDopenBull
+liqBearSweep = sweepPdhBear or sweepPwhBear or sweepStructBear or sweepDopenBear
+liqAnySweep  = liqBullSweep or liqBearSweep
+liqSweepText = sweepPdlBull ? "PDL SWEEP" : sweepPwlBull ? "PWL SWEEP" :
+     sweepStructBull ? "SSL SWEEP" : sweepDopenBull ? "DOPEN SWEEP" :
+     sweepPdhBear ? "PDH SWEEP" : sweepPwhBear ? "PWH SWEEP" :
+     sweepStructBear ? "BSL SWEEP" : sweepDopenBear ? "DOPEN SWEEP" : "—"
+liqSweepLevel = sweepPdlBull ? pdLow : sweepPwlBull ? pwLow : sweepStructBull ? structLow :
+     sweepDopenBull ? dailyOpen : sweepPdhBear ? pdHigh : sweepPwhBear ? pwHigh :
+     sweepStructBear ? structHigh : sweepDopenBear ? dailyOpen : na
+
+// --- موقعیت قیمت نسبت به سطوح مرجع (برای پنل و امتیاز) ---
+aboveDailyOpen = dOpenValid and close > dailyOpen
+aboveWeeklyOpen = wOpenValid and close > weeklyOpenSafe
+refBiasSum = (pdhValid and close > pdHigh ? 1 : 0) + (pdlValid and close > pdLow ? 1 : 0) +
+     (dOpenValid and close > dailyOpen ? 1 : 0) + (wOpenValid and close > weeklyOpenSafe ? 1 : 0) +
+     (pwhValid and close > pwHigh ? 1 : 0) + (pwlValid and close > pwLow ? 1 : 0)
+refBiasText = refBiasSum >= 5 ? "STRONG ABOVE" : refBiasSum >= 4 ? "ABOVE" :
+     refBiasSum >= 3 ? "MIXED +" : refBiasSum >= 2 ? "MIXED −" : "BELOW"
+
+// --- ثبت رویداد جارو برای نمایش ---
+var int    liqLastSweepBar     = -1000000000
+var int    liqLastBullSweepBar = -1000000000
+var int    liqLastBearSweepBar = -1000000000
+var string liqLastSweepText    = "—"
+if liqAnySweep
+    liqLastSweepBar  := bar_index
+    liqLastSweepText := liqSweepText
+if liqBullSweep
+    liqLastBullSweepBar := bar_index
+if liqBearSweep
+    liqLastBearSweepBar := bar_index
+liqSweepWindow       = math.max(3, int(math.round(6.0 * math.max(1.0, ntsBarsPerBase))))
+liqSweepRecent       = bar_index - liqLastSweepBar <= liqSweepWindow
+liqBullSweepRecent   = bar_index - liqLastBullSweepBar <= liqSweepWindow
+liqBearSweepRecent   = bar_index - liqLastBearSweepBar <= liqSweepWindow
+liqSweepAgeText      = liqLastSweepBar < 0 ? "—" : str.tostring(bar_index - liqLastSweepBar) + " bars ago"
+
+if barstate.isconfirmed and isStandard and showLiqLabels and liqAnySweep
+    if liqBullSweep and f_labelSlotFree(true, low, chartAtrSafe)
+        label _lb = label.new(bar_index, low - chartAtrSafe * 0.25, liqSweepText + "↑",
+             xloc = xloc.bar_index, style = label.style_label_up,
+             color = color.new(colBuy, 40), textcolor = color.white, size = size.tiny)
+        f_omAddLabelOnly(omStructLbl, _lb, math.max(1, structMaxLabels))
+    if liqBearSweep and f_labelSlotFree(false, high, chartAtrSafe)
+        label _lb = label.new(bar_index, high + chartAtrSafe * 0.25, liqSweepText + "↓",
+             xloc = xloc.bar_index, style = label.style_label_down,
+             color = color.new(colSell, 40), textcolor = color.white, size = size.tiny)
+        f_omAddLabelOnly(omStructLbl, _lb, math.max(1, structMaxLabels))
+
+// --- خط مرجع روی نمودار ---
+// فقط Daily Open پلات می‌شود (یک سهم از plot count). بقیهٔ سطوح مرجع
+// (PDH/PDL/PWH/PWL/Weekly Open) در ردیف «Weekly Levels» پنل و در تشخیص جاروی
+// نقدینگی استفاده می‌شوند؛ PDH/PDL هم که قبلاً در لایهٔ PD رسم شده‌اند.
+plot(showRefLevels and isStandard and dOpenValid ? dailyOpen : na, "Daily Open",
+     color = color.new(colNeutral, 45), style = plot.style_linebr, linewidth = 1, display = display.pane)
+
+// ============================================================================
+//  ▍M15 — ماتریس تأیید تایم‌فریم بالاتر (فقط کندل بسته‌شده)
+// ============================================================================
+// این بخش صرفاً «تأییدیه جهت» است و هیچ‌گاه سیگنال مستقل تولید نمی‌کند.
+// تمام مقادیر با gaps_off و lookahead_off گرفته می‌شوند؛ بنابراین مقدارِ
+// کندل بسته‌شده تایم‌فریم بالاتر است و ری‌پینت ندارد.
+// ----------------------------------------------------------------------------
+f_htfContext(simple int _emaLen, simple int _rsiLen) =>
+    float _ema   = ta.ema(close, _emaLen)
+    float _emaS  = ta.ema(close, math.max(5, int(math.round(float(_emaLen) / 3.0))))
+    float _rsi   = ta.rsi(close, _rsiLen)
+    int   _trend = na(_ema) or na(close) ? 0 : close > _ema and _emaS >= _ema ? 1 :
+         close < _ema and _emaS <= _ema ? -1 : 0
+    [_trend, _rsi, time]
+
+// هر سه تایم‌فریم بالاتر با lookahead_off خواسته می‌شوند و سپس مقدارِ کندل
+// بسته‌شدهٔ هرکدام روی نمودارِ پایین‌تر لچ می‌شود؛ یعنی Score هرگز بر پایهٔ
+// کندلِ نیمه‌بازِ تایم‌فریم بالاتر محاسبه نمی‌شود.
+[mtf1RawTrend, mtf1RawRsi, mtf1RawTime] = request.security(syminfo.tickerid, mtfTf1,
+     f_htfContext(mtfEmaLen, mtfRsiLen), gaps = barmerge.gaps_off, lookahead = barmerge.lookahead_off)
+[mtf2RawTrend, mtf2RawRsi, mtf2RawTime] = request.security(syminfo.tickerid, mtfTf2,
+     f_htfContext(mtfEmaLen, mtfRsiLen), gaps = barmerge.gaps_off, lookahead = barmerge.lookahead_off)
+[mtf3RawTrend, mtf3RawRsi, mtf3RawTime] = request.security(syminfo.tickerid, mtfTf3,
+     f_htfContext(mtfEmaLen, mtfRsiLen), gaps = barmerge.gaps_off, lookahead = barmerge.lookahead_off)
+
+var int   mtf1LatchTrend = 0
+var float mtf1LatchRsi   = na
+var bool  mtf1LatchReady = false
+var int   mtf2LatchTrend = 0
+var float mtf2LatchRsi   = na
+var bool  mtf2LatchReady = false
+var int   mtf3LatchTrend = 0
+var float mtf3LatchRsi   = na
+var bool  mtf3LatchReady = false
+
+mtf1IsLower = f_tfChartIsLower(mtfTf1)
+mtf2IsLower = f_tfChartIsLower(mtfTf2)
+mtf3IsLower = f_tfChartIsLower(mtfTf3)
+
+if mtf1IsLower and (na(mtf1RawTime[1]) or mtf1RawTime != mtf1RawTime[1])
+    mtf1LatchTrend := mtf1RawTrend[1]
+    mtf1LatchRsi   := mtf1RawRsi[1]
+    mtf1LatchReady := true
+if mtf2IsLower and (na(mtf2RawTime[1]) or mtf2RawTime != mtf2RawTime[1])
+    mtf2LatchTrend := mtf2RawTrend[1]
+    mtf2LatchRsi   := mtf2RawRsi[1]
+    mtf2LatchReady := true
+if mtf3IsLower and (na(mtf3RawTime[1]) or mtf3RawTime != mtf3RawTime[1])
+    mtf3LatchTrend := mtf3RawTrend[1]
+    mtf3LatchRsi   := mtf3RawRsi[1]
+    mtf3LatchReady := true
+
+mtf1Trend = mtf1IsLower and mtf1LatchReady ? mtf1LatchTrend : mtf1RawTrend
+mtf1Rsi   = mtf1IsLower and mtf1LatchReady ? mtf1LatchRsi   : mtf1RawRsi
+mtf2Trend = mtf2IsLower and mtf2LatchReady ? mtf2LatchTrend : mtf2RawTrend
+mtf2Rsi   = mtf2IsLower and mtf2LatchReady ? mtf2LatchRsi   : mtf2RawRsi
+mtf3Trend = mtf3IsLower and mtf3LatchReady ? mtf3LatchTrend : mtf3RawTrend
+mtf3Rsi   = mtf3IsLower and mtf3LatchReady ? mtf3LatchRsi   : mtf3RawRsi
+
+mtf1TrendSafe = f_safeInt(mtf1Trend, 0)
+mtf2TrendSafe = f_safeInt(mtf2Trend, 0)
+mtf3TrendSafe = f_safeInt(mtf3Trend, 0)
+mtf1RsiSafe   = f_safeNum(mtf1Rsi, 50.0)
+mtf2RsiSafe   = f_safeNum(mtf2Rsi, 50.0)
+mtf3RsiSafe   = f_safeNum(mtf3Rsi, 50.0)
+
+// امتیاز هم‌راستایی HTF: از ۳- تا ۳+
+mtfAlignSum = mtf1TrendSafe + mtf2TrendSafe + mtf3TrendSafe
+mtfAlignText = mtfAlignSum >= 3 ? "ALL BULL" : mtfAlignSum <= -3 ? "ALL BEAR" :
+     mtfAlignSum > 0 ? "MIXED +" : mtfAlignSum < 0 ? "MIXED −" : "NEUTRAL"
+mtfBuyBias  = mtfAlignSum > 0
+mtfSellBias = mtfAlignSum < 0
+// هرگز به‌تنهایی سیگنال نمی‌سازد؛ فقط تا ±۶٪ روی Score اثر می‌گذارد.
+mtfBuyAdj  = mtfWeightUse ? f_clamp(float(mtfAlignSum) * 2.0, -6.0, 6.0) : 0.0
+mtfSellAdj = mtfWeightUse ? f_clamp(float(-mtfAlignSum) * 2.0, -6.0, 6.0) : 0.0
+
+f_trendArrow(int _t) => _t == 1 ? "▲" : _t == -1 ? "▼" : "—"
+
+// ============================================================================
+//  ▍M16 — سیستم امتیازدهی Confluence (Buy و Sell کاملاً مستقل و متقارن)
+// ============================================================================
+// به‌جای زنجیره‌ای از شرط‌های AND، هر مؤلفه وزن مشخص دارد و مجموع روی بودجهٔ
+// وزن‌ها به ۰ تا ۱۰۰ نرمال می‌شود. یک شرط کم‌اهمیت به‌تنهایی نمی‌تواند سیگنال
+// بسازد چون «تریگر رویداد» اجباری است.
+weightBudget = math.max(1.0, wTrend + wPd + wFib + wCloud + wHull + wRsi + wStruct +
+     wDiv + wVol + wSession + wTrendStrength + wCandle)
+
+// --- امتیاز BUY ---
+scBuyTrend = ntsBullish ? wTrend : ntsBearish ? -wTrend * 0.50 : 0.0
+scBuyPd = pdBuyIdeal ? wPd : (inEquilibrium and pdAllowEquilibrium ? wPd * 0.45 : 0.0)
+scBuyFib = f_clamp(fibBuyEvent ? (fibBuyCatDeep ? wFib * 1.10 : wFib) :
+     nearDemand ? wFib * 0.35 : 0.0, 0.0, wFib * 1.10)
+scBuyCloud = cloudBuyTouch ? wCloud : cloudBuyRecent and cloudBuyNear ? wCloud * 0.70 :
+     cloudBuyNear ? wCloud * 0.25 : 0.0
+scBuyHull = hullBuyAligned ? wHull : (hullBearish ? -wHull * 0.50 : 0.0)
+scBuyRsi = f_clamp((rsiBuyZone ? wRsi * 0.60 : 0.0) + (rsiTurnUp ? wRsi * 0.40 : 0.0) +
+     (kdBuyZone ? wRsi * 0.30 : 0.0), -wRsi, wRsi)
+scBuyStruct = structBullChoch ? wStruct : structBullBos ? wStruct * 0.80 :
+     structTrendDir == 1 and structBullRecent ? wStruct * 0.35 : 0.0
+scBuyDiv = wDiv * sdBullWeight * (ntsBullish ? 1.0 : 0.75)
+scBuyVol = not volumeValid ? wVol * 0.50 : volumeBoost ? wVol : -wVol * 0.25
+scBuySession = not useSessionFilter ? wSession * 0.60 :
+     goldenHourActive and useGoldenHourBoost ? wSession : sessionActiveRaw ? wSession * 0.75 : 0.0
+scBuyStrength = ntsRegime == 2 ? wTrendStrength : ntsRegime == 1 ? wTrendStrength * 0.70 :
+     ntsRegime == -1 ? -wTrendStrength * 0.40 : 0.0
+// سقف هر مؤلفه = وزن آن (فقط مؤلفهٔ Fib عمیق و کندل اجازهٔ ۱۰٪/۲۵٪ پاداش دارند)
+// تا هیچ مؤلفه‌ای نتواند Score را از بودجهٔ کل فراتر ببرد.
+scBuyCandle = f_clamp((candleBullish and candleBodyPct >= 0.55 ? wCandle : 0.0) +
+     (displacementUp ? wCandle * 0.50 : 0.0) +
+     (lowerWick >= candleBody * 1.20 and candleBullish ? wCandle * 0.25 : 0.0) +
+     (liqBullSweep ? wCandle * 0.75 : liqBullSweepRecent ? wCandle * 0.35 : 0.0),
+     -wCandle, wCandle * 1.25)
+buyScoreRaw = scBuyTrend + scBuyPd + scBuyFib + scBuyCloud + scBuyHull + scBuyRsi +
+     scBuyStruct + scBuyDiv + scBuyVol + scBuySession + scBuyStrength + scBuyCandle + mtfBuyAdj
+buyScore = f_clamp(100.0 * buyScoreRaw / weightBudget, 0.0, 100.0)
+
+// --- امتیاز SELL (متقارن با BUY) ---
+scSellTrend = ntsBearish ? wTrend : ntsBullish ? -wTrend * 0.50 : 0.0
+scSellPd = pdSellIdeal ? wPd : (inEquilibrium and pdAllowEquilibrium ? wPd * 0.45 : 0.0)
+scSellFib = f_clamp(fibSellEvent ? (fibSellCatDeep ? wFib * 1.10 : wFib) :
+     nearSupply ? wFib * 0.35 : 0.0, 0.0, wFib * 1.10)
+scSellCloud = cloudSellTouch ? wCloud : cloudSellRecent and cloudSellNear ? wCloud * 0.70 :
+     cloudSellNear ? wCloud * 0.25 : 0.0
+scSellHull = hullSellAligned ? wHull : (hullBullish ? -wHull * 0.50 : 0.0)
+scSellRsi = f_clamp((rsiSellZone ? wRsi * 0.60 : 0.0) + (rsiTurnDown ? wRsi * 0.40 : 0.0) +
+     (kdSellZone ? wRsi * 0.30 : 0.0), -wRsi, wRsi)
+scSellStruct = structBearChoch ? wStruct : structBearBos ? wStruct * 0.80 :
+     structTrendDir == -1 and structBearRecent ? wStruct * 0.35 : 0.0
+scSellDiv = wDiv * sdBearWeight * (ntsBearish ? 1.0 : 0.75)
+scSellVol = not volumeValid ? wVol * 0.50 : volumeBoost ? wVol : -wVol * 0.25
+scSellSession = not useSessionFilter ? wSession * 0.60 :
+     goldenHourActive and useGoldenHourBoost ? wSession : sessionActiveRaw ? wSession * 0.75 : 0.0
+scSellStrength = ntsRegime == 2 ? wTrendStrength : ntsRegime == 1 ? wTrendStrength * 0.70 :
+     ntsRegime == -1 ? -wTrendStrength * 0.40 : 0.0
+scSellCandle = f_clamp((candleBearish and candleBodyPct >= 0.55 ? wCandle : 0.0) +
+     (displacementDown ? wCandle * 0.50 : 0.0) +
+     (upperWick >= candleBody * 1.20 and candleBearish ? wCandle * 0.25 : 0.0) +
+     (liqBearSweep ? wCandle * 0.75 : liqBearSweepRecent ? wCandle * 0.35 : 0.0),
+     -wCandle, wCandle * 1.25)
+sellScoreRaw = scSellTrend + scSellPd + scSellFib + scSellCloud + scSellHull + scSellRsi +
+     scSellStruct + scSellDiv + scSellVol + scSellSession + scSellStrength + scSellCandle + mtfSellAdj
+sellScore = f_clamp(100.0 * sellScoreRaw / weightBudget, 0.0, 100.0)
+
+// ============================================================================
+//  ▍M17 — موتور سیگنال: SETUP / CONFIRMED / PRO
+// ============================================================================
+dirBuyAllowed  = sigDirection == "هر دو جهت" or sigDirection == "فقط BUY"
+dirSellAllowed = sigDirection == "هر دو جهت" or sigDirection == "فقط SELL"
+sigEngineOn    = sigEnabled and sigDirection != "بدون سیگنال"
+
+// --- تریگرهای اجباری (بدون تریگر، امتیاز بالا هم سیگنال نمی‌سازد) ---
+buyTrigger  = fibBuyEvent or structBullChoch or structBullBos or sdBullConfirmed
+sellTrigger = fibSellEvent or structBearChoch or structBearBos or sdBearConfirmed
+
+buySetupTrigger  = buyTrigger or (sdBullPending and cloudBuyLocation) or (inDemandZone and rsiTurnUp)
+sellSetupTrigger = sellTrigger or (sdBearPending and cloudSellLocation) or (inSupplyZone and rsiTurnDown)
+
+// --- گیت‌های اجباری ---
+// هیچ سطحی از سیگنال (حتی SETUP) روی کندل باز صادر نمی‌شود.
+buyGateCore  = barstate.isconfirmed and ntsCoreReady and tradeContextOk and pdBuyAllowed and
+     hullBuyGate and (ntsBullish or fibBuyDeepEvent or sdBullConfirmed)
+sellGateCore = barstate.isconfirmed and ntsCoreReady and tradeContextOk and pdSellAllowed and
+     hullSellGate and (ntsBearish or fibSellDeepEvent or sdBearConfirmed)
+
+buyConfirmedTrigger  = buyTrigger and (ntsBullish or fibBuyDeepEvent) and (hullBuyAligned or not hullRequireAligned)
+sellConfirmedTrigger = sellTrigger and (ntsBearish or fibSellDeepEvent) and (hullSellAligned or not hullRequireAligned)
+
+buyProTrigger = (fibBuyDeepEvent or sdBullConfirmed or (fibBuyEvent and structBullChoch)) and
+     (pdBuyIdeal or (inEquilibrium and pdAllowEquilibrium)) and hullBuyAligned and
+     (structBullSupport or sdBullConfirmed or displacementUp or liqBullSweep) and
+     (ntsRegime >= 1 or sdBullConfirmed)
+sellProTrigger = (fibSellDeepEvent or sdBearConfirmed or (fibSellEvent and structBearChoch)) and
+     (pdSellIdeal or (inEquilibrium and pdAllowEquilibrium)) and hullSellAligned and
+     (structBearSupport or sdBearConfirmed or displacementDown or liqBearSweep) and
+     (ntsRegime >= 1 or sdBearConfirmed)
+
+buyMeetsSetup     = buySetupTrigger and buyGateCore and buyScore >= scoreSetup
+buyMeetsConfirmed = buyConfirmedTrigger and buyGateCore and buyScore >= scoreConfirmed
+buyMeetsPro       = buyProTrigger and buyGateCore and buyScore >= scorePro
+sellMeetsSetup     = sellSetupTrigger and sellGateCore and sellScore >= scoreSetup
+sellMeetsConfirmed = sellConfirmedTrigger and sellGateCore and sellScore >= scoreConfirmed
+sellMeetsPro       = sellProTrigger and sellGateCore and sellScore >= scorePro
+
+buyLevelRaw  = buyMeetsPro ? 3 : buyMeetsConfirmed ? 2 : buyMeetsSetup ? 1 : 0
+sellLevelRaw = sellMeetsPro ? 3 : sellMeetsConfirmed ? 2 : sellMeetsSetup ? 1 : 0
+
+// --- سقف نمایش سطح سیگنال ---
+levelCap = sigLevels == "فقط PRO" ? 3 : sigLevels == "فقط Confirmed و PRO" ? 2 : 1
+buyLevelCapped  = buyLevelRaw >= levelCap ? buyLevelRaw : 0
+sellLevelCapped = sellLevelRaw >= levelCap ? sellLevelRaw : 0
+
+// --- Cooldown مستقل Buy و Sell و جلوگیری از تکرار در یک سطح ---
+var int   lastBuyBar       = -1000000000
+var int   lastSellBar      = -1000000000
+var int   lastBuyLevel     = 0
+var int   lastSellLevel    = 0
+var float lastBuyScore     = na
+var float lastSellScore    = na
+var float lastBuyRatio     = na
+var float lastSellRatio    = na
+var int   lastSignalBar    = na
+var string lastSignalText  = "—"
+
+cooldownBars = math.max(1.0, ntsBarsPerBase)
+buyCooldownBars  = int(math.round(float(buyCooldown) * cooldownBars))
+sellCooldownBars = int(math.round(float(sellCooldown) * cooldownBars))
+repeatLevelBars  = int(math.round(float(sigRepeatLevelBars) * cooldownBars))
+
+f_cooldownOk(int _last, int _bars) => na(_last) or _bars <= 0 or bar_index - _last >= _bars
+
+buyCooldownOk  = f_cooldownOk(lastBuyBar, buyCooldownBars)
+sellCooldownOk = f_cooldownOk(lastSellBar, sellCooldownBars)
+
+// --- حل تعارض: هرگز BUY و SELL هم‌زمان صادر نمی‌شود ---
+int   sigDirLevel   = 0
+float sigScore      = na
+float sigRatio      = na
+string sigLevelText = "—"
+string sigKindText  = "—"
+
+buyCandidateNow  = sigEngineOn and dirBuyAllowed and buyLevelCapped > 0 and buyCooldownOk
+sellCandidateNow = sigEngineOn and dirSellAllowed and sellLevelCapped > 0 and sellCooldownOk
+
+if buyCandidateNow and sellCandidateNow
+    if buyScore > sellScore
+        sellCandidateNow := false
+    else if sellScore > buyScore
+        buyCandidateNow := false
+    else if ntsBullish
+        sellCandidateNow := false
+    else
+        buyCandidateNow := false
+
+if buyCandidateNow
+    sigDirLevel   := 1
+    sigScore      := buyScore
+    sigRatio      := fibBuyEventRatio
+    sigLevelText  := buyLevelCapped >= 3 ? "PRO" : buyLevelCapped == 2 ? "CONFIRMED" : "SETUP"
+    sigKindText   := fibBuyEvent ? fibBuyEventKind : sdBullConfirmed ? "DIV" : "STRUCT"
+else if sellCandidateNow
+    sigDirLevel   := -1
+    sigScore      := sellScore
+    sigRatio      := fibSellEventRatio
+    sigLevelText  := sellLevelCapped >= 3 ? "PRO" : sellLevelCapped == 2 ? "CONFIRMED" : "SETUP"
+    sigKindText   := fibSellEvent ? fibSellEventKind : sdBearConfirmed ? "DIV" : "STRUCT"
+
+// --- جلوگیری از تکرار سیگنال در همان سطح با همان نسبت ---
+sigRepeatBlocked = false
+if sigDirLevel == 1
+    sigRepeatBlocked := f_safeInt(lastBuyLevel, 0) == buyLevelCapped and
+         not f_cooldownOk(lastBuyBar, repeatLevelBars) and
+         not na(lastBuyRatio) and not na(sigRatio) and math.abs(sigRatio - lastBuyRatio) < 0.001
+if sigDirLevel == -1
+    sigRepeatBlocked := f_safeInt(lastSellLevel, 0) == sellLevelCapped and
+         not f_cooldownOk(lastSellBar, repeatLevelBars) and
+         not na(lastSellRatio) and not na(sigRatio) and math.abs(sigRatio - lastSellRatio) < 0.001
+if sigRepeatBlocked
+    sigDirLevel := 0
+
+// تضمین سخت: sigDirLevel فقط یکی از مقادیر ۱ / ۰ / ۱- است، پس BUY و SELL
+// هرگز هم‌زمان true نمی‌شوند.
+sigBuy       = sigDirLevel == 1
+sigSell      = sigDirLevel == -1 and not sigBuy
+sigAny       = sigDirLevel != 0
+sigLevelCode = sigDirLevel == 0 ? 0 : (sigDirLevel == 1 ? buyLevelCapped : sellLevelCapped)
+sigIsPro     = sigAny and sigLevelCode >= 3
+sigIsConfirmed = sigAny and sigLevelCode == 2
+sigIsSetup   = sigAny and sigLevelCode == 1
+sigProBuy    = sigBuy and sigLevelCode >= 3
+sigProSell   = sigSell and sigLevelCode >= 3
+sigConfBuy   = sigBuy and sigLevelCode == 2
+sigConfSell  = sigSell and sigLevelCode == 2
+sigSetupBuy  = sigBuy and sigLevelCode == 1
+sigSetupSell = sigSell and sigLevelCode == 1
+
+// --- ثبت آخرین سیگنال ---
+if sigBuy
+    lastBuyBar    := bar_index
+    lastBuyLevel  := buyLevelCapped
+    lastBuyScore  := buyScore
+    lastBuyRatio  := fibBuyEventRatio
+    lastSignalBar := bar_index
+if sigSell
+    lastSellBar    := bar_index
+    lastSellLevel  := sellLevelCapped
+    lastSellScore  := sellScore
+    lastSellRatio  := fibSellEventRatio
+    lastSignalBar  := bar_index
+if sigAny
+    lastSignalText := (sigDirLevel == 1 ? "BUY " : "SELL ") + sigLevelText +
+         (na(sigRatio) ? "" : " @" + str.tostring(sigRatio, "#.###"))
+
+// ============================================================================
+//  ▍M18 — مدیریت ریسک و Trade Plan (بر پایه آخرین سیگنال)
+// ============================================================================
+// Entry / Stop / Target از ATR تایم‌فریم پایه NTS ساخته می‌شوند؛ اگر سطح ساختار
+// نزدیک‌تر از حد ATR باشد، Stop پشت همان سطح قرار می‌گیرد (نه پشت نویز).
+// ----------------------------------------------------------------------------
+var float planEntry   = na
+var float planStop    = na
+var float planTarget1 = na
+var float planTarget2 = na
+var float planTarget3 = na
+var int   planDir     = 0
+var int   planBar     = na
+var string planLevel  = "—"
+
+atrForPlan = math.max(f_safeNum(ntsAtr, chartAtrSafe), syminfo.mintick)
+
+if sigAny and barstate.isconfirmed
+    float _slDist = atrForPlan * math.max(0.2, planSlAtrMult)
+    float _tpDist = atrForPlan * math.max(0.2, planTpAtrMult)
+    if sigDirLevel == 1
+        float _structStop = not na(structLow) ? structLow - atrForPlan * 0.25 : na
+        float _stopNow    = planUseStruct and not na(_structStop) and close - _structStop > atrForPlan * 0.35 and
+             close - _structStop < atrForPlan * 4.0 ? _structStop : close - _slDist
+        planDir     := 1
+        planEntry   := close
+        planStop    := _stopNow
+        planTarget1 := close + _tpDist
+        planTarget2 := close + _tpDist * 2.0
+        planTarget3 := close + _tpDist * 3.0
+    else
+        float _structStop = not na(structHigh) ? structHigh + atrForPlan * 0.25 : na
+        float _stopNow    = planUseStruct and not na(_structStop) and _structStop - close > atrForPlan * 0.35 and
+             _structStop - close < atrForPlan * 4.0 ? _structStop : close + _slDist
+        planDir     := -1
+        planEntry   := close
+        planStop    := _stopNow
+        planTarget1 := close - _tpDist
+        planTarget2 := close - _tpDist * 2.0
+        planTarget3 := close - _tpDist * 3.0
+    planBar   := bar_index
+    planLevel := sigLevelText
+
+planRiskPerUnit = planDir == 0 ? na : math.abs(f_safeNum(planEntry, close) - f_safeNum(planStop, close))
+planRiskValid   = planDir != 0 and not na(planRiskPerUnit) and planRiskPerUnit > syminfo.mintick
+planReward1     = planRiskValid ? math.abs(f_safeNum(planTarget1, close) - f_safeNum(planEntry, close)) / planRiskPerUnit : na
+planReward2     = planRiskValid ? math.abs(f_safeNum(planTarget2, close) - f_safeNum(planEntry, close)) / planRiskPerUnit : na
+planReward3     = planRiskValid ? math.abs(f_safeNum(planTarget3, close) - f_safeNum(planEntry, close)) / planRiskPerUnit : na
+planRiskAmount  = planAccount * f_clamp(planRiskPct, 0.0, 100.0) / 100.0
+planUnits       = planRiskValid and planRiskPerUnit > 0 ? planRiskAmount / planRiskPerUnit : na
+planRrText      = planRiskValid ? "1 : " + f_txt(planReward1, "#.##") + " / " + f_txt(planReward2, "#.##") : "—"
+
+// --- رسم بلوک ریسک سیگنال آخر ---
+if drawGate and planShowLines and planDir != 0 and isStandard
+    f_omClearLines(omPlanLines)
+    int   _x1 = f_safeInt(planBar, bar_index - 10)
+    int   _x2 = bar_index + 20
+    color _c  = planDir == 1 ? colBuy : colSell
+    line _e = line.new(_x1, f_safeNum(planEntry, close), _x2, f_safeNum(planEntry, close),
+         xloc = xloc.bar_index, color = color.new(_c, 20), style = line.style_solid, width = 2)
+    array.push(omPlanLines, _e)
+    line _s = line.new(_x1, f_safeNum(planStop, close), _x2, f_safeNum(planStop, close),
+         xloc = xloc.bar_index, color = color.new(colSell, 10), style = line.style_dotted, width = 2)
+    array.push(omPlanLines, _s)
+    line _t1 = line.new(_x1, f_safeNum(planTarget1, close), _x2, f_safeNum(planTarget1, close),
+         xloc = xloc.bar_index, color = color.new(colBuy, 45), style = line.style_dashed, width = 1)
+    array.push(omPlanLines, _t1)
+    line _t2 = line.new(_x1, f_safeNum(planTarget2, close), _x2, f_safeNum(planTarget2, close),
+         xloc = xloc.bar_index, color = color.new(colBuy, 60), style = line.style_dashed, width = 1)
+    array.push(omPlanLines, _t2)
+    while array.size(omPlanLines) > 8
+        line.delete(array.shift(omPlanLines))
+
+// ============================================================================
+//  ▍M19 — ساختار سشن‌های جهانی (باکس پس‌زمینه)
+// ============================================================================
+if barstate.isconfirmed and (sessShowLondon or sessShowNy) and isFull
+    bool _lonNow  = not na(time(timeframe.period, sessLondonStr, sessTz))
+    bool _lonPrev = not na(time(timeframe.period, sessLondonStr, sessTz, bar_index - 1))
+    if sessShowLondon and _lonNow and not _lonPrev
+        int _end = bar_index + 48
+        box _b = box.new(bar_index, high + chartAtrSafe * 2.0, _end, low - chartAtrSafe * 2.0,
+             xloc = xloc.bar_index, extend = extend.right, bgcolor = color.new(color.blue, 95),
+             border_color = color.new(color.blue, 75), border_width = 1)
+        array.push(omSessBoxes, _b)
+    bool _nyNow  = not na(time(timeframe.period, sessNyStr, sessTz))
+    bool _nyPrev = not na(time(timeframe.period, sessNyStr, sessTz, bar_index - 1))
+    if sessShowNy and _nyNow and not _nyPrev
+        int _end = bar_index + 48
+        box _b = box.new(bar_index, high + chartAtrSafe * 2.0, _end, low - chartAtrSafe * 2.0,
+             xloc = xloc.bar_index, extend = extend.right, bgcolor = color.new(color.orange, 95),
+             border_color = color.new(color.orange, 75), border_width = 1)
+        array.push(omSessBoxes, _b)
+    while array.size(omSessBoxes) > math.max(4, sessMaxBoxes)
+        box.delete(array.shift(omSessBoxes))
+
+// ============================================================================
+//  ▍M20 — موتور خطوط روند خودکار و تاریخی (Price Action)
+// ============================================================================
+//  • روند نزولی = اتصال سقف‌های نزولی (Lower Highs)
+//  • روند صعودی = اتصال کف‌های صعودی (Higher Lows)
+//  • فقط Pivot تأییدشده؛ هیچ Pivot آینده‌ای استفاده نمی‌شود.
+//  • حلقه‌ها محدود به tlMaxPivots و یک لنگر ثابت هستند (O(n) به ازای هر kandidat).
+//  • بازطراحی فقط روی آخرین کندل و فقط وقتی Pivot جدید تأیید شده است.
+//  • تلورانس لمس و شکست با ATR همان کندل سنجیده می‌شود.
+// ----------------------------------------------------------------------------
+var float tlUpAnchorBar = na
+var float tlUpAnchorPx  = na
+var float tlUpLastBar   = na
+var float tlUpLastPx    = na
+var float tlUpSlope     = na
+var int   tlUpTouch     = 0
+var bool  tlUpValid     = false
+var bool  tlUpBroken    = false
+
+var float tlDnAnchorBar = na
+var float tlDnAnchorPx  = na
+var float tlDnLastBar   = na
+var float tlDnLastPx    = na
+var float tlDnSlope     = na
+var int   tlDnTouch     = 0
+var bool  tlDnValid     = false
+var bool  tlDnBroken    = false
+
+var array<float> tlHistA = array.new<float>()
+var array<float> tlHistB = array.new<float>()
+var array<float> tlHistC = array.new<float>()
+var array<int>   tlHistD = array.new<int>()
+var array<int>   tlHistT = array.new<int>()
+
+tlPivotEvent = not na(pivotHighNow) or not na(pivotLowNow)
+tlRedraw     = barstate.islast and tlShow and (not tlOnlyOnConfirmed or barstate.isconfirmed)
+tlRebuild    = tlRedraw and tlPivotEvent
+
+f_tlValueAt(float _a, float _b, float _c, float _x) => _b + _c * (_x - _a)
+
+f_tlPushHistory(float _a, float _b, float _c, int _dir, int _touches) =>
+    array.push(tlHistA, _a)
+    array.push(tlHistB, _b)
+    array.push(tlHistC, _c)
+    array.push(tlHistD, _dir)
+    array.push(tlHistT, _touches)
+    while array.size(tlHistA) > math.max(0, tlMaxHistory)
+        array.shift(tlHistA)
+        array.shift(tlHistB)
+        array.shift(tlHistC)
+        array.shift(tlHistD)
+        array.shift(tlHistT)
+
+// --- پاک‌سازی Pivotهای خارج از محدوده نگاه‌به‌عقب ---
+if barstate.isconfirmed
+    int _cut = bar_index - tlLookbackBars
+    while array.size(structHighBars) > 0 and f_arrGetInt(structHighBars, 0, bar_index) < _cut
+        array.shift(structHighPrices)
+        array.shift(structHighBars)
+    while array.size(structLowBars) > 0 and f_arrGetInt(structLowBars, 0, bar_index) < _cut
+        array.shift(structLowPrices)
+        array.shift(structLowBars)
+
+if tlRebuild
+    int _nH = array.size(structHighPrices)
+    if _nH >= 2
+        int   _anchorIdx = _nH - 1
+        float _anchorBar = float(f_arrGetInt(structHighBars, _anchorIdx, bar_index))
+        float _anchorPx  = f_arrGetFloat(structHighPrices, _anchorIdx, high)
+        int   _bestTouch = 0
+        float _bestSlope = 0.0
+        float _bestFirst = _anchorBar
+        float _bestFirstPx = _anchorPx
+        for _k = 0 to math.max(0, _nH - 2)
+            float _candBar = float(f_arrGetInt(structHighBars, _k, bar_index))
+            float _candPx  = f_arrGetFloat(structHighPrices, _k, low)
+            float _span    = _anchorBar - _candBar
+            if _span >= 3.0 and _candPx > _anchorPx
+                float _slope = (_anchorPx - _candPx) / _span
+                if math.abs(_slope) >= tlMinSlopeAtr * chartAtrSafe
+                    int   _touches = 0
+                    bool  _valid   = true
+                    for _j = 0 to _nH - 1
+                        float _jb = float(f_arrGetInt(structHighBars, _j, bar_index))
+                        float _jp = f_arrGetFloat(structHighPrices, _j, high)
+                        if _jb >= _candBar - 1.0
+                            float _lv = _candPx + _slope * (_jb - _candBar)
+                            float _dd = _jp - _lv
+                            if math.abs(_dd) <= tlTouchTolAtr * chartAtrSafe
+                                _touches += 1
+                            else if _dd > tlBreakTolAtr * chartAtrSafe
+                                _valid := false
+                    if _valid and _touches >= tlMinTouch and
+                         (_touches > _bestTouch or (_touches == _bestTouch and _candBar > _bestFirst))
+                        _bestTouch   := _touches
+                        _bestSlope   := _slope
+                        _bestFirst   := _candBar
+                        _bestFirstPx := _candPx
+        if _bestTouch >= tlMinTouch
+            bool _wasValid = tlDnValid and not tlDnBroken
+            if _wasValid and math.abs(f_safeNum(tlDnSlope, 0.0) - _bestSlope) > tlBreakTolAtr * chartAtrSafe * 0.05
+                f_tlPushHistory(f_safeNum(tlDnAnchorBar, _bestFirst), f_safeNum(tlDnAnchorPx, _bestFirstPx),
+                     f_safeNum(tlDnSlope, _bestSlope), -1, f_safeInt(tlDnTouch, 0))
+            tlDnAnchorBar := _bestFirst
+            tlDnAnchorPx  := _bestFirstPx
+            tlDnLastBar   := _anchorBar
+            tlDnLastPx    := _anchorPx
+            tlDnSlope     := _bestSlope
+            tlDnTouch     := _bestTouch
+            tlDnValid     := true
+            tlDnBroken    := false
+        else
+            // هیچ خط معتبری ساخته نشد؛ این «شکست» نیست، فقط نبودِ خط است.
+            tlDnValid  := false
+            tlDnBroken := false
+
+    int _nL = array.size(structLowPrices)
+    if _nL >= 2
+        int   _anchorIdx = _nL - 1
+        float _anchorBar = float(f_arrGetInt(structLowBars, _anchorIdx, bar_index))
+        float _anchorPx  = f_arrGetFloat(structLowPrices, _anchorIdx, low)
+        int   _bestTouch = 0
+        float _bestSlope = 0.0
+        float _bestFirst = _anchorBar
+        float _bestFirstPx = _anchorPx
+        for _k = 0 to math.max(0, _nL - 2)
+            float _candBar = float(f_arrGetInt(structLowBars, _k, bar_index))
+            float _candPx  = f_arrGetFloat(structLowPrices, _k, high)
+            float _span    = _anchorBar - _candBar
+            if _span >= 3.0 and _candPx < _anchorPx
+                float _slope = (_anchorPx - _candPx) / _span
+                if math.abs(_slope) >= tlMinSlopeAtr * chartAtrSafe
+                    int   _touches = 0
+                    bool  _valid   = true
+                    for _j = 0 to _nL - 1
+                        float _jb = float(f_arrGetInt(structLowBars, _j, bar_index))
+                        float _jp = f_arrGetFloat(structLowPrices, _j, low)
+                        if _jb >= _candBar - 1.0
+                            float _lv = _candPx + _slope * (_jb - _candBar)
+                            float _dd = _jp - _lv
+                            if math.abs(_dd) <= tlTouchTolAtr * chartAtrSafe
+                                _touches += 1
+                            else if _dd < -tlBreakTolAtr * chartAtrSafe
+                                _valid := false
+                    if _valid and _touches >= tlMinTouch and
+                         (_touches > _bestTouch or (_touches == _bestTouch and _candBar > _bestFirst))
+                        _bestTouch   := _touches
+                        _bestSlope   := _slope
+                        _bestFirst   := _candBar
+                        _bestFirstPx := _candPx
+        if _bestTouch >= tlMinTouch
+            bool _wasValid = tlUpValid and not tlUpBroken
+            if _wasValid and math.abs(f_safeNum(tlUpSlope, 0.0) - _bestSlope) > tlBreakTolAtr * chartAtrSafe * 0.05
+                f_tlPushHistory(f_safeNum(tlUpAnchorBar, _bestFirst), f_safeNum(tlUpAnchorPx, _bestFirstPx),
+                     f_safeNum(tlUpSlope, _bestSlope), 1, f_safeInt(tlUpTouch, 0))
+            tlUpAnchorBar := _bestFirst
+            tlUpAnchorPx  := _bestFirstPx
+            tlUpLastBar   := _anchorBar
+            tlUpLastPx    := _anchorPx
+            tlUpSlope     := _bestSlope
+            tlUpTouch     := _bestTouch
+            tlUpValid     := true
+            tlUpBroken    := false
+        else
+            tlUpValid  := false
+            tlUpBroken := false
+
+// --- تشخیص شکست خط روند با کندل بسته‌شده ---
+tlDnValueNow = tlDnValid ? f_tlValueAt(f_safeNum(tlDnAnchorBar, float(bar_index)),
+     f_safeNum(tlDnAnchorPx, close), f_safeNum(tlDnSlope, 0.0), float(bar_index)) : na
+tlUpValueNow = tlUpValid ? f_tlValueAt(f_safeNum(tlUpAnchorBar, float(bar_index)),
+     f_safeNum(tlUpAnchorPx, close), f_safeNum(tlUpSlope, 0.0), float(bar_index)) : na
+
+tlDnBreakNow = barstate.isconfirmed and tlDnValid and not tlDnBroken and not na(tlDnValueNow) and
+     close > tlDnValueNow + tlBreakTolAtr * chartAtrSafe
+tlUpBreakNow = barstate.isconfirmed and tlUpValid and not tlUpBroken and not na(tlUpValueNow) and
+     close < tlUpValueNow - tlBreakTolAtr * chartAtrSafe
+
+if tlDnBreakNow
+    f_tlPushHistory(f_safeNum(tlDnAnchorBar, float(bar_index)), f_safeNum(tlDnAnchorPx, close),
+         f_safeNum(tlDnSlope, 0.0), -1, f_safeInt(tlDnTouch, 0))
+    tlDnBroken := true
+if tlUpBreakNow
+    f_tlPushHistory(f_safeNum(tlUpAnchorBar, float(bar_index)), f_safeNum(tlUpAnchorPx, close),
+         f_safeNum(tlUpSlope, 0.0), 1, f_safeInt(tlUpTouch, 0))
+    tlUpBroken := true
+
+tlActiveUp = tlShow and tlUpValid and not tlUpBroken
+tlActiveDn = tlShow and tlDnValid and not tlDnBroken
+
+// ============================================================================
+//  ▍M21 — لایه نمایش: حالت Minimal / Standard / Full Analysis
+// ============================================================================
+
+// ----------------------------------------------------------------------------
+//  پلات‌های پایه (رنگ BUY و SELL در تمام بخش‌ها یکسان است)
+// ----------------------------------------------------------------------------
+ntsTrailColor = ntsTrend == 1 ? colBuy : ntsTrend == -1 ? colSell : colNeutral
+plot(ntsReady ? ntsTrail : na, "NTS Trail", color = ntsTrailColor, linewidth = 2,
+     style = plot.style_linebr, display = display.pane)
+plot(showAtLeastStandard and ntsWaveValid ? ntsExtremeNow : na, "NTS Extreme",
+     color = color.new(colNeutral, 35), linewidth = 1, style = plot.style_circles,
+     display = display.pane)
+
+// سقفplot count در TradingView برابر ۶۴ است و هر plot/plotshape/alertcondition
+// و هر fill با رنگ series یک سهم از آن را مصرف می‌کند. بنابراین ابر فقط با سه
+// پلات (Basis و دو باند داخلی) و یک fill با رنگ input رسم می‌شود؛ باندهای بیرونی
+// در منطق و در پنل باقی می‌مانند ولی پلات جدا نمی‌گیرند.
+plot(isStandard and cloudUseFilter ? cloudBasis : na, "Cloud Basis",
+     color = color.new(colNeutral, 40), display = display.pane)
+cloudPlotDn1 = plot(isStandard and cloudUseFilter ? cloudDn1 : na, "Cloud −1",
+     color = color.new(colBuy, 78), display = display.pane)
+cloudPlotUp1 = plot(isStandard and cloudUseFilter ? cloudUp1 : na, "Cloud +1",
+     color = color.new(colSell, 78), display = display.pane)
+fill(cloudPlotUp1, cloudPlotDn1, color = color.new(colNeutral, 92), title = "ابر بازگشت")
+
+// ناحیه‌های Premium/Equilibrium/Discount با باکس رسم می‌شوند (بدون مصرف plot
+// count)؛ سه خط زیر فقط لبه‌ها و تعادل را نشان می‌دهند.
+plot(pdRangeValid and pdShowZones ? pdHigh : na, "PD High",
+     color = color.new(colSell, 45), style = plot.style_linebr, display = display.pane)
+plot(pdRangeValid and pdShowZones ? pdEq : na, "Equilibrium",
+     color = color.new(colNeutral, 35), style = plot.style_linebr, display = display.pane)
+plot(pdRangeValid and pdShowZones ? pdLow : na, "PD Low",
+     color = color.new(colBuy, 45), style = plot.style_linebr, display = display.pane)
+
+plot(hullShowRibbon and hullReady and showAtLeastStandard ? hullValue : na, "Hull",
+     color = hullBullish ? color.new(colBuy, 25) : hullBearish ? color.new(colSell, 25) : color.new(colNeutral, 45),
+     linewidth = 2, style = plot.style_linebr, display = display.pane)
+
+// ----------------------------------------------------------------------------
+//  ناحیه‌های Premium / Discount لبه‌دار (باکس) — یک منبع داده برای منطق و نمایش
+// ----------------------------------------------------------------------------
+if drawGate and pdShowZones and isStandard and pdRangeValid
+    f_omClearBoxes(omPdBoxes)
+    int _left = math.max(0, bar_index - math.max(30, math.min(400, int(math.round(ntsBarsPerBase * 96.0)))))
+    if not na(pdPremiumEdge)
+        box _b = box.new(_left, pdHigh, bar_index + 12, pdPremiumEdge, xloc = xloc.bar_index,
+             bgcolor = colPremium, border_color = color.new(colSell, 60), border_width = 1)
+        array.push(omPdBoxes, _b)
+    box _e = box.new(_left, f_safeNum(pdPremiumEdge, pdEq), bar_index + 12, f_safeNum(pdDiscountEdge, pdEq), xloc = xloc.bar_index,
+         bgcolor = colEquilibrium, border_color = color.new(colNeutral, 75), border_width = 1)
+    array.push(omPdBoxes, _e)
+    if not na(pdDiscountEdge)
+        box _d = box.new(_left, pdDiscountEdge, bar_index + 12, pdLow, xloc = xloc.bar_index,
+             bgcolor = colDiscount, border_color = color.new(colBuy, 60), border_width = 1)
+        array.push(omPdBoxes, _d)
+    while array.size(omPdBoxes) > math.max(1, maxBoxes)
+        box.delete(array.shift(omPdBoxes))
+
+// ============================================================================
+//  ▍M22 — رسم سطوح Fib، ناحیه‌های Supply/Demand و لیبل سیگنال‌ها
+// ============================================================================
+// همه آبجکت‌های این بخش فقط روی آخرین کندل و از دروازهٔ drawGate ساخته می‌شوند،
+// پس در حالت Realtime با حرکت قیمت جابه‌جا نمی‌شوند. لیبل سیگنال در استخر
+// اختصاصی omSigLabels نگه داشته می‌شود و با لیبل سطوح Fib تداخل ندارد.
+// ----------------------------------------------------------------------------
+// ----------------------------------------------------------------------------
+//  خطوط Fib (Retracement + Extension) — فقط در آخرین کندل و با پاک‌سازی قبلی‌ها
+// ----------------------------------------------------------------------------
+if redrawFibGate and fibRefValid
+    f_omClearLines(omExtLines)
+    f_omClearLabels(omExtLabels)
+    int _x1 = math.max(0, math.min(f_safeInt(fibRefStartBar, bar_index - 20), bar_index - 1))
+    int _x2 = bar_index + (tlExtendRight ? 15 : 0)
+    for _i = 0 to math.max(0, fibLevelCount - 1)
+        float _ratio = f_fibRatioAt(_i)
+        int   _cat   = f_arrGetInt(fibCats, _i, 0)
+        int   _grp   = f_arrGetInt(fibGroups, _i, 0)
+        if f_fibShowOn(_grp) and not na(_ratio)
+            float _price = f_fibLevelPrice(_i)
+            if not na(_price) and math.abs(_price - close) <= fibExtMaxAtr * chartAtrSafe * 3.0
+                bool  _isRetr = _cat <= 1
+                color _col    = _isRetr ? colFibRetr : colFibExt
+                int   _transp = _cat >= 4 ? 55 : _cat >= 2 ? 35 : 20
+                int   _width  = _cat >= 4 ? 1 : _cat <= 1 ? 2 : 1
+                // ثابت‌های line.style_* در Pine v6 از «نوع یکتا» (unique value type)
+                // هستند و نه int؛ بنابراین نمی‌توان آن‌ها را در متغیری با نوع
+                // صریح int نگه داشت. مقدار مستقیماً و به‌صورت سه‌تایی به پارامتر
+                // style خودِ line.new پاس داده می‌شود (همان الگویی که بقیهٔ
+                // فراخوانی‌های این اسکریپت استفاده می‌کنند).
+                line _ln = line.new(_x1, _price, _x2, _price, xloc = xloc.bar_index,
+                     extend = tlExtendRight and _isRetr ? extend.right : extend.none,
+                     color = color.new(_col, _transp), width = _width,
+                     style = _isRetr ? line.style_solid : _cat >= 4 ? line.style_dotted : line.style_dashed)
+                array.push(omExtLines, _ln)
+                bool _wantLabel = _isRetr ? fibShowRetrLabel : fibShowExtLabel
+                if _wantLabel and f_labelSlotFree(true, _price, chartAtrSafe)
+                    label _lb = label.new(_x2, _price, str.tostring(_ratio, "#.###"),
+                         xloc = xloc.bar_index, yloc = yloc.price, style = label.style_label_left,
+                         color = color.new(_col, 45), textcolor = color.white, size = size.tiny)
+                    array.push(omExtLabels, _lb)
+    while array.size(omExtLines) > math.max(1, maxExtLines)
+        line.delete(array.shift(omExtLines))
+    while array.size(omExtLabels) > math.max(1, maxExtLines)
+        label.delete(array.shift(omExtLabels))
+
+    // --- خطوط تاریخی از Snapshot موج‌های کامل‌شده (ثابت، بدون جابه‌جایی) ---
+    if isFull and fibHistoryWaves > 0
+        f_omClearLines(omFibLines)
+        int _histTotal = array.size(histWaveDirs)
+        int _histCount = math.min(fibHistoryWaves, _histTotal)
+        if _histCount > 0
+            for _h = _histTotal - _histCount to _histTotal - 1
+                int   _hDir   = f_arrGetInt(histWaveDirs, _h, 0)
+                float _hAnch  = f_arrGetFloat(histWaveAnchors, _h, na)
+                float _hExt   = f_arrGetFloat(histWaveExts, _h, na)
+                float _hSize  = f_arrGetFloat(histWaveSizes, _h, 0.0)
+                int   _hTime  = f_arrGetInt(histWaveStarts, _h, bar_index)
+                if not na(_hAnch) and not na(_hExt) and _hSize > syminfo.mintick * 4 and _hDir != 0
+                    for _i = 0 to math.max(0, fibLevelCount - 1)
+                        float _ratio = f_fibRatioAt(_i)
+                        int   _cat   = f_arrGetInt(fibCats, _i, 0)
+                        int   _grp   = f_arrGetInt(fibGroups, _i, 0)
+                        if f_fibShowOn(_grp) and not na(_ratio) and _cat >= 1
+                            float _price = _cat <= 1 ? _hExt + (_hAnch - _hExt) * f_clamp(_ratio, 0.0, 1.0) :
+                                 _hAnch + float(_hDir) * _hSize * math.max(1.0, _ratio)
+                            if not na(_price) and math.abs(_price - close) <= fibExtMaxAtr * chartAtrSafe * 3.0
+                                line _ln = line.new(math.max(0, math.min(_hTime, bar_index - 1)), _price,
+                                     bar_index, _price,
+                                     xloc = xloc.bar_index,
+                                     extend = extend.none, color = color.new(colNeutral, 78),
+                                     style = line.style_dotted, width = 1)
+                                f_omAddLineOnly(omFibLines, _ln, math.max(2, maxExtLines))
+
+// ----------------------------------------------------------------------------
+//  ناحیه عرضه / تقاضا
+// ----------------------------------------------------------------------------
+if drawGate and isFull and not na(structHigh) and not na(structLow)
+    f_omClearBoxes(omSdBoxes)
+    int _left = math.max(0, bar_index - math.max(20, math.min(300, int(math.round(ntsBarsPerBase * 48.0)))))
+    box _sup = box.new(_left, supplyTop, bar_index + 8, supplyBottom, xloc = xloc.bar_index,
+         bgcolor = color.new(colSell, 92), border_color = color.new(colSell, 65), border_width = 1)
+    array.push(omSdBoxes, _sup)
+    box _dem = box.new(_left, demandTop, bar_index + 8, demandBottom, xloc = xloc.bar_index,
+         bgcolor = color.new(colBuy, 92), border_color = color.new(colBuy, 65), border_width = 1)
+    array.push(omSdBoxes, _dem)
+    while array.size(omSdBoxes) > math.max(1, maxBoxes)
+        box.delete(array.shift(omSdBoxes))
+
+// ----------------------------------------------------------------------------
+//  خطوط روند فعال و تاریخی
+// ----------------------------------------------------------------------------
+if tlRedraw
+    f_omClearLines(omTlLines)
+    f_omClearLabels(omTlLabels)
+    if tlActiveDn and not na(tlDnAnchorBar) and not na(tlDnLastBar)
+        int   _a  = int(tlDnAnchorBar)
+        int   _b  = math.max(int(tlDnLastBar), _a + 1)
+        float _pa = f_safeNum(tlDnAnchorPx, close)
+        float _pb = f_tlValueAt(tlDnAnchorBar, _pa, f_safeNum(tlDnSlope, 0.0), float(_b))
+        line _ln = line.new(_a, _pa, _b, _pb, xloc = xloc.bar_index,
+             extend = tlExtendRight ? extend.right : extend.none,
+             color = color.new(colSell, 15), style = line.style_solid, width = 2)
+        array.push(omTlLines, _ln)
+        if tlShowLabels and f_labelSlotFree(false, _pb, chartAtrSafe)
+            label _lb = label.new(_b, _pb, "TL− ×" + str.tostring(f_safeInt(tlDnTouch, 0)),
+                 xloc = xloc.bar_index, yloc = yloc.price, style = label.style_label_down,
+                 color = color.new(colSell, 25), textcolor = color.white, size = size.tiny)
+            array.push(omTlLabels, _lb)
+    if tlActiveUp and not na(tlUpAnchorBar) and not na(tlUpLastBar)
+        int   _a  = int(tlUpAnchorBar)
+        int   _b  = math.max(int(tlUpLastBar), _a + 1)
+        float _pa = f_safeNum(tlUpAnchorPx, close)
+        float _pb = f_tlValueAt(tlUpAnchorBar, _pa, f_safeNum(tlUpSlope, 0.0), float(_b))
+        line _ln = line.new(_a, _pa, _b, _pb, xloc = xloc.bar_index,
+             extend = tlExtendRight ? extend.right : extend.none,
+             color = color.new(colBuy, 15), style = line.style_solid, width = 2)
+        array.push(omTlLines, _ln)
+        if tlShowLabels and f_labelSlotFree(true, _pb, chartAtrSafe)
+            label _lb = label.new(_b, _pb, "TL+ ×" + str.tostring(f_safeInt(tlUpTouch, 0)),
+                 xloc = xloc.bar_index, yloc = yloc.price, style = label.style_label_up,
+                 color = color.new(colBuy, 25), textcolor = color.white, size = size.tiny)
+            array.push(omTlLabels, _lb)
+    if tlShowHistorical and array.size(tlHistA) > 0
+        int _hCount = array.size(tlHistA)
+        for _h = 0 to _hCount - 1
+            float _ha = f_arrGetFloat(tlHistA, _h, na)
+            float _hb = f_arrGetFloat(tlHistB, _h, na)
+            float _hc = f_arrGetFloat(tlHistC, _h, na)
+            if not na(_ha) and not na(_hb) and not na(_hc)
+                int   _x1 = int(_ha)
+                int   _x2 = math.max(int(bar_index), _x1 + 2)
+                float _y1 = _hb
+                float _y2 = f_tlValueAt(_ha, _hb, _hc, float(_x2))
+                line _ln = line.new(_x1, _y1, _x2, _y2, xloc = xloc.bar_index, extend = extend.none,
+                     color = color.new(colNeutral, 60), style = line.style_dotted, width = 1)
+                array.push(omTlLines, _ln)
+    while array.size(omTlLines) > math.max(2, tlMaxLines)
+        line.delete(array.shift(omTlLines))
+    while array.size(omTlLabels) > math.max(2, tlMaxLines)
+        label.delete(array.shift(omTlLabels))
+
+// ----------------------------------------------------------------------------
+//  لیبل رویدادهای ساختاری CHoCH / BOS
+// ----------------------------------------------------------------------------
+if barstate.isconfirmed and isStandard and showStructLabels and structAnyEvent
+    if structBullEvent and f_labelSlotFree(true, low, chartAtrSafe)
+        string _txt = structBullChoch ? "CHoCH↑" : "BOS↑"
+        label _lb = label.new(bar_index, low - chartAtrSafe * 0.25, _txt, xloc = xloc.bar_index,
+             style = label.style_label_up, color = color.new(colBuy, 30),
+             textcolor = color.white, size = size.tiny)
+        f_omAddLabelOnly(omStructLbl, _lb, math.max(1, structMaxLabels))
+    if structBearEvent and f_labelSlotFree(false, high, chartAtrSafe)
+        string _txt = structBearChoch ? "CHoCH↓" : "BOS↓"
+        label _lb = label.new(bar_index, high + chartAtrSafe * 0.25, _txt, xloc = xloc.bar_index,
+             style = label.style_label_down, color = color.new(colSell, 30),
+             textcolor = color.white, size = size.tiny)
+        f_omAddLabelOnly(omStructLbl, _lb, math.max(1, structMaxLabels))
+
+// ----------------------------------------------------------------------------
+//  شکل‌های سیگنال (plotshape)
+// ----------------------------------------------------------------------------
+plotshape(sigShowShapes and sigIsPro and sigBuy, title = "PRO BUY", style = shape.labelup,
+     location = location.belowbar, color = colBuy, textcolor = color.white, size = size.normal, text = "PRO BUY")
+plotshape(sigShowShapes and sigIsPro and sigSell, title = "PRO SELL", style = shape.labeldown,
+     location = location.abovebar, color = colSell, textcolor = color.white, size = size.normal, text = "PRO SELL")
+plotshape(sigShowShapes and sigIsConfirmed and sigBuy, title = "CONFIRMED BUY", style = shape.triangleup,
+     location = location.belowbar, color = color.new(colBuy, 15), size = size.small, text = "BUY")
+plotshape(sigShowShapes and sigIsConfirmed and sigSell, title = "CONFIRMED SELL", style = shape.triangledown,
+     location = location.abovebar, color = color.new(colSell, 15), size = size.small, text = "SELL")
+// سطح SETUP عمداً plotshape ندارد: سقف plot count در TradingView برابر ۶۴ است و
+// هر plotshape یک سهم مصرف می‌کند. سیگنال SETUP با لیبل مدیریت‌شدهٔ زیر نشان
+// داده می‌شود که هم اطلاعات کامل‌تری دارد و هم سهم plot مصرف نمی‌کند.
+
+// ----------------------------------------------------------------------------
+//  لیبل سیگنال (مدیریت‌شده، بدون انباشتگی)
+// ----------------------------------------------------------------------------
+if sigShowLabels and sigAny and not isMinimal and barstate.isconfirmed
+    float _scoreNow = f_safeNum(sigScore, 0.0)
+    string _head    = sigDirLevel == 1 ? "BUY" : "SELL"
+    string _body    = _head + " · " + sigLevelText + "\n" +
+         (na(sigRatio) ? sigKindText : sigKindText + " " + str.tostring(sigRatio, "#.###")) +
+         "\nScore " + str.tostring(_scoreNow, "#")
+    color _col      = sigDirLevel == 1 ? colBuy : colSell
+    // در هر کندل حداکثر یک سیگنال وجود دارد (BUY xor SELL)، پس لیبل سیگنال هرگز
+    // حذف نمی‌شود؛ فقط ارتفاع آن بر اساس سطح سیگنال تغییر می‌کند تا با لیبل
+    // سطوح Fib تداخل نکند.
+    float _lift = sigIsPro ? 1.9 : sigIsConfirmed ? 1.3 : 0.75
+    if sigDirLevel == 1
+        float _y = low - chartAtrSafe * _lift
+        label _lb = label.new(bar_index, _y, _body, xloc = xloc.bar_index,
+             style = sigIsPro ? label.style_label_up : label.style_triangleup,
+             color = color.new(_col, sigIsPro ? 0 : 25), textcolor = color.white,
+             size = sigIsPro ? size.normal : size.small)
+        f_omAddLabel(omSigLabels, omSigLabelBars, _lb, maxSignalLabels, objExpireBars)
+    else
+        float _y = high + chartAtrSafe * _lift
+        label _lb = label.new(bar_index, _y, _body, xloc = xloc.bar_index,
+             style = sigIsPro ? label.style_label_down : label.style_triangledown,
+             color = color.new(_col, sigIsPro ? 0 : 25), textcolor = color.white,
+             size = sigIsPro ? size.normal : size.small)
+        f_omAddLabel(omSigLabels, omSigLabelBars, _lb, maxSignalLabels, objExpireBars)
+
+// --- پاک‌سازی دوره‌ای آبجکت‌های منقضی ---
+if barstate.isconfirmed
+    f_omExpire(omSigLabels, omSigLabelBars, objExpireBars)
+    f_omExpire(omDivLabels, omDivLabelBars, objExpireBars)
+    f_omExpireLines(omDivLines, omDivLineBars, objExpireBars)
+    f_omExpireBoxes(omDivBoxes, omDivBoxBars, objExpireBars)
+
+// ============================================================================
+//  ▍M23 — تصویرسازی موج NTS و نشانگرهای رویداد
+// ============================================================================
+// موج جاری از Anchor (مبدأ) تا Extreme (نوک) رسم می‌شود تا کاربر بتواند
+// اندازه موج و اعتبار Fibها را چشمی بررسی کند. این بخش کاملاً بصری است و
+// هیچ اثری روی Score یا سیگنال ندارد.
+// ----------------------------------------------------------------------------
+if drawGate and isFull and fibRefValid
+    f_omClearLines(omWaveLines)
+    f_omClearLabels(omWaveLabels)
+    float _anch = f_safeNum(fibRefAnchor, close)
+    float _ext  = f_safeNum(fibRefExtreme, close)
+    int   _x1   = math.max(0, math.min(f_safeInt(fibRefStartBar, bar_index - 10), bar_index - 1))
+    int   _x2   = bar_index
+    color _wc   = fibRefDir == 1 ? colBuy : colSell
+    line _wl = line.new(_x1, _anch, _x2, _ext, xloc = xloc.bar_index, extend = extend.none,
+         color = color.new(_wc, 30), style = line.style_solid, width = 2)
+    array.push(omWaveLines, _wl)
+    // خط Trail فعلی (حد ضرر پویای NTS)
+    if not na(ntsTrail)
+        line _tl = line.new(_x1, ntsTrail, _x2 + 10, ntsTrail, xloc = xloc.bar_index,
+             extend = extend.right, color = color.new(_wc, 45), style = line.style_dotted, width = 1)
+        array.push(omWaveLines, _tl)
+    if f_labelSlotFree(fibRefDir == 1, _ext, chartAtrSafe)
+        string _wt = (fibRefDir == 1 ? "WAVE ↑ " : "WAVE ↓ ") + f_txtTick(fibRefSize) +
+             "\n" + str.tostring(fibRefAge) + " bars"
+        label _wl2 = label.new(_x2, _ext, _wt, xloc = xloc.bar_index, yloc = yloc.price,
+             style = fibRefDir == 1 ? label.style_label_up : label.style_label_down,
+             color = color.new(_wc, 20), textcolor = color.white, size = size.tiny)
+        array.push(omWaveLabels, _wl2)
+    while array.size(omWaveLines) > 4
+        line.delete(array.shift(omWaveLines))
+    while array.size(omWaveLabels) > 4
+        label.delete(array.shift(omWaveLabels))
+
+// --- نشانگر تغییر روند NTS (فقط بصری) ---
+plotshape(isStandard and ntsBullFlip and barstate.isconfirmed, title = "NTS Bull Flip",
+     style = shape.diamond, location = location.belowbar, color = color.new(colBuy, 30),
+     size = size.tiny, text = "NTS↑")
+plotshape(isStandard and ntsBearFlip and barstate.isconfirmed, title = "NTS Bear Flip",
+     style = shape.diamond, location = location.abovebar, color = color.new(colSell, 30),
+     size = size.tiny, text = "NTS↓")
+
+// --- نشانگر شکست خط روند (رویداد واقعی، نه بازطراحی) ---
+if barstate.isconfirmed and isStandard and tlShow and tlShowLabels
+    if tlDnBreakNow and f_labelSlotFree(true, high, chartAtrSafe)
+        label _lb = label.new(bar_index, high + chartAtrSafe * 0.35, "TL− BREAK",
+             xloc = xloc.bar_index, style = label.style_label_down,
+             color = color.new(colBuy, 25), textcolor = color.white, size = size.tiny)
+        f_omAddLabelOnly(omStructLbl, _lb, math.max(1, structMaxLabels))
+    if tlUpBreakNow and f_labelSlotFree(false, low, chartAtrSafe)
+        label _lb = label.new(bar_index, low - chartAtrSafe * 0.35, "TL+ BREAK",
+             xloc = xloc.bar_index, style = label.style_label_up,
+             color = color.new(colSell, 25), textcolor = color.white, size = size.tiny)
+        f_omAddLabelOnly(omStructLbl, _lb, math.max(1, structMaxLabels))
+
+// ============================================================================
+//  ▍M24 — جدول لاگ سیگنال‌ها (اثبات عدم تکرار و عدم تناقض)
+// ============================================================================
+// آخرین سیگنال‌ها با زمان، جهت، سطح، Score و قیمت نگه داشته می‌شوند تا کاربر
+// بتواند در Replay و Live بررسی کند که برای هر رویداد فقط یک سیگنال صادر شده
+// و BUY و SELL هم‌زمان ثبت نشده‌اند.
+sigLogRows = math.max(2, math.min(8, sigLogCount))
+var array<int>    sigLogTime  = array.new<int>()
+var array<int>    sigLogDir   = array.new<int>()
+var array<string> sigLogLevel = array.new<string>()
+var array<float>  sigLogScore = array.new<float>()
+var array<float>  sigLogPrice = array.new<float>()
+var array<float>  sigLogRatio = array.new<float>()
+var array<string> sigLogKind  = array.new<string>()
+
+if barstate.isconfirmed and sigAny
+    array.push(sigLogTime, f_safeInt(time, 0))
+    array.push(sigLogDir, sigDirLevel)
+    array.push(sigLogLevel, sigLevelText)
+    array.push(sigLogScore, f_safeNum(sigScore, 0.0))
+    array.push(sigLogPrice, close)
+    array.push(sigLogRatio, f_safeNum(sigRatio, na))
+    array.push(sigLogKind, sigKindText)
+    while array.size(sigLogDir) > 60
+        array.shift(sigLogTime)
+        array.shift(sigLogDir)
+        array.shift(sigLogLevel)
+        array.shift(sigLogScore)
+        array.shift(sigLogPrice)
+        array.shift(sigLogRatio)
+        array.shift(sigLogKind)
+
+var table sigLogTable = table.new(f_posTxt(sigLogPosition), 6, 9, border_width = 1,
+     frame_color = color.new(colNeutral, 60), bgcolor = color.new(color.black, 25))
+
+if barstate.islast and showSigLog and not isMinimal
+    table.cell(sigLogTable, 0, 0, "TIME", text_color = color.new(colNeutral, 10), text_size = size.tiny)
+    table.cell(sigLogTable, 1, 0, "DIR", text_color = color.new(colNeutral, 10), text_size = size.tiny)
+    table.cell(sigLogTable, 2, 0, "LEVEL", text_color = color.new(colNeutral, 10), text_size = size.tiny)
+    table.cell(sigLogTable, 3, 0, "SCORE", text_color = color.new(colNeutral, 10), text_size = size.tiny)
+    table.cell(sigLogTable, 4, 0, "PRICE", text_color = color.new(colNeutral, 10), text_size = size.tiny)
+    table.cell(sigLogTable, 5, 0, "TRIGGER", text_color = color.new(colNeutral, 10), text_size = size.tiny)
+    int _total = array.size(sigLogDir)
+    int _rows  = math.min(sigLogRows, _total)
+    if _rows == 0
+        table.cell(sigLogTable, 0, 1, "—", text_color = colNeutral, text_size = size.tiny)
+        table.cell(sigLogTable, 1, 1, "NO SIGNAL YET", text_color = colNeutral, text_size = size.tiny)
+        table.cell(sigLogTable, 2, 1, "—", text_color = colNeutral, text_size = size.tiny)
+        table.cell(sigLogTable, 3, 1, "—", text_color = colNeutral, text_size = size.tiny)
+        table.cell(sigLogTable, 4, 1, "—", text_color = colNeutral, text_size = size.tiny)
+        table.cell(sigLogTable, 5, 1, "—", text_color = colNeutral, text_size = size.tiny)
+    else
+        for _r = 0 to _rows - 1
+            int   _idx  = _total - 1 - _r
+            int   _dir  = f_arrGetInt(sigLogDir, _idx, 0)
+            float _sc   = f_arrGetFloat(sigLogScore, _idx, 0.0)
+            float _px   = f_arrGetFloat(sigLogPrice, _idx, close)
+            float _rt   = f_arrGetFloat(sigLogRatio, _idx, na)
+            color _c    = _dir == 1 ? colBuy : colSell
+            table.cell(sigLogTable, 0, _r + 1,
+                 str.format_time(f_safeInt(f_arrGetInt(sigLogTime, _idx, 0), 0), "MM-dd HH:mm", sessionTimezone),
+                 text_color = color.white, text_size = size.tiny)
+            table.cell(sigLogTable, 1, _r + 1, _dir == 1 ? "BUY" : "SELL", text_color = _c, text_size = size.tiny)
+            table.cell(sigLogTable, 2, _r + 1, f_arrGetStr(sigLogLevel, _idx, "—"), text_color = _c, text_size = size.tiny)
+            table.cell(sigLogTable, 3, _r + 1, str.tostring(_sc, "#.#"), text_color = color.white, text_size = size.tiny)
+            table.cell(sigLogTable, 4, _r + 1, str.tostring(_px, format.mintick), text_color = color.white, text_size = size.tiny)
+            table.cell(sigLogTable, 5, _r + 1,
+                 (na(_rt) ? "" : str.tostring(_rt, "#.###") + " ") + f_arrGetStr(sigLogKind, _idx, ""),
+                 text_color = color.new(colNeutral, 10), text_size = size.tiny)
+
+// ============================================================================
+//  ▍M25 — پنل اطلاعات
+// ============================================================================
+panelPos  = f_posTxt(panelPosition)
+panelTextSize = f_sizeTxt(panelSize)
+var table infoPanel = table.new(panelPos, 2, 56, border_width = 1,
+     frame_color = color.new(colNeutral, 55), frame_width = 1,
+     bgcolor = color.new(color.black, 18))
+
+f_panelRow(table _t, int _row, string _label, string _value, color _color) =>
+    table.cell(_t, 0, _row, _label, text_color = color.new(colNeutral, 10),
+         text_size = panelTextSize, text_halign = text.align_left)
+    table.cell(_t, 1, _row, _value, text_color = _color,
+         text_size = panelTextSize, text_halign = text.align_right)
+
+if barstate.islast and showPanel
+    color _trendCol = ntsTrend == 1 ? colBuy : ntsTrend == -1 ? colSell : colNeutral
+    color _pdCol    = inPremiumZone ? colSell : inDiscountZone ? colBuy : colNeutral
+    color _sessCol  = goldenHourActive ? colBuy : sessionActiveRaw ? color.white : colNeutral
+    color _regCol   = ntsRegime == 2 ? colBuy : ntsRegime == 1 ? color.new(colBuy, 40) :
+         ntsRegime == -1 ? color.orange : colNeutral
+    color _hullCol  = hullBullish ? colBuy : hullBearish ? colSell : colNeutral
+    color _sigCol   = sigBuy ? colBuy : sigSell ? colSell : colNeutral
+    f_panelRow(infoPanel, 0, "NTS PRO v6", symTypeText, color.white)
+    f_panelRow(infoPanel, 1, "Symbol", syminfo.ticker, color.white)
+    f_panelRow(infoPanel, 2, "Chart TF", timeframe.period, color.white)
+    f_panelRow(infoPanel, 3, "NTS TF", ntsBaseTimeframe + (ntsChartIsLower ? "  (MTF)" : ""), color.white)
+    f_panelRow(infoPanel, 4, "NTS Trend", ntsTrendText, _trendCol)
+    f_panelRow(infoPanel, 5, "ADX", f_txt(ntsAdx, "#.#"), color.white)
+    f_panelRow(infoPanel, 6, "ATR (NTS)", f_txtTick(ntsAtr), color.white)
+    f_panelRow(infoPanel, 7, "Market Regime", ntsRegimeText, _regCol)
+    f_panelRow(infoPanel, 8, "PD Zone", pdZoneText + (na(pdPositionPct) ? "" : "  " + str.tostring(pdPositionPct, "#.#") + "%"), _pdCol)
+    f_panelRow(infoPanel, 9, "Buy Score", str.tostring(buyScore, "#.#"), buyScore >= scoreConfirmed ? colBuy : color.new(colBuy, 45))
+    f_panelRow(infoPanel, 10, "Sell Score", str.tostring(sellScore, "#.#"), sellScore >= scoreConfirmed ? colSell : color.new(colSell, 45))
+    f_panelRow(infoPanel, 11, "Last Signal", lastSignalText, _sigCol)
+    f_panelRow(infoPanel, 12, "Session", sessionText, _sessCol)
+    f_panelRow(infoPanel, 13, "Hull", hullBullish ? "BULL" : hullBearish ? "BEAR" : "FLAT", _hullCol)
+    f_panelRow(infoPanel, 14, "Wave", (fibUseCurrent ? "LIVE " : "DONE ") +
+         (fibRefValid ? str.tostring(fibRefDir == 1 ? "↑" : "↓") + " " + f_txtTick(fibRefSize) : "—"), color.white)
+    f_panelRow(infoPanel, 15, "Structure", structBullChoch ? "CHoCH↑" : structBearChoch ? "CHoCH↓" :
+         structBullBos ? "BOS↑" : structBearBos ? "BOS↓" :
+         structTrendDir == 1 ? "BULLISH" : structTrendDir == -1 ? "BEARISH" : "—",
+         structTrendDir == 1 ? colBuy : structTrendDir == -1 ? colSell : colNeutral)
+    f_panelRow(infoPanel, 16, "Divergence", sdBullConfirmed ? "BULL CONFIRMED" : sdBearConfirmed ? "BEAR CONFIRMED" :
+         sdBullPending ? "BULL PENDING" : sdBearPending ? "BEAR PENDING" : "—",
+         sdBullConfirmed or sdBullPending ? colBuy : sdBearConfirmed or sdBearPending ? colSell : colNeutral)
+    f_panelRow(infoPanel, 17, "Volume", not volumeValid ? "N/A" : volumeBoost ? "BOOST" : "NORMAL",
+         not volumeValid ? colNeutral : volumeBoost ? colBuy : color.white)
+    f_panelRow(infoPanel, 18, "Objects",
+         "L" + str.tostring(array.size(omDivLines) + array.size(omExtLines) +
+             array.size(omFibLines) + array.size(omTlLines) + array.size(omPlanLines)) +
+         "   B" + str.tostring(array.size(omDivBoxes) + array.size(omSdBoxes) +
+             array.size(omPdBoxes) + array.size(omSessBoxes)) +
+         "   T" + str.tostring(array.size(omSigLabels) + array.size(omDivLabels) +
+             array.size(omExtLabels) + array.size(omTlLabels) + array.size(omStructLbl)),
+         color.new(colNeutral, 20))
+    f_panelRow(infoPanel, 19, "Auto-Tune", showAutoTuneRow ?
+         (autoTune ? "ON  P" + f_txt(ntsPeriodDyn, "#.#") + " / F" + f_txt(ntsFactorDyn, "#.##") : "OFF") : "—",
+         color.new(colNeutral, 20))
+
+// ============================================================================
+//  ▍M26 — پلات‌های Data Window (مقادیر قابل استناد در متن هشدارها)
+// ============================================================================
+// بودجهٔ plot count: سقف TradingView برابر ۶۴ است و هر plot / plotshape /
+// alertcondition و هر fill با رنگ series یک سهم مصرف می‌کند. کل مصرف این
+// اسکریپت ۳۹ سهم است (tools/plot_count.py آن را دقیق می‌شمارد):
+//   ۱۲ پلات بصری + ۱ fill + ۶ plotshape + ۱۰ alertcondition + ۱۱ پلات Data Window
+// مقادیر تشخیصیِ بیشتر (نوسان‌نماها، امتیاز واگرایی، ابر، سطوح هفتگی، Period و
+// Factor پویا، نوسان درصدی، ADX و وضعیت PD) در ردیف‌های پنل نمایش داده می‌شوند
+// چون جدول هیچ سهمی از plot count مصرف نمی‌کند.
+plot(buyScore, "BuyScore", display = display.data_window)
+plot(sellScore, "SellScore", display = display.data_window)
+plot(sigLevelCode, "SignalLevel", display = display.data_window)
+plot(f_safeNum(ntsAtr, 0.0), "NTSATR", display = display.data_window)
+plot(f_safeNum(sigRatio, 0.0), "SignalFibRatio", display = display.data_window)
+plot(sigDirLevel, "SignalDir", display = display.data_window)
+
+// ============================================================================
+//  ▍M27 — هشدارها
+// ============================================================================
+// هشدار پویا: فقط یک بار، فقط روی کندل بسته‌شده، با تمام جزئیات.
+if sigAny and sigAllowDynamic and barstate.isconfirmed
+    string _msg = (sigDirLevel == 1 ? "BUY " : "SELL ") + sigLevelText +
+         " | " + syminfo.ticker + " " + timeframe.period +
+         " | NTS " + ntsBaseTimeframe + " " + ntsTrendText +
+         " | Price " + str.tostring(close, format.mintick) +
+         " | Score " + str.tostring(f_safeNum(sigScore, 0.0), "#.#") +
+         " | Fib " + (na(sigRatio) ? "—" : str.tostring(sigRatio, "#.###")) + " (" + sigKindText + ")" +
+         " | PD " + pdZoneText +
+         " | ADX " + f_txt(ntsAdx, "#.#") +
+         " | Regime " + ntsRegimeText +
+         " | Session " + sessionText
+    alert(_msg, alert.freq_once_per_bar_close)
+
+if ntsTrendFlip and alertUseFlip and barstate.isconfirmed
+    alert("NTS TREND FLIP " + (ntsBullFlip ? "BULLISH" : "BEARISH") +
+         " | " + syminfo.ticker + " " + timeframe.period +
+         " | NTS " + ntsBaseTimeframe +
+         " | Price " + str.tostring(close, format.mintick) +
+         " | Trail " + f_txtTick(ntsTrail) +
+         " | ADX " + f_txt(ntsAdx, "#.#"), alert.freq_once_per_bar_close)
+
+if structAnyEvent and alertUseStruct and barstate.isconfirmed
+    alert((structBullChoch ? "CHoCH BULLISH" : structBearChoch ? "CHoCH BEARISH" :
+         structBullBos ? "BOS BULLISH" : "BOS BEARISH") +
+         " | " + syminfo.ticker + " " + timeframe.period +
+         " | Level " + f_txtTick(structEventLevel) +
+         " | Close " + str.tostring(close, format.mintick), alert.freq_once_per_bar_close)
+
+if sdBullConfirmed and alertUseDiv and barstate.isconfirmed
+    alert("SMART DIVERGENCE CONFIRMED — BULLISH | " + syminfo.ticker + " " + timeframe.period +
+         " | Score " + f_txt(sdBullScore, "#") +
+         " | Level " + f_txtTick(sdBullLevel) +
+         " | Close " + str.tostring(close, format.mintick), alert.freq_once_per_bar_close)
+
+if sdBearConfirmed and alertUseDiv and barstate.isconfirmed
+    alert("SMART DIVERGENCE CONFIRMED — BEARISH | " + syminfo.ticker + " " + timeframe.period +
+         " | Score " + f_txt(sdBearScore, "#") +
+         " | Level " + f_txtTick(sdBearLevel) +
+         " | Close " + str.tostring(close, format.mintick), alert.freq_once_per_bar_close)
+
+if (hullTurnUp or hullTurnDown) and alertUseHull and barstate.isconfirmed
+    alert("HULL " + (hullTurnUp ? "BULLISH" : "BEARISH") + " TURN | " + syminfo.ticker +
+         " " + timeframe.period + " | Value " + f_txtTick(hullValue) +
+         " | NTS " + ntsTrendText, alert.freq_once_per_bar_close)
+
+// ----------------------------------------------------------------------------
+//  alertcondition های تجمیع‌شده (۱۰ مورد)
+// ----------------------------------------------------------------------------
+// سقف plot count در TradingView برابر ۶۴ است و هر alertcondition هم یک سهم از
+// آن را مصرف می‌کند؛ بنابراین هشدارهای ثابت تجمیع شده‌اند (یک هشدار برای هر
+// رویداد، نه برای هر زیرشاخه) و جزئیات کامل هر سیگنال از طریق alert() پویا در
+// بخش بالا ارسال می‌شود که سهم plot مصرف نمی‌کند.
+// پیام‌ها فقط از placeholder های داخلی استفاده می‌کنند: {{ticker}} {{interval}}
+// {{close}} {{high}} {{low}}
+alertcondition(sigProBuy and alertUsePro, title = "PRO BUY",
+     message = "PRO BUY | {{ticker}} {{interval}} | Close {{close}} | High {{high}} | Low {{low}}")
+alertcondition(sigProSell and alertUsePro, title = "PRO SELL",
+     message = "PRO SELL | {{ticker}} {{interval}} | Close {{close}} | High {{high}} | Low {{low}}")
+alertcondition((sigConfBuy or sigProBuy) and alertUseConfirmed, title = "CONFIRMED or PRO BUY",
+     message = "CONFIRMED/PRO BUY | {{ticker}} {{interval}} | Close {{close}}")
+alertcondition((sigConfSell or sigProSell) and alertUseConfirmed, title = "CONFIRMED or PRO SELL",
+     message = "CONFIRMED/PRO SELL | {{ticker}} {{interval}} | Close {{close}}")
+alertcondition(sigBuy and alertUseSetup, title = "ANY BUY (Setup + Confirmed + PRO)",
+     message = "BUY SIGNAL | {{ticker}} {{interval}} | Close {{close}}")
+alertcondition(sigSell and alertUseSetup, title = "ANY SELL (Setup + Confirmed + PRO)",
+     message = "SELL SIGNAL | {{ticker}} {{interval}} | Close {{close}}")
+alertcondition(ntsTrendFlip and alertUseFlip, title = "NTS Trend Flip",
+     message = "NTS TREND FLIP | {{ticker}} {{interval}} | Close {{close}}")
+alertcondition((structBullChoch or structBullBos or structBearChoch or structBearBos) and alertUseStruct,
+     title = "Structure Break (CHoCH / BOS)",
+     message = "STRUCTURE BREAK | {{ticker}} {{interval}} | Close {{close}}")
+alertcondition((sdBullConfirmed or sdBearConfirmed) and alertUseDiv, title = "Smart Divergence Confirmed",
+     message = "SMART DIVERGENCE CONFIRMED | {{ticker}} {{interval}} | Close {{close}}")
+alertcondition((hullTurnUp or hullTurnDown) and alertUseHull, title = "Hull Turn",
+     message = "HULL TURN | {{ticker}} {{interval}} | Close {{close}}")
+
+
+
+// --- تضمین سابقه کافی برای سری‌های MTF ---
+max_bars_back(ntsTime, 5000)
+max_bars_back(ntsTrail, 5000)
+max_bars_back(ntsAnchor, 5000)
+max_bars_back(hullValue, 5000)
+
+// ============================================================================
+//  ▍M28 — تکمیل پنل: ماتریس HTF، Trade Plan و وضعیت فیلترها
+// ============================================================================
+if barstate.islast and showPanel
+    color _mtfCol = mtfAlignSum >= 3 ? colBuy : mtfAlignSum <= -3 ? colSell :
+         mtfAlignSum > 0 ? color.new(colBuy, 40) : mtfAlignSum < 0 ? color.new(colSell, 40) : colNeutral
+    f_panelRow(infoPanel, 20, "HTF " + mtfTf1, f_trendArrow(mtf1TrendSafe) + "  RSI " + str.tostring(mtf1RsiSafe, "#"),
+         mtf1TrendSafe == 1 ? colBuy : mtf1TrendSafe == -1 ? colSell : colNeutral)
+    f_panelRow(infoPanel, 21, "HTF " + mtfTf2, f_trendArrow(mtf2TrendSafe) + "  RSI " + str.tostring(mtf2RsiSafe, "#"),
+         mtf2TrendSafe == 1 ? colBuy : mtf2TrendSafe == -1 ? colSell : colNeutral)
+    f_panelRow(infoPanel, 22, "HTF " + mtfTf3, f_trendArrow(mtf3TrendSafe) + "  RSI " + str.tostring(mtf3RsiSafe, "#"),
+         mtf3TrendSafe == 1 ? colBuy : mtf3TrendSafe == -1 ? colSell : colNeutral)
+    if mtfShowMatrix
+        f_panelRow(infoPanel, 23, "HTF Alignment", mtfAlignText, _mtfCol)
+    if planShow
+        f_panelRow(infoPanel, 24, "Last Plan", planDir == 0 ? "—" :
+             (planDir == 1 ? "LONG " : "SHORT ") + planLevel, planDir == 1 ? colBuy : planDir == -1 ? colSell : colNeutral)
+        f_panelRow(infoPanel, 25, "Entry / SL", planDir == 0 ? "—" :
+             f_txtTick(planEntry) + "  /  " + f_txtTick(planStop), color.white)
+        f_panelRow(infoPanel, 26, "TP1 / TP2", planDir == 0 ? "—" :
+             f_txtTick(planTarget1) + "  /  " + f_txtTick(planTarget2), color.white)
+        f_panelRow(infoPanel, 27, "Risk : Reward", planRrText, color.white)
+        f_panelRow(infoPanel, 28, "Position Size", planRiskValid ? f_txt(planUnits, "#.##") + " unit  (" +
+             str.tostring(planRiskAmount, "#.##") + " risk)" : "—", color.new(colNeutral, 15))
+    f_panelRow(infoPanel, 29, "Filters",
+         (useSessionFilter ? (sessionActiveRaw ? "SES✓" : "SES✗") : "SES−") + "  " +
+         (useVolumeFilter ? (volumeValid ? (volumeBoost ? "VOL✓" : "VOL~") : "VOL?") : "VOL−") + "  " +
+         (pdUseFilter ? (pdBuyAllowed or pdSellAllowed ? "PD✓" : "PD✗") : "PD−") + "  " +
+         (cloudUseFilter ? (cloudBuyOk or cloudSellOk ? "CLD✓" : "CLD✗") : "CLD−") + "  " +
+         (hullRequireAligned ? (hullAgreesNts ? "HUL✓" : "HUL✗") : "HUL−"),
+         color.new(colNeutral, 10))
+    f_panelRow(infoPanel, 30, "Signal Engine", sigEngineOn ?
+         (ntsCoreReady ? "READY" : "WAIT NTS") : "DISABLED",
+         sigEngineOn and ntsCoreReady ? colBuy : colNeutral)
+    f_panelRow(infoPanel, 31, "Thresholds", "S " + str.tostring(scoreSetup, "#") + "  C " +
+         str.tostring(scoreConfirmed, "#") + "  P " + str.tostring(scorePro, "#"), color.new(colNeutral, 20))
+    // سطوح مرجع SMC و آخرین جاروی نقدینگی (M14)
+    f_panelRow(infoPanel, 46, "Ref Bias", refBiasText + "  (" + str.tostring(refBiasSum) + "/6)",
+         refBiasSum >= 4 ? colBuy : refBiasSum <= 1 ? colSell : color.white)
+    f_panelRow(infoPanel, 47, "Liquidity", liqAnySweep ? liqSweepText :
+         liqSweepRecent ? liqLastSweepText + " (" + liqSweepAgeText + ")" : "NO SWEEP",
+         liqBullSweep or liqBullSweepRecent ? colBuy :
+         liqBearSweep or liqBearSweepRecent ? colSell : color.new(colNeutral, 20))
+    // ردیف‌های تشخیصی: جایگزین پلات‌های Data Window حذف‌شده (بدون مصرف plot count)
+    f_panelRow(infoPanel, 48, "Oscillators",
+         "RSI " + f_txt(oscRsi, "#.#") + "   K " + f_txt(oscStochK, "#.#") +
+         "   D " + f_txt(oscStochD, "#.#") + "   MACDh " + f_txt(oscMacdHist, "#.##"),
+         oscRsi >= 55 ? colBuy : oscRsi <= 45 ? colSell : color.white)
+    f_panelRow(infoPanel, 49, "Divergence Score",
+         "Bull " + f_txt(sdBullScore, "#") + "   Bear " + f_txt(sdBearScore, "#"),
+         f_safeNum(sdBullScore, 0.0) >= f_safeNum(sdBearScore, 0.0) ? colBuy : colSell)
+    f_panelRow(infoPanel, 50, "Cloud / PD",
+         "Basis " + f_txtTick(cloudBasis) + "   +1 " + f_txtTick(cloudUp1) +
+         "   −1 " + f_txtTick(cloudDn1) + "   EQ " + f_txtTick(pdEq),
+         color.new(colNeutral, 15))
+    f_panelRow(infoPanel, 51, "Weekly Levels",
+         "PWH " + f_txtTick(pwHigh) + "   PWL " + f_txtTick(pwLow) +
+         "   WOpen " + f_txtTick(weeklyOpenSafe) + "   DOpen " + f_txtTick(dailyOpen),
+         color.new(colNeutral, 15))
+    f_panelRow(infoPanel, 52, "Engine",
+         "ATR% " + f_txt(volatilityPct, "#.##") + "   Period " + f_txt(ntsPeriodDyn, "#.#") +
+         "   Factor " + f_txt(ntsFactorDyn, "#.##") + "   Wave " + f_txtTick(ntsWaveSize) +
+         "   Ref " + f_txtTick(fibRefSize), color.new(colNeutral, 15))
+
+// ============================================================================
+//  ▍M29 — آمار روزانه موتور سیگنال (بدون اثر بر منطق معامله)
+// ============================================================================
+var int   statDayKey     = 0
+var int   statBuyCount   = 0
+var int   statSellCount  = 0
+var int   statProCount   = 0
+var int   statConfCount  = 0
+var int   statSetupCount = 0
+var int   statFlipCount  = 0
+var int   statChochCount = 0
+var int   statBosCount   = 0
+var int   statDivCount   = 0
+var int   statBuyTotal   = 0
+var int   statSellTotal  = 0
+
+int dayKeyNow = not na(time) ? int(time / 86400000) : 0
+if dayKeyNow != statDayKey
+    statDayKey     := dayKeyNow
+    statBuyCount   := 0
+    statSellCount  := 0
+    statProCount   := 0
+    statConfCount  := 0
+    statSetupCount := 0
+    statFlipCount  := 0
+    statChochCount := 0
+    statBosCount   := 0
+    statDivCount   := 0
+
+if barstate.isconfirmed
+    if sigBuy
+        statBuyCount  += 1
+        statBuyTotal  += 1
+    if sigSell
+        statSellCount += 1
+        statSellTotal += 1
+    if sigIsPro
+        statProCount += 1
+    if sigIsConfirmed
+        statConfCount += 1
+    if sigIsSetup
+        statSetupCount += 1
+    if ntsTrendFlip
+        statFlipCount += 1
+    if structBullChoch or structBearChoch
+        statChochCount += 1
+    if structBullBos or structBearBos
+        statBosCount += 1
+    if sdBullConfirmed or sdBearConfirmed
+        statDivCount += 1
+
+if barstate.islast and showPanel and isFull
+    f_panelRow(infoPanel, 32, "Today Signals", "BUY " + str.tostring(statBuyCount) + "   SELL " + str.tostring(statSellCount),
+         color.white)
+    f_panelRow(infoPanel, 33, "Today Levels", "PRO " + str.tostring(statProCount) + "  CONF " + str.tostring(statConfCount) +
+         "  SETUP " + str.tostring(statSetupCount), color.new(colNeutral, 15))
+    f_panelRow(infoPanel, 34, "Today Events", "FLIP " + str.tostring(statFlipCount) + "  CHoCH " + str.tostring(statChochCount) +
+         "  BOS " + str.tostring(statBosCount) + "  DIV " + str.tostring(statDivCount), color.new(colNeutral, 15))
+    f_panelRow(infoPanel, 35, "Session Guard", useSessionFilter ? sessionString + " " + sessionTimezone : "DISABLED",
+         color.new(colNeutral, 25))
+
+// ============================================================================
+//  ▍M30 — پلات‌های تشخیصی Data Window (بدون اثر بصری روی نمودار)
+// ============================================================================
+// ----------------------------------------------------------------------------
+//  پلات‌های تشخیصی Data Window — فقط ۶ مورد
+// ----------------------------------------------------------------------------
+// بقیهٔ مقادیر تشخیصی (نوسان‌نماها، امتیاز واگرایی، ابر، سطوح هفتگی، Period و
+// Factor پویا، اندازهٔ موج، نوسان درصدی و...) در ردیف‌های ۴۸ تا ۵۲ پنل نمایش
+// داده می‌شوند؛ جدول‌ها برخلاف plot هیچ سهمی از سقف ۶۴ تایی plot count مصرف
+// نمی‌کنند.
+plot(f_safeNum(structHigh, na), "StructureHigh", display = display.data_window)
+plot(f_safeNum(structLow, na), "StructureLow", display = display.data_window)
+plot(f_safeNum(tlUpValueNow, na), "TrendlineUp", display = display.data_window)
+plot(f_safeNum(tlDnValueNow, na), "TrendlineDown", display = display.data_window)
+plot(mtfAlignSum, "MtfAlignSum", display = display.data_window)
+
+// ============================================================================
+//  ▍M31 — خودآزمایی داخلی (Invariants) و تشخیص وضعیت ضد ری‌پینت
+// ============================================================================
+// این بخش هیچ اثری روی سیگنال ندارد؛ فقط درونی‌ترین قراردادهای موتور را روی
+// آخرین کندل بررسی و در پنل گزارش می‌کند تا در تست Replay/Live فوراً
+// مشخص شود کدام قرارداد نقض شده است.
+// ----------------------------------------------------------------------------
+//  ۱) BUY و SELL هرگز هم‌زمان true نیستند.
+invNoConflict      = not (sigBuy and sigSell)
+//  ۲) امتیازها همیشه داخل ۰ تا ۱۰۰ و بدون NaN.
+invScoreRange      = not na(buyScore) and not na(sellScore) and
+     buyScore >= 0.0 and buyScore <= 100.0 and sellScore >= 0.0 and sellScore <= 100.0
+//  ۳) هیچ سیگنالی بدون کندل بسته‌شده ثبت نشده است.
+invConfirmedOnly   = not sigAny or barstate.isconfirmed
+//  ۴) هیچ سیگنالی پیش از Warm-up کامل NTS صادر نشده است.
+invWarmup          = not sigAny or ntsReady
+//  ۵) سقف آبجکت‌ها رعایت شده است.
+invLineCap         = array.size(omDivLines) <= math.max(1, maxDivLines) and
+     array.size(omExtLines) <= math.max(1, maxExtLines) and
+     array.size(omTlLines) <= math.max(2, tlMaxLines)
+invLabelCap        = array.size(omSigLabels) <= math.max(1, maxSignalLabels) and
+     array.size(omDivLabels) <= math.max(1, maxDivLabels) and
+     array.size(omStructLbl) <= math.max(1, structMaxLabels)
+invBoxCap          = array.size(omDivBoxes) <= math.max(1, maxDivBoxes) and
+     array.size(omPdBoxes) <= math.max(1, maxBoxes) and
+     array.size(omSdBoxes) <= math.max(1, maxBoxes)
+//  ۶) سطوح PD همیشه سازگارند: DiscountEdge <= EQ <= PremiumEdge.
+invPdOrder         = not pdRangeValid or
+     (f_safeNum(pdDiscountEdge, pdEq) <= f_safeNum(pdEq, 0.0) and
+      f_safeNum(pdEq, 0.0) <= f_safeNum(pdPremiumEdge, pdEq))
+//  ۷) ناحیه PD هیچ‌گاه هم‌زمان Premium و Discount نیست.
+invPdExclusive     = not (inPremiumZone and inDiscountZone)
+//  ۸) مرجع موج معتبر است یا هیچ سطحی ساخته نمی‌شود.
+invFibCoherent     = not fibRefValid or (not na(fibRefAnchor) and not na(fibRefExtreme) and
+     fibRefSize > syminfo.mintick * 4 and (fibRefDir == 1 or fibRefDir == -1))
+//  ۹) هر سه Retracement همیشه بین Anchor و Extreme قرار دارند.
+invRetrCheck1 = f_fibRetrLevel(fibR1Sorted)
+invRetrCheck2 = f_fibRetrLevel(fibR2Sorted)
+invRetrCheck3 = f_fibRetrLevel(fibR3Sorted)
+invRetrLo     = math.min(f_safeNum(fibRefAnchor, close), f_safeNum(fibRefExtreme, close)) - chartAtrSafe * 0.01
+invRetrHi     = math.max(f_safeNum(fibRefAnchor, close), f_safeNum(fibRefExtreme, close)) + chartAtrSafe * 0.01
+f_invInside(float _lv) => na(_lv) or (_lv >= invRetrLo and _lv <= invRetrHi)
+invRetrInside = not fibRefValid or (f_invInside(invRetrCheck1) and f_invInside(invRetrCheck2) and
+     f_invInside(invRetrCheck3))
+//  ۱۰) واگرایی Pending هرگز به‌تنهایی سیگنال PRO نساخته است.
+invDivPending      = not sigIsPro or not (sdBullPending and not sdBullConfirmed and
+     sdBearPending and not sdBearConfirmed)
+//  ۱۱)Cooldown جهت‌ها مستقل ثبت شده است.
+invCooldown        = not sigBuy or not sigSell
+
+invAllPass = invNoConflict and invScoreRange and invConfirmedOnly and invWarmup and
+     invLineCap and invLabelCap and invBoxCap and invPdOrder and invPdExclusive and
+     invFibCoherent and invRetrInside and invDivPending and invCooldown
+
+invFailedCount = (invNoConflict ? 0 : 1) + (invScoreRange ? 0 : 1) + (invConfirmedOnly ? 0 : 1) +
+     (invWarmup ? 0 : 1) + (invLineCap ? 0 : 1) + (invLabelCap ? 0 : 1) + (invBoxCap ? 0 : 1) +
+     (invPdOrder ? 0 : 1) + (invPdExclusive ? 0 : 1) + (invFibCoherent ? 0 : 1) +
+     (invRetrInside ? 0 : 1) + (invDivPending ? 0 : 1) + (invCooldown ? 0 : 1)
+
+// --- وضعیت ضد ری‌پینت ---
+mtfSamplingText = ntsChartIsLower ? "MTF GATED (" + str.tostring(ntsBarsPerBase, "#") + "×)" :
+     ntsChartIsEqual ? "1:1 SAMPLED" : "CHART > NTS"
+repaintGuardTxt = barstate.isconfirmed ? "CONFIRMED BAR" : barstate.isrealtime ? "LIVE (NO SIGNAL)" : "HISTORICAL"
+
+if barstate.islast and showPanel and showSelfTest
+    color _invCol = invAllPass ? colBuy : colSell
+    f_panelRow(infoPanel, 36, "Self-Test", invAllPass ? "ALL PASS (13)" :
+         str.tostring(invFailedCount) + " FAILED", _invCol)
+    f_panelRow(infoPanel, 37, "BUY∧SELL", invNoConflict and invCooldown ? "OK" : "VIOLATION",
+         invNoConflict and invCooldown ? colBuy : colSell)
+    f_panelRow(infoPanel, 38, "Score Range", invScoreRange ? "OK 0–100" : "VIOLATION",
+         invScoreRange ? colBuy : colSell)
+    f_panelRow(infoPanel, 39, "Object Caps", invLineCap and invLabelCap and invBoxCap ? "OK" : "OVER CAP",
+         invLineCap and invLabelCap and invBoxCap ? colBuy : colSell)
+    f_panelRow(infoPanel, 40, "PD Coherence", invPdOrder and invPdExclusive ? "OK" : "VIOLATION",
+         invPdOrder and invPdExclusive ? colBuy : colSell)
+    f_panelRow(infoPanel, 41, "Fib Coherence", invFibCoherent and invRetrInside ? "OK" : "VIOLATION",
+         invFibCoherent and invRetrInside ? colBuy : colSell)
+    f_panelRow(infoPanel, 42, "Signal Timing", invConfirmedOnly and invWarmup ? "OK" : "VIOLATION",
+         invConfirmedOnly and invWarmup ? colBuy : colSell)
+    f_panelRow(infoPanel, 43, "MTF Sampling", mtfSamplingText, color.white)
+    f_panelRow(infoPanel, 44, "Repaint Guard", repaintGuardTxt,
+         barstate.isconfirmed ? colBuy : color.orange)
+    f_panelRow(infoPanel, 45, "Lookahead", "OFF (ALL REQUESTS)", colBuy)
+
+// --- هشدار نقض قرارداد داخلی (فقط برای توسعه/تست) ---
+if barstate.isconfirmed and showSelfTest and not invAllPass and invFailAlert
+    alert("SELF-TEST VIOLATION | " + syminfo.ticker + " " + timeframe.period +
+         " | failed=" + str.tostring(invFailedCount) +
+         " | buySell=" + str.tostring(invNoConflict) +
+         " | score=" + str.tostring(invScoreRange) +
+         " | caps=" + str.tostring(invLineCap and invLabelCap and invBoxCap) +
+         " | pd=" + str.tostring(invPdOrder and invPdExclusive) +
+         " | fib=" + str.tostring(invFibCoherent and invRetrInside),
+         alert.freq_once_per_bar_close)

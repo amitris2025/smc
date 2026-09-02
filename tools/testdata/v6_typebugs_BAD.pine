@@ -1,0 +1,11 @@
+//@version=6
+indicator("fixture")
+symUpper = str.upper(syminfo.ticker + syminfo.title)
+isLast   = barstate.islastt
+int _style = cond ? line.style_solid : line.style_dashed
+string _sz = size.normal
+line _ln = line.new(0, 0, 1, 1, style = line.style_solid)
+label _lb = label.new(0, 0, "x", style = label.style_label_up)
+float _gap = math.max(0.0, atr) * 1.5
+int _w = f_txt(close, format.mintick)
+plot(close, color = colA, style = plot.style_linebr)

@@ -2,7 +2,9 @@
 
 مخزن شامل پیاده‌سازی Pine Script v5 برای هستهٔ NTS، فیلترهای Premium /
 Discount، Hull، سیگنال‌های Confluence و خط روند Price Action است.
-نسخهٔ یکپارچهٔ قابل درج در TradingView در `src/SMC_NTS_Pro.pine` قرار دارد.
+نسخهٔ یکپارچهٔ قابل درج در TradingView در `src/SMC_NTS_Pro.pine` (v5) و
+`src/SMC_NTS_PRO_v6.pine` (v6 — نسخهٔ نهایی Pine Script v6 با ۳۱ ماژول و
+۳۳۰۲ خط) قرار دارد. سند کامل v6 در `docs/V6_FINAL.md` است.
 
 ## تغییرات اصلی نسخهٔ فعلی
 

@@ -39,9 +39,17 @@ CLOSERS = {")", "]", "}"}
 # شناسه‌های مجاز که با and/or/not شروع می‌شوند (مثل color.orange)
 SAFE_PREFIX_WORDS = {"orange", "orangered", "order", "orders", "orderid", "notif"}
 
+# کلمه‌های کاملی که «and/or/not» بخشی از خودِ نام هستند (نه کلیدواژه چسبیده).
+SAFE_WHOLE_WORDS = {
+    "color", "_color", "border_color", "text_color", "frame_color", "bgcolor",
+    "orange", "order", "android", "notify", "notation", "normal", "normalize",
+    "north", "notch", "note", "annotation", "core", "correlation", "floor",
+    "floor_or", "for", "format", "formula", "important", "report", "support",
+}
+
 # کلیدواژه‌های چسبیده به شناسه/عدد
 GLUE_PATTERNS = [
-    (re.compile(r"(?<![A-Za-z0-9_.])(and|or|not)(?=[A-Za-z_\u0600-\u06ff])"),
+    (re.compile(r"(?<![A-Za-z0-9_._])(and|or|not)(?=[A-Za-z_\u0600-\u06ff])"),
      "کلیدواژه چسبیده به شناسه بعدی (فاصله قبل از and/or/not لازم است)"),
     (re.compile(r"[0-9](?:and|or|not)\b"),
      "کلیدواژه چسبیده به عدد قبلی (مثل -1and)"),
@@ -173,9 +181,14 @@ def check_swallowed_keyword(clean: str, declared: set[str], label: str,
     pat = re.compile(r"\b([A-Za-z_][A-Za-z0-9_]*?)(and|or|not)\b")
     for m in pat.finditer(clean):
         name = m.group(1)
+        whole = m.group(0)
         if len(name) < 3 or name in {"and", "or", "not"}:
             continue
         if name.lower() in SAFE_PREFIX_WORDS:
+            continue
+        # اگر خودِ کلمهٔ کامل یک شناسهٔ معتبر باشد (مثل _color یا border_color)
+        # این یک کلیدواژهٔ چسبیده نیست، بلکه بخشی از یک نام است.
+        if whole in declared or whole.lower() in SAFE_WHOLE_WORDS:
             continue
         if name in declared:
             ln = line_of(clean, m.start())
