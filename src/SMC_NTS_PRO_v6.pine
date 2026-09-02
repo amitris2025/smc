@@ -136,7 +136,8 @@ fibShowRetrShallow = input.bool(false, "نمایش Retracement کم‌عمق 0.2
 fibSigRetrShallow  = input.bool(false, "سیگنال Retracement کم‌عمق", group = gFib, inline = "fr0")
 fibShowRetrOte     = input.bool(true, "نمایش Retracement اصلی 0.618 / 0.786 / 0.886", group = gFib, inline = "fr1")
 fibSigRetrOte      = input.bool(true, "سیگنال Retracement اصلی", group = gFib, inline = "fr1")
-fibShowRetrLabel   = input.bool(true, "لیبل سطوح Retracement", group = gFib, inline = "fr1")
+fibShowRetrLabel   = input.bool(false, "لیبل سطوح Retracement", group = gFib, inline = "fr1",
+     tooltip   = "در v5 لیبل سطوح پیش‌فرض خاموش بود (showNtsExtensionLabels=false)؛ برای حفظ ظاهر، اینجا هم خاموش است. سه Retracement اصلی به‌صورت خط سفید/نارنجی/سبز رسم می‌شوند و لیبل نمی‌گیرند.")
 fibShowExtLabel    = input.bool(false, "لیبل سطوح Extension", group = gFib, inline = "fa")
 showFibExtA        = input.bool(true, "Ext A — ادامه‌روند 0.300 / 1.470 / 2.100", group = gFib, inline = "fa")
 sigFibExtA         = input.bool(true, "سیگنال Ext A", group = gFib, inline = "fa")
