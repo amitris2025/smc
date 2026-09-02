@@ -1,5 +1,13 @@
 # smc — اندیکاتور SMC + NTS و Extensionهای تأییدشده
 
+نسخهٔ نهایی و بازنویسی‌شده در **Pine Script v6** در `src/SMC_NTS_Pro_v6.pine`
+قرار دارد (هسته NTS واقعاً MTF داخل یک `request.security` واحد، PD یکپارچه با
+`lookahead_off`، واگرایی دو-وضعیتی Pending/Confirmed، سیستم امتیازدهی
+Setup/Confirmed/PRO، مدیریت مرکزی آبجکت‌ها و هشدارهای گروهی + Dynamic).
+
+نسخهٔ قدیمی v5 برای مرجع در `src/SMC_NTS_Pro.pine` باقی مانده است.
+
+
 مخزن شامل پیاده‌سازی Pine Script v5 برای هستهٔ NTS، فیلترهای Premium /
 Discount، Hull، سیگنال‌های Confluence و خط روند Price Action است.
 نسخهٔ یکپارچهٔ قابل درج در TradingView در `src/SMC_NTS_Pro.pine` قرار دارد.
