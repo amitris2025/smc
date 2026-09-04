@@ -1617,3 +1617,1512 @@ alertcondition(ntsKafSignal,
      title="NTS KAF / Final BUY", message="NTS KAF on {{ticker}} at {{close}}")
 alertcondition(ntsSaghfSignal,
      title="NTS SAGHF / Final SELL", message="NTS SAGHF on {{ticker}} at {{close}}")
+
+// ============================================================================
+// APPENDIX: PREMIUM PRESET REFERENCE — KEEP BELOW EXECUTABLE CODE
+// این پیوست عمداً بعد از کد اجرایی قرار دارد تا هیچ خط اجرایی حذف یا جابه‌جا نشود.
+// تمام خطوط این بخش کامنت هستند و رفتار اندیکاتور را تغییر نمی‌دهند.
+// ============================================================================
+// APPENDIX 01 — Preset overview
+// تنظیمات پیش‌فرض Premium برای ترید روزانه روی M15 فعال است.
+// 01.01 | Preset overview | مرجع تنظیمات Premium و رفتار تأییدشده شماره 01.
+// 01.02 | Preset overview | مرجع تنظیمات Premium و رفتار تأییدشده شماره 02.
+// 01.03 | Preset overview | مرجع تنظیمات Premium و رفتار تأییدشده شماره 03.
+// 01.04 | Preset overview | مرجع تنظیمات Premium و رفتار تأییدشده شماره 04.
+// 01.05 | Preset overview | مرجع تنظیمات Premium و رفتار تأییدشده شماره 05.
+// 01.06 | Preset overview | مرجع تنظیمات Premium و رفتار تأییدشده شماره 06.
+// 01.07 | Preset overview | مرجع تنظیمات Premium و رفتار تأییدشده شماره 07.
+// 01.08 | Preset overview | مرجع تنظیمات Premium و رفتار تأییدشده شماره 08.
+// 01.09 | Preset overview | مرجع تنظیمات Premium و رفتار تأییدشده شماره 09.
+// 01.10 | Preset overview | مرجع تنظیمات Premium و رفتار تأییدشده شماره 10.
+// 01.11 | Preset overview | مرجع تنظیمات Premium و رفتار تأییدشده شماره 11.
+// 01.12 | Preset overview | مرجع تنظیمات Premium و رفتار تأییدشده شماره 12.
+// 01.13 | Preset overview | مرجع تنظیمات Premium و رفتار تأییدشده شماره 13.
+// 01.14 | Preset overview | مرجع تنظیمات Premium و رفتار تأییدشده شماره 14.
+// 01.15 | Preset overview | مرجع تنظیمات Premium و رفتار تأییدشده شماره 15.
+// 01.16 | Preset overview | مرجع تنظیمات Premium و رفتار تأییدشده شماره 16.
+// 01.17 | Preset overview | مرجع تنظیمات Premium و رفتار تأییدشده شماره 17.
+// 01.18 | Preset overview | مرجع تنظیمات Premium و رفتار تأییدشده شماره 18.
+// 01.19 | Preset overview | مرجع تنظیمات Premium و رفتار تأییدشده شماره 19.
+// 01.20 | Preset overview | مرجع تنظیمات Premium و رفتار تأییدشده شماره 20.
+// 01.21 | Preset overview | مرجع تنظیمات Premium و رفتار تأییدشده شماره 21.
+// 01.22 | Preset overview | مرجع تنظیمات Premium و رفتار تأییدشده شماره 22.
+// 01.23 | Preset overview | مرجع تنظیمات Premium و رفتار تأییدشده شماره 23.
+// 01.24 | Preset overview | مرجع تنظیمات Premium و رفتار تأییدشده شماره 24.
+// 01.25 | Preset overview | مرجع تنظیمات Premium و رفتار تأییدشده شماره 25.
+// 01.26 | Preset overview | مرجع تنظیمات Premium و رفتار تأییدشده شماره 26.
+// 01.27 | Preset overview | مرجع تنظیمات Premium و رفتار تأییدشده شماره 27.
+// 01.28 | Preset overview | مرجع تنظیمات Premium و رفتار تأییدشده شماره 28.
+// 01.29 | Preset overview | مرجع تنظیمات Premium و رفتار تأییدشده شماره 29.
+// 01.30 | Preset overview | مرجع تنظیمات Premium و رفتار تأییدشده شماره 30.
+// 01.31 | Preset overview | مرجع تنظیمات Premium و رفتار تأییدشده شماره 31.
+// 01.32 | Preset overview | مرجع تنظیمات Premium و رفتار تأییدشده شماره 32.
+// 01.33 | Preset overview | مرجع تنظیمات Premium و رفتار تأییدشده شماره 33.
+// 01.34 | Preset overview | مرجع تنظیمات Premium و رفتار تأییدشده شماره 34.
+// 01.35 | Preset overview | مرجع تنظیمات Premium و رفتار تأییدشده شماره 35.
+// 01.36 | Preset overview | مرجع تنظیمات Premium و رفتار تأییدشده شماره 36.
+// 01.37 | Preset overview | مرجع تنظیمات Premium و رفتار تأییدشده شماره 37.
+// 01.38 | Preset overview | مرجع تنظیمات Premium و رفتار تأییدشده شماره 38.
+// 01.39 | Preset overview | مرجع تنظیمات Premium و رفتار تأییدشده شماره 39.
+// 01.40 | Preset overview | مرجع تنظیمات Premium و رفتار تأییدشده شماره 40.
+// 01.41 | Preset overview | مرجع تنظیمات Premium و رفتار تأییدشده شماره 41.
+// 01.42 | Preset overview | مرجع تنظیمات Premium و رفتار تأییدشده شماره 42.
+// 01.43 | Preset overview | مرجع تنظیمات Premium و رفتار تأییدشده شماره 43.
+// 01.44 | Preset overview | مرجع تنظیمات Premium و رفتار تأییدشده شماره 44.
+// 01.45 | Preset overview | مرجع تنظیمات Premium و رفتار تأییدشده شماره 45.
+// 01.46 | Preset overview | مرجع تنظیمات Premium و رفتار تأییدشده شماره 46.
+// 01.47 | Preset overview | مرجع تنظیمات Premium و رفتار تأییدشده شماره 47.
+// 01.48 | Preset overview | مرجع تنظیمات Premium و رفتار تأییدشده شماره 48.
+// APPENDIX 02 — Trading modes
+// حالت‌های اسکالپینگ، ترید روزانه، سوئینگ و پوزیشن در ورودی NTS موجودند.
+// 02.01 | Trading modes | مرجع تنظیمات Premium و رفتار تأییدشده شماره 01.
+// 02.02 | Trading modes | مرجع تنظیمات Premium و رفتار تأییدشده شماره 02.
+// 02.03 | Trading modes | مرجع تنظیمات Premium و رفتار تأییدشده شماره 03.
+// 02.04 | Trading modes | مرجع تنظیمات Premium و رفتار تأییدشده شماره 04.
+// 02.05 | Trading modes | مرجع تنظیمات Premium و رفتار تأییدشده شماره 05.
+// 02.06 | Trading modes | مرجع تنظیمات Premium و رفتار تأییدشده شماره 06.
+// 02.07 | Trading modes | مرجع تنظیمات Premium و رفتار تأییدشده شماره 07.
+// 02.08 | Trading modes | مرجع تنظیمات Premium و رفتار تأییدشده شماره 08.
+// 02.09 | Trading modes | مرجع تنظیمات Premium و رفتار تأییدشده شماره 09.
+// 02.10 | Trading modes | مرجع تنظیمات Premium و رفتار تأییدشده شماره 10.
+// 02.11 | Trading modes | مرجع تنظیمات Premium و رفتار تأییدشده شماره 11.
+// 02.12 | Trading modes | مرجع تنظیمات Premium و رفتار تأییدشده شماره 12.
+// 02.13 | Trading modes | مرجع تنظیمات Premium و رفتار تأییدشده شماره 13.
+// 02.14 | Trading modes | مرجع تنظیمات Premium و رفتار تأییدشده شماره 14.
+// 02.15 | Trading modes | مرجع تنظیمات Premium و رفتار تأییدشده شماره 15.
+// 02.16 | Trading modes | مرجع تنظیمات Premium و رفتار تأییدشده شماره 16.
+// 02.17 | Trading modes | مرجع تنظیمات Premium و رفتار تأییدشده شماره 17.
+// 02.18 | Trading modes | مرجع تنظیمات Premium و رفتار تأییدشده شماره 18.
+// 02.19 | Trading modes | مرجع تنظیمات Premium و رفتار تأییدشده شماره 19.
+// 02.20 | Trading modes | مرجع تنظیمات Premium و رفتار تأییدشده شماره 20.
+// 02.21 | Trading modes | مرجع تنظیمات Premium و رفتار تأییدشده شماره 21.
+// 02.22 | Trading modes | مرجع تنظیمات Premium و رفتار تأییدشده شماره 22.
+// 02.23 | Trading modes | مرجع تنظیمات Premium و رفتار تأییدشده شماره 23.
+// 02.24 | Trading modes | مرجع تنظیمات Premium و رفتار تأییدشده شماره 24.
+// 02.25 | Trading modes | مرجع تنظیمات Premium و رفتار تأییدشده شماره 25.
+// 02.26 | Trading modes | مرجع تنظیمات Premium و رفتار تأییدشده شماره 26.
+// 02.27 | Trading modes | مرجع تنظیمات Premium و رفتار تأییدشده شماره 27.
+// 02.28 | Trading modes | مرجع تنظیمات Premium و رفتار تأییدشده شماره 28.
+// 02.29 | Trading modes | مرجع تنظیمات Premium و رفتار تأییدشده شماره 29.
+// 02.30 | Trading modes | مرجع تنظیمات Premium و رفتار تأییدشده شماره 30.
+// 02.31 | Trading modes | مرجع تنظیمات Premium و رفتار تأییدشده شماره 31.
+// 02.32 | Trading modes | مرجع تنظیمات Premium و رفتار تأییدشده شماره 32.
+// 02.33 | Trading modes | مرجع تنظیمات Premium و رفتار تأییدشده شماره 33.
+// 02.34 | Trading modes | مرجع تنظیمات Premium و رفتار تأییدشده شماره 34.
+// 02.35 | Trading modes | مرجع تنظیمات Premium و رفتار تأییدشده شماره 35.
+// 02.36 | Trading modes | مرجع تنظیمات Premium و رفتار تأییدشده شماره 36.
+// 02.37 | Trading modes | مرجع تنظیمات Premium و رفتار تأییدشده شماره 37.
+// 02.38 | Trading modes | مرجع تنظیمات Premium و رفتار تأییدشده شماره 38.
+// 02.39 | Trading modes | مرجع تنظیمات Premium و رفتار تأییدشده شماره 39.
+// 02.40 | Trading modes | مرجع تنظیمات Premium و رفتار تأییدشده شماره 40.
+// 02.41 | Trading modes | مرجع تنظیمات Premium و رفتار تأییدشده شماره 41.
+// 02.42 | Trading modes | مرجع تنظیمات Premium و رفتار تأییدشده شماره 42.
+// 02.43 | Trading modes | مرجع تنظیمات Premium و رفتار تأییدشده شماره 43.
+// 02.44 | Trading modes | مرجع تنظیمات Premium و رفتار تأییدشده شماره 44.
+// 02.45 | Trading modes | مرجع تنظیمات Premium و رفتار تأییدشده شماره 45.
+// 02.46 | Trading modes | مرجع تنظیمات Premium و رفتار تأییدشده شماره 46.
+// 02.47 | Trading modes | مرجع تنظیمات Premium و رفتار تأییدشده شماره 47.
+// 02.48 | Trading modes | مرجع تنظیمات Premium و رفتار تأییدشده شماره 48.
+// APPENDIX 03 — NTS core
+// هسته NTS از داده تایم‌فریم پایه و Wilders ATR کنترل‌شده استفاده می‌کند.
+// 03.01 | NTS core | مرجع تنظیمات Premium و رفتار تأییدشده شماره 01.
+// 03.02 | NTS core | مرجع تنظیمات Premium و رفتار تأییدشده شماره 02.
+// 03.03 | NTS core | مرجع تنظیمات Premium و رفتار تأییدشده شماره 03.
+// 03.04 | NTS core | مرجع تنظیمات Premium و رفتار تأییدشده شماره 04.
+// 03.05 | NTS core | مرجع تنظیمات Premium و رفتار تأییدشده شماره 05.
+// 03.06 | NTS core | مرجع تنظیمات Premium و رفتار تأییدشده شماره 06.
+// 03.07 | NTS core | مرجع تنظیمات Premium و رفتار تأییدشده شماره 07.
+// 03.08 | NTS core | مرجع تنظیمات Premium و رفتار تأییدشده شماره 08.
+// 03.09 | NTS core | مرجع تنظیمات Premium و رفتار تأییدشده شماره 09.
+// 03.10 | NTS core | مرجع تنظیمات Premium و رفتار تأییدشده شماره 10.
+// 03.11 | NTS core | مرجع تنظیمات Premium و رفتار تأییدشده شماره 11.
+// 03.12 | NTS core | مرجع تنظیمات Premium و رفتار تأییدشده شماره 12.
+// 03.13 | NTS core | مرجع تنظیمات Premium و رفتار تأییدشده شماره 13.
+// 03.14 | NTS core | مرجع تنظیمات Premium و رفتار تأییدشده شماره 14.
+// 03.15 | NTS core | مرجع تنظیمات Premium و رفتار تأییدشده شماره 15.
+// 03.16 | NTS core | مرجع تنظیمات Premium و رفتار تأییدشده شماره 16.
+// 03.17 | NTS core | مرجع تنظیمات Premium و رفتار تأییدشده شماره 17.
+// 03.18 | NTS core | مرجع تنظیمات Premium و رفتار تأییدشده شماره 18.
+// 03.19 | NTS core | مرجع تنظیمات Premium و رفتار تأییدشده شماره 19.
+// 03.20 | NTS core | مرجع تنظیمات Premium و رفتار تأییدشده شماره 20.
+// 03.21 | NTS core | مرجع تنظیمات Premium و رفتار تأییدشده شماره 21.
+// 03.22 | NTS core | مرجع تنظیمات Premium و رفتار تأییدشده شماره 22.
+// 03.23 | NTS core | مرجع تنظیمات Premium و رفتار تأییدشده شماره 23.
+// 03.24 | NTS core | مرجع تنظیمات Premium و رفتار تأییدشده شماره 24.
+// 03.25 | NTS core | مرجع تنظیمات Premium و رفتار تأییدشده شماره 25.
+// 03.26 | NTS core | مرجع تنظیمات Premium و رفتار تأییدشده شماره 26.
+// 03.27 | NTS core | مرجع تنظیمات Premium و رفتار تأییدشده شماره 27.
+// 03.28 | NTS core | مرجع تنظیمات Premium و رفتار تأییدشده شماره 28.
+// 03.29 | NTS core | مرجع تنظیمات Premium و رفتار تأییدشده شماره 29.
+// 03.30 | NTS core | مرجع تنظیمات Premium و رفتار تأییدشده شماره 30.
+// 03.31 | NTS core | مرجع تنظیمات Premium و رفتار تأییدشده شماره 31.
+// 03.32 | NTS core | مرجع تنظیمات Premium و رفتار تأییدشده شماره 32.
+// 03.33 | NTS core | مرجع تنظیمات Premium و رفتار تأییدشده شماره 33.
+// 03.34 | NTS core | مرجع تنظیمات Premium و رفتار تأییدشده شماره 34.
+// 03.35 | NTS core | مرجع تنظیمات Premium و رفتار تأییدشده شماره 35.
+// 03.36 | NTS core | مرجع تنظیمات Premium و رفتار تأییدشده شماره 36.
+// 03.37 | NTS core | مرجع تنظیمات Premium و رفتار تأییدشده شماره 37.
+// 03.38 | NTS core | مرجع تنظیمات Premium و رفتار تأییدشده شماره 38.
+// 03.39 | NTS core | مرجع تنظیمات Premium و رفتار تأییدشده شماره 39.
+// 03.40 | NTS core | مرجع تنظیمات Premium و رفتار تأییدشده شماره 40.
+// 03.41 | NTS core | مرجع تنظیمات Premium و رفتار تأییدشده شماره 41.
+// 03.42 | NTS core | مرجع تنظیمات Premium و رفتار تأییدشده شماره 42.
+// 03.43 | NTS core | مرجع تنظیمات Premium و رفتار تأییدشده شماره 43.
+// 03.44 | NTS core | مرجع تنظیمات Premium و رفتار تأییدشده شماره 44.
+// 03.45 | NTS core | مرجع تنظیمات Premium و رفتار تأییدشده شماره 45.
+// 03.46 | NTS core | مرجع تنظیمات Premium و رفتار تأییدشده شماره 46.
+// 03.47 | NTS core | مرجع تنظیمات Premium و رفتار تأییدشده شماره 47.
+// 03.48 | NTS core | مرجع تنظیمات Premium و رفتار تأییدشده شماره 48.
+// APPENDIX 04 — Session filter
+// فیلتر سشن به وقت Asia/Tehran و Golden Hour مستقل از timezone چارت است.
+// 04.01 | Session filter | مرجع تنظیمات Premium و رفتار تأییدشده شماره 01.
+// 04.02 | Session filter | مرجع تنظیمات Premium و رفتار تأییدشده شماره 02.
+// 04.03 | Session filter | مرجع تنظیمات Premium و رفتار تأییدشده شماره 03.
+// 04.04 | Session filter | مرجع تنظیمات Premium و رفتار تأییدشده شماره 04.
+// 04.05 | Session filter | مرجع تنظیمات Premium و رفتار تأییدشده شماره 05.
+// 04.06 | Session filter | مرجع تنظیمات Premium و رفتار تأییدشده شماره 06.
+// 04.07 | Session filter | مرجع تنظیمات Premium و رفتار تأییدشده شماره 07.
+// 04.08 | Session filter | مرجع تنظیمات Premium و رفتار تأییدشده شماره 08.
+// 04.09 | Session filter | مرجع تنظیمات Premium و رفتار تأییدشده شماره 09.
+// 04.10 | Session filter | مرجع تنظیمات Premium و رفتار تأییدشده شماره 10.
+// 04.11 | Session filter | مرجع تنظیمات Premium و رفتار تأییدشده شماره 11.
+// 04.12 | Session filter | مرجع تنظیمات Premium و رفتار تأییدشده شماره 12.
+// 04.13 | Session filter | مرجع تنظیمات Premium و رفتار تأییدشده شماره 13.
+// 04.14 | Session filter | مرجع تنظیمات Premium و رفتار تأییدشده شماره 14.
+// 04.15 | Session filter | مرجع تنظیمات Premium و رفتار تأییدشده شماره 15.
+// 04.16 | Session filter | مرجع تنظیمات Premium و رفتار تأییدشده شماره 16.
+// 04.17 | Session filter | مرجع تنظیمات Premium و رفتار تأییدشده شماره 17.
+// 04.18 | Session filter | مرجع تنظیمات Premium و رفتار تأییدشده شماره 18.
+// 04.19 | Session filter | مرجع تنظیمات Premium و رفتار تأییدشده شماره 19.
+// 04.20 | Session filter | مرجع تنظیمات Premium و رفتار تأییدشده شماره 20.
+// 04.21 | Session filter | مرجع تنظیمات Premium و رفتار تأییدشده شماره 21.
+// 04.22 | Session filter | مرجع تنظیمات Premium و رفتار تأییدشده شماره 22.
+// 04.23 | Session filter | مرجع تنظیمات Premium و رفتار تأییدشده شماره 23.
+// 04.24 | Session filter | مرجع تنظیمات Premium و رفتار تأییدشده شماره 24.
+// 04.25 | Session filter | مرجع تنظیمات Premium و رفتار تأییدشده شماره 25.
+// 04.26 | Session filter | مرجع تنظیمات Premium و رفتار تأییدشده شماره 26.
+// 04.27 | Session filter | مرجع تنظیمات Premium و رفتار تأییدشده شماره 27.
+// 04.28 | Session filter | مرجع تنظیمات Premium و رفتار تأییدشده شماره 28.
+// 04.29 | Session filter | مرجع تنظیمات Premium و رفتار تأییدشده شماره 29.
+// 04.30 | Session filter | مرجع تنظیمات Premium و رفتار تأییدشده شماره 30.
+// 04.31 | Session filter | مرجع تنظیمات Premium و رفتار تأییدشده شماره 31.
+// 04.32 | Session filter | مرجع تنظیمات Premium و رفتار تأییدشده شماره 32.
+// 04.33 | Session filter | مرجع تنظیمات Premium و رفتار تأییدشده شماره 33.
+// 04.34 | Session filter | مرجع تنظیمات Premium و رفتار تأییدشده شماره 34.
+// 04.35 | Session filter | مرجع تنظیمات Premium و رفتار تأییدشده شماره 35.
+// 04.36 | Session filter | مرجع تنظیمات Premium و رفتار تأییدشده شماره 36.
+// 04.37 | Session filter | مرجع تنظیمات Premium و رفتار تأییدشده شماره 37.
+// 04.38 | Session filter | مرجع تنظیمات Premium و رفتار تأییدشده شماره 38.
+// 04.39 | Session filter | مرجع تنظیمات Premium و رفتار تأییدشده شماره 39.
+// 04.40 | Session filter | مرجع تنظیمات Premium و رفتار تأییدشده شماره 40.
+// 04.41 | Session filter | مرجع تنظیمات Premium و رفتار تأییدشده شماره 41.
+// 04.42 | Session filter | مرجع تنظیمات Premium و رفتار تأییدشده شماره 42.
+// 04.43 | Session filter | مرجع تنظیمات Premium و رفتار تأییدشده شماره 43.
+// 04.44 | Session filter | مرجع تنظیمات Premium و رفتار تأییدشده شماره 44.
+// 04.45 | Session filter | مرجع تنظیمات Premium و رفتار تأییدشده شماره 45.
+// 04.46 | Session filter | مرجع تنظیمات Premium و رفتار تأییدشده شماره 46.
+// 04.47 | Session filter | مرجع تنظیمات Premium و رفتار تأییدشده شماره 47.
+// 04.48 | Session filter | مرجع تنظیمات Premium و رفتار تأییدشده شماره 48.
+// APPENDIX 05 — Reversal Cloud
+// ابر برگشتی در preset رسم نمی‌شود اما فیلتر تماس و نزدیکی فعال است.
+// 05.01 | Reversal Cloud | مرجع تنظیمات Premium و رفتار تأییدشده شماره 01.
+// 05.02 | Reversal Cloud | مرجع تنظیمات Premium و رفتار تأییدشده شماره 02.
+// 05.03 | Reversal Cloud | مرجع تنظیمات Premium و رفتار تأییدشده شماره 03.
+// 05.04 | Reversal Cloud | مرجع تنظیمات Premium و رفتار تأییدشده شماره 04.
+// 05.05 | Reversal Cloud | مرجع تنظیمات Premium و رفتار تأییدشده شماره 05.
+// 05.06 | Reversal Cloud | مرجع تنظیمات Premium و رفتار تأییدشده شماره 06.
+// 05.07 | Reversal Cloud | مرجع تنظیمات Premium و رفتار تأییدشده شماره 07.
+// 05.08 | Reversal Cloud | مرجع تنظیمات Premium و رفتار تأییدشده شماره 08.
+// 05.09 | Reversal Cloud | مرجع تنظیمات Premium و رفتار تأییدشده شماره 09.
+// 05.10 | Reversal Cloud | مرجع تنظیمات Premium و رفتار تأییدشده شماره 10.
+// 05.11 | Reversal Cloud | مرجع تنظیمات Premium و رفتار تأییدشده شماره 11.
+// 05.12 | Reversal Cloud | مرجع تنظیمات Premium و رفتار تأییدشده شماره 12.
+// 05.13 | Reversal Cloud | مرجع تنظیمات Premium و رفتار تأییدشده شماره 13.
+// 05.14 | Reversal Cloud | مرجع تنظیمات Premium و رفتار تأییدشده شماره 14.
+// 05.15 | Reversal Cloud | مرجع تنظیمات Premium و رفتار تأییدشده شماره 15.
+// 05.16 | Reversal Cloud | مرجع تنظیمات Premium و رفتار تأییدشده شماره 16.
+// 05.17 | Reversal Cloud | مرجع تنظیمات Premium و رفتار تأییدشده شماره 17.
+// 05.18 | Reversal Cloud | مرجع تنظیمات Premium و رفتار تأییدشده شماره 18.
+// 05.19 | Reversal Cloud | مرجع تنظیمات Premium و رفتار تأییدشده شماره 19.
+// 05.20 | Reversal Cloud | مرجع تنظیمات Premium و رفتار تأییدشده شماره 20.
+// 05.21 | Reversal Cloud | مرجع تنظیمات Premium و رفتار تأییدشده شماره 21.
+// 05.22 | Reversal Cloud | مرجع تنظیمات Premium و رفتار تأییدشده شماره 22.
+// 05.23 | Reversal Cloud | مرجع تنظیمات Premium و رفتار تأییدشده شماره 23.
+// 05.24 | Reversal Cloud | مرجع تنظیمات Premium و رفتار تأییدشده شماره 24.
+// 05.25 | Reversal Cloud | مرجع تنظیمات Premium و رفتار تأییدشده شماره 25.
+// 05.26 | Reversal Cloud | مرجع تنظیمات Premium و رفتار تأییدشده شماره 26.
+// 05.27 | Reversal Cloud | مرجع تنظیمات Premium و رفتار تأییدشده شماره 27.
+// 05.28 | Reversal Cloud | مرجع تنظیمات Premium و رفتار تأییدشده شماره 28.
+// 05.29 | Reversal Cloud | مرجع تنظیمات Premium و رفتار تأییدشده شماره 29.
+// 05.30 | Reversal Cloud | مرجع تنظیمات Premium و رفتار تأییدشده شماره 30.
+// 05.31 | Reversal Cloud | مرجع تنظیمات Premium و رفتار تأییدشده شماره 31.
+// 05.32 | Reversal Cloud | مرجع تنظیمات Premium و رفتار تأییدشده شماره 32.
+// 05.33 | Reversal Cloud | مرجع تنظیمات Premium و رفتار تأییدشده شماره 33.
+// 05.34 | Reversal Cloud | مرجع تنظیمات Premium و رفتار تأییدشده شماره 34.
+// 05.35 | Reversal Cloud | مرجع تنظیمات Premium و رفتار تأییدشده شماره 35.
+// 05.36 | Reversal Cloud | مرجع تنظیمات Premium و رفتار تأییدشده شماره 36.
+// 05.37 | Reversal Cloud | مرجع تنظیمات Premium و رفتار تأییدشده شماره 37.
+// 05.38 | Reversal Cloud | مرجع تنظیمات Premium و رفتار تأییدشده شماره 38.
+// 05.39 | Reversal Cloud | مرجع تنظیمات Premium و رفتار تأییدشده شماره 39.
+// 05.40 | Reversal Cloud | مرجع تنظیمات Premium و رفتار تأییدشده شماره 40.
+// 05.41 | Reversal Cloud | مرجع تنظیمات Premium و رفتار تأییدشده شماره 41.
+// 05.42 | Reversal Cloud | مرجع تنظیمات Premium و رفتار تأییدشده شماره 42.
+// 05.43 | Reversal Cloud | مرجع تنظیمات Premium و رفتار تأییدشده شماره 43.
+// 05.44 | Reversal Cloud | مرجع تنظیمات Premium و رفتار تأییدشده شماره 44.
+// 05.45 | Reversal Cloud | مرجع تنظیمات Premium و رفتار تأییدشده شماره 45.
+// 05.46 | Reversal Cloud | مرجع تنظیمات Premium و رفتار تأییدشده شماره 46.
+// 05.47 | Reversal Cloud | مرجع تنظیمات Premium و رفتار تأییدشده شماره 47.
+// 05.48 | Reversal Cloud | مرجع تنظیمات Premium و رفتار تأییدشده شماره 48.
+// APPENDIX 06 — Extension levels
+// سطوح Extension با یک قرارداد واحد در رسم، سیگنال و snapshot ساخته می‌شوند.
+// 06.01 | Extension levels | مرجع تنظیمات Premium و رفتار تأییدشده شماره 01.
+// 06.02 | Extension levels | مرجع تنظیمات Premium و رفتار تأییدشده شماره 02.
+// 06.03 | Extension levels | مرجع تنظیمات Premium و رفتار تأییدشده شماره 03.
+// 06.04 | Extension levels | مرجع تنظیمات Premium و رفتار تأییدشده شماره 04.
+// 06.05 | Extension levels | مرجع تنظیمات Premium و رفتار تأییدشده شماره 05.
+// 06.06 | Extension levels | مرجع تنظیمات Premium و رفتار تأییدشده شماره 06.
+// 06.07 | Extension levels | مرجع تنظیمات Premium و رفتار تأییدشده شماره 07.
+// 06.08 | Extension levels | مرجع تنظیمات Premium و رفتار تأییدشده شماره 08.
+// 06.09 | Extension levels | مرجع تنظیمات Premium و رفتار تأییدشده شماره 09.
+// 06.10 | Extension levels | مرجع تنظیمات Premium و رفتار تأییدشده شماره 10.
+// 06.11 | Extension levels | مرجع تنظیمات Premium و رفتار تأییدشده شماره 11.
+// 06.12 | Extension levels | مرجع تنظیمات Premium و رفتار تأییدشده شماره 12.
+// 06.13 | Extension levels | مرجع تنظیمات Premium و رفتار تأییدشده شماره 13.
+// 06.14 | Extension levels | مرجع تنظیمات Premium و رفتار تأییدشده شماره 14.
+// 06.15 | Extension levels | مرجع تنظیمات Premium و رفتار تأییدشده شماره 15.
+// 06.16 | Extension levels | مرجع تنظیمات Premium و رفتار تأییدشده شماره 16.
+// 06.17 | Extension levels | مرجع تنظیمات Premium و رفتار تأییدشده شماره 17.
+// 06.18 | Extension levels | مرجع تنظیمات Premium و رفتار تأییدشده شماره 18.
+// 06.19 | Extension levels | مرجع تنظیمات Premium و رفتار تأییدشده شماره 19.
+// 06.20 | Extension levels | مرجع تنظیمات Premium و رفتار تأییدشده شماره 20.
+// 06.21 | Extension levels | مرجع تنظیمات Premium و رفتار تأییدشده شماره 21.
+// 06.22 | Extension levels | مرجع تنظیمات Premium و رفتار تأییدشده شماره 22.
+// 06.23 | Extension levels | مرجع تنظیمات Premium و رفتار تأییدشده شماره 23.
+// 06.24 | Extension levels | مرجع تنظیمات Premium و رفتار تأییدشده شماره 24.
+// 06.25 | Extension levels | مرجع تنظیمات Premium و رفتار تأییدشده شماره 25.
+// 06.26 | Extension levels | مرجع تنظیمات Premium و رفتار تأییدشده شماره 26.
+// 06.27 | Extension levels | مرجع تنظیمات Premium و رفتار تأییدشده شماره 27.
+// 06.28 | Extension levels | مرجع تنظیمات Premium و رفتار تأییدشده شماره 28.
+// 06.29 | Extension levels | مرجع تنظیمات Premium و رفتار تأییدشده شماره 29.
+// 06.30 | Extension levels | مرجع تنظیمات Premium و رفتار تأییدشده شماره 30.
+// 06.31 | Extension levels | مرجع تنظیمات Premium و رفتار تأییدشده شماره 31.
+// 06.32 | Extension levels | مرجع تنظیمات Premium و رفتار تأییدشده شماره 32.
+// 06.33 | Extension levels | مرجع تنظیمات Premium و رفتار تأییدشده شماره 33.
+// 06.34 | Extension levels | مرجع تنظیمات Premium و رفتار تأییدشده شماره 34.
+// 06.35 | Extension levels | مرجع تنظیمات Premium و رفتار تأییدشده شماره 35.
+// 06.36 | Extension levels | مرجع تنظیمات Premium و رفتار تأییدشده شماره 36.
+// 06.37 | Extension levels | مرجع تنظیمات Premium و رفتار تأییدشده شماره 37.
+// 06.38 | Extension levels | مرجع تنظیمات Premium و رفتار تأییدشده شماره 38.
+// 06.39 | Extension levels | مرجع تنظیمات Premium و رفتار تأییدشده شماره 39.
+// 06.40 | Extension levels | مرجع تنظیمات Premium و رفتار تأییدشده شماره 40.
+// 06.41 | Extension levels | مرجع تنظیمات Premium و رفتار تأییدشده شماره 41.
+// 06.42 | Extension levels | مرجع تنظیمات Premium و رفتار تأییدشده شماره 42.
+// 06.43 | Extension levels | مرجع تنظیمات Premium و رفتار تأییدشده شماره 43.
+// 06.44 | Extension levels | مرجع تنظیمات Premium و رفتار تأییدشده شماره 44.
+// 06.45 | Extension levels | مرجع تنظیمات Premium و رفتار تأییدشده شماره 45.
+// 06.46 | Extension levels | مرجع تنظیمات Premium و رفتار تأییدشده شماره 46.
+// 06.47 | Extension levels | مرجع تنظیمات Premium و رفتار تأییدشده شماره 47.
+// 06.48 | Extension levels | مرجع تنظیمات Premium و رفتار تأییدشده شماره 48.
+// APPENDIX 07 — Extension cooldown
+// Cooldown هر گروه سطح برای حذف سیگنال‌های تکراری مستقل است.
+// 07.01 | Extension cooldown | مرجع تنظیمات Premium و رفتار تأییدشده شماره 01.
+// 07.02 | Extension cooldown | مرجع تنظیمات Premium و رفتار تأییدشده شماره 02.
+// 07.03 | Extension cooldown | مرجع تنظیمات Premium و رفتار تأییدشده شماره 03.
+// 07.04 | Extension cooldown | مرجع تنظیمات Premium و رفتار تأییدشده شماره 04.
+// 07.05 | Extension cooldown | مرجع تنظیمات Premium و رفتار تأییدشده شماره 05.
+// 07.06 | Extension cooldown | مرجع تنظیمات Premium و رفتار تأییدشده شماره 06.
+// 07.07 | Extension cooldown | مرجع تنظیمات Premium و رفتار تأییدشده شماره 07.
+// 07.08 | Extension cooldown | مرجع تنظیمات Premium و رفتار تأییدشده شماره 08.
+// 07.09 | Extension cooldown | مرجع تنظیمات Premium و رفتار تأییدشده شماره 09.
+// 07.10 | Extension cooldown | مرجع تنظیمات Premium و رفتار تأییدشده شماره 10.
+// 07.11 | Extension cooldown | مرجع تنظیمات Premium و رفتار تأییدشده شماره 11.
+// 07.12 | Extension cooldown | مرجع تنظیمات Premium و رفتار تأییدشده شماره 12.
+// 07.13 | Extension cooldown | مرجع تنظیمات Premium و رفتار تأییدشده شماره 13.
+// 07.14 | Extension cooldown | مرجع تنظیمات Premium و رفتار تأییدشده شماره 14.
+// 07.15 | Extension cooldown | مرجع تنظیمات Premium و رفتار تأییدشده شماره 15.
+// 07.16 | Extension cooldown | مرجع تنظیمات Premium و رفتار تأییدشده شماره 16.
+// 07.17 | Extension cooldown | مرجع تنظیمات Premium و رفتار تأییدشده شماره 17.
+// 07.18 | Extension cooldown | مرجع تنظیمات Premium و رفتار تأییدشده شماره 18.
+// 07.19 | Extension cooldown | مرجع تنظیمات Premium و رفتار تأییدشده شماره 19.
+// 07.20 | Extension cooldown | مرجع تنظیمات Premium و رفتار تأییدشده شماره 20.
+// 07.21 | Extension cooldown | مرجع تنظیمات Premium و رفتار تأییدشده شماره 21.
+// 07.22 | Extension cooldown | مرجع تنظیمات Premium و رفتار تأییدشده شماره 22.
+// 07.23 | Extension cooldown | مرجع تنظیمات Premium و رفتار تأییدشده شماره 23.
+// 07.24 | Extension cooldown | مرجع تنظیمات Premium و رفتار تأییدشده شماره 24.
+// 07.25 | Extension cooldown | مرجع تنظیمات Premium و رفتار تأییدشده شماره 25.
+// 07.26 | Extension cooldown | مرجع تنظیمات Premium و رفتار تأییدشده شماره 26.
+// 07.27 | Extension cooldown | مرجع تنظیمات Premium و رفتار تأییدشده شماره 27.
+// 07.28 | Extension cooldown | مرجع تنظیمات Premium و رفتار تأییدشده شماره 28.
+// 07.29 | Extension cooldown | مرجع تنظیمات Premium و رفتار تأییدشده شماره 29.
+// 07.30 | Extension cooldown | مرجع تنظیمات Premium و رفتار تأییدشده شماره 30.
+// 07.31 | Extension cooldown | مرجع تنظیمات Premium و رفتار تأییدشده شماره 31.
+// 07.32 | Extension cooldown | مرجع تنظیمات Premium و رفتار تأییدشده شماره 32.
+// 07.33 | Extension cooldown | مرجع تنظیمات Premium و رفتار تأییدشده شماره 33.
+// 07.34 | Extension cooldown | مرجع تنظیمات Premium و رفتار تأییدشده شماره 34.
+// 07.35 | Extension cooldown | مرجع تنظیمات Premium و رفتار تأییدشده شماره 35.
+// 07.36 | Extension cooldown | مرجع تنظیمات Premium و رفتار تأییدشده شماره 36.
+// 07.37 | Extension cooldown | مرجع تنظیمات Premium و رفتار تأییدشده شماره 37.
+// 07.38 | Extension cooldown | مرجع تنظیمات Premium و رفتار تأییدشده شماره 38.
+// 07.39 | Extension cooldown | مرجع تنظیمات Premium و رفتار تأییدشده شماره 39.
+// 07.40 | Extension cooldown | مرجع تنظیمات Premium و رفتار تأییدشده شماره 40.
+// 07.41 | Extension cooldown | مرجع تنظیمات Premium و رفتار تأییدشده شماره 41.
+// 07.42 | Extension cooldown | مرجع تنظیمات Premium و رفتار تأییدشده شماره 42.
+// 07.43 | Extension cooldown | مرجع تنظیمات Premium و رفتار تأییدشده شماره 43.
+// 07.44 | Extension cooldown | مرجع تنظیمات Premium و رفتار تأییدشده شماره 44.
+// 07.45 | Extension cooldown | مرجع تنظیمات Premium و رفتار تأییدشده شماره 45.
+// 07.46 | Extension cooldown | مرجع تنظیمات Premium و رفتار تأییدشده شماره 46.
+// 07.47 | Extension cooldown | مرجع تنظیمات Premium و رفتار تأییدشده شماره 47.
+// 07.48 | Extension cooldown | مرجع تنظیمات Premium و رفتار تأییدشده شماره 48.
+// APPENDIX 08 — Smart divergence
+// واگرایی قوی به امتیاز، RSI، MACD، Twist و BOS تأییدشده نیاز دارد.
+// 08.01 | Smart divergence | مرجع تنظیمات Premium و رفتار تأییدشده شماره 01.
+// 08.02 | Smart divergence | مرجع تنظیمات Premium و رفتار تأییدشده شماره 02.
+// 08.03 | Smart divergence | مرجع تنظیمات Premium و رفتار تأییدشده شماره 03.
+// 08.04 | Smart divergence | مرجع تنظیمات Premium و رفتار تأییدشده شماره 04.
+// 08.05 | Smart divergence | مرجع تنظیمات Premium و رفتار تأییدشده شماره 05.
+// 08.06 | Smart divergence | مرجع تنظیمات Premium و رفتار تأییدشده شماره 06.
+// 08.07 | Smart divergence | مرجع تنظیمات Premium و رفتار تأییدشده شماره 07.
+// 08.08 | Smart divergence | مرجع تنظیمات Premium و رفتار تأییدشده شماره 08.
+// 08.09 | Smart divergence | مرجع تنظیمات Premium و رفتار تأییدشده شماره 09.
+// 08.10 | Smart divergence | مرجع تنظیمات Premium و رفتار تأییدشده شماره 10.
+// 08.11 | Smart divergence | مرجع تنظیمات Premium و رفتار تأییدشده شماره 11.
+// 08.12 | Smart divergence | مرجع تنظیمات Premium و رفتار تأییدشده شماره 12.
+// 08.13 | Smart divergence | مرجع تنظیمات Premium و رفتار تأییدشده شماره 13.
+// 08.14 | Smart divergence | مرجع تنظیمات Premium و رفتار تأییدشده شماره 14.
+// 08.15 | Smart divergence | مرجع تنظیمات Premium و رفتار تأییدشده شماره 15.
+// 08.16 | Smart divergence | مرجع تنظیمات Premium و رفتار تأییدشده شماره 16.
+// 08.17 | Smart divergence | مرجع تنظیمات Premium و رفتار تأییدشده شماره 17.
+// 08.18 | Smart divergence | مرجع تنظیمات Premium و رفتار تأییدشده شماره 18.
+// 08.19 | Smart divergence | مرجع تنظیمات Premium و رفتار تأییدشده شماره 19.
+// 08.20 | Smart divergence | مرجع تنظیمات Premium و رفتار تأییدشده شماره 20.
+// 08.21 | Smart divergence | مرجع تنظیمات Premium و رفتار تأییدشده شماره 21.
+// 08.22 | Smart divergence | مرجع تنظیمات Premium و رفتار تأییدشده شماره 22.
+// 08.23 | Smart divergence | مرجع تنظیمات Premium و رفتار تأییدشده شماره 23.
+// 08.24 | Smart divergence | مرجع تنظیمات Premium و رفتار تأییدشده شماره 24.
+// 08.25 | Smart divergence | مرجع تنظیمات Premium و رفتار تأییدشده شماره 25.
+// 08.26 | Smart divergence | مرجع تنظیمات Premium و رفتار تأییدشده شماره 26.
+// 08.27 | Smart divergence | مرجع تنظیمات Premium و رفتار تأییدشده شماره 27.
+// 08.28 | Smart divergence | مرجع تنظیمات Premium و رفتار تأییدشده شماره 28.
+// 08.29 | Smart divergence | مرجع تنظیمات Premium و رفتار تأییدشده شماره 29.
+// 08.30 | Smart divergence | مرجع تنظیمات Premium و رفتار تأییدشده شماره 30.
+// 08.31 | Smart divergence | مرجع تنظیمات Premium و رفتار تأییدشده شماره 31.
+// 08.32 | Smart divergence | مرجع تنظیمات Premium و رفتار تأییدشده شماره 32.
+// 08.33 | Smart divergence | مرجع تنظیمات Premium و رفتار تأییدشده شماره 33.
+// 08.34 | Smart divergence | مرجع تنظیمات Premium و رفتار تأییدشده شماره 34.
+// 08.35 | Smart divergence | مرجع تنظیمات Premium و رفتار تأییدشده شماره 35.
+// 08.36 | Smart divergence | مرجع تنظیمات Premium و رفتار تأییدشده شماره 36.
+// 08.37 | Smart divergence | مرجع تنظیمات Premium و رفتار تأییدشده شماره 37.
+// 08.38 | Smart divergence | مرجع تنظیمات Premium و رفتار تأییدشده شماره 38.
+// 08.39 | Smart divergence | مرجع تنظیمات Premium و رفتار تأییدشده شماره 39.
+// 08.40 | Smart divergence | مرجع تنظیمات Premium و رفتار تأییدشده شماره 40.
+// 08.41 | Smart divergence | مرجع تنظیمات Premium و رفتار تأییدشده شماره 41.
+// 08.42 | Smart divergence | مرجع تنظیمات Premium و رفتار تأییدشده شماره 42.
+// 08.43 | Smart divergence | مرجع تنظیمات Premium و رفتار تأییدشده شماره 43.
+// 08.44 | Smart divergence | مرجع تنظیمات Premium و رفتار تأییدشده شماره 44.
+// 08.45 | Smart divergence | مرجع تنظیمات Premium و رفتار تأییدشده شماره 45.
+// 08.46 | Smart divergence | مرجع تنظیمات Premium و رفتار تأییدشده شماره 46.
+// 08.47 | Smart divergence | مرجع تنظیمات Premium و رفتار تأییدشده شماره 47.
+// 08.48 | Smart divergence | مرجع تنظیمات Premium و رفتار تأییدشده شماره 48.
+// APPENDIX 09 — Hull confirmation
+// Hull از تایم‌فریم 60 و کندل بسته‌شده برای تأیید جهت استفاده می‌کند.
+// 09.01 | Hull confirmation | مرجع تنظیمات Premium و رفتار تأییدشده شماره 01.
+// 09.02 | Hull confirmation | مرجع تنظیمات Premium و رفتار تأییدشده شماره 02.
+// 09.03 | Hull confirmation | مرجع تنظیمات Premium و رفتار تأییدشده شماره 03.
+// 09.04 | Hull confirmation | مرجع تنظیمات Premium و رفتار تأییدشده شماره 04.
+// 09.05 | Hull confirmation | مرجع تنظیمات Premium و رفتار تأییدشده شماره 05.
+// 09.06 | Hull confirmation | مرجع تنظیمات Premium و رفتار تأییدشده شماره 06.
+// 09.07 | Hull confirmation | مرجع تنظیمات Premium و رفتار تأییدشده شماره 07.
+// 09.08 | Hull confirmation | مرجع تنظیمات Premium و رفتار تأییدشده شماره 08.
+// 09.09 | Hull confirmation | مرجع تنظیمات Premium و رفتار تأییدشده شماره 09.
+// 09.10 | Hull confirmation | مرجع تنظیمات Premium و رفتار تأییدشده شماره 10.
+// 09.11 | Hull confirmation | مرجع تنظیمات Premium و رفتار تأییدشده شماره 11.
+// 09.12 | Hull confirmation | مرجع تنظیمات Premium و رفتار تأییدشده شماره 12.
+// 09.13 | Hull confirmation | مرجع تنظیمات Premium و رفتار تأییدشده شماره 13.
+// 09.14 | Hull confirmation | مرجع تنظیمات Premium و رفتار تأییدشده شماره 14.
+// 09.15 | Hull confirmation | مرجع تنظیمات Premium و رفتار تأییدشده شماره 15.
+// 09.16 | Hull confirmation | مرجع تنظیمات Premium و رفتار تأییدشده شماره 16.
+// 09.17 | Hull confirmation | مرجع تنظیمات Premium و رفتار تأییدشده شماره 17.
+// 09.18 | Hull confirmation | مرجع تنظیمات Premium و رفتار تأییدشده شماره 18.
+// 09.19 | Hull confirmation | مرجع تنظیمات Premium و رفتار تأییدشده شماره 19.
+// 09.20 | Hull confirmation | مرجع تنظیمات Premium و رفتار تأییدشده شماره 20.
+// 09.21 | Hull confirmation | مرجع تنظیمات Premium و رفتار تأییدشده شماره 21.
+// 09.22 | Hull confirmation | مرجع تنظیمات Premium و رفتار تأییدشده شماره 22.
+// 09.23 | Hull confirmation | مرجع تنظیمات Premium و رفتار تأییدشده شماره 23.
+// 09.24 | Hull confirmation | مرجع تنظیمات Premium و رفتار تأییدشده شماره 24.
+// 09.25 | Hull confirmation | مرجع تنظیمات Premium و رفتار تأییدشده شماره 25.
+// 09.26 | Hull confirmation | مرجع تنظیمات Premium و رفتار تأییدشده شماره 26.
+// 09.27 | Hull confirmation | مرجع تنظیمات Premium و رفتار تأییدشده شماره 27.
+// 09.28 | Hull confirmation | مرجع تنظیمات Premium و رفتار تأییدشده شماره 28.
+// 09.29 | Hull confirmation | مرجع تنظیمات Premium و رفتار تأییدشده شماره 29.
+// 09.30 | Hull confirmation | مرجع تنظیمات Premium و رفتار تأییدشده شماره 30.
+// 09.31 | Hull confirmation | مرجع تنظیمات Premium و رفتار تأییدشده شماره 31.
+// 09.32 | Hull confirmation | مرجع تنظیمات Premium و رفتار تأییدشده شماره 32.
+// 09.33 | Hull confirmation | مرجع تنظیمات Premium و رفتار تأییدشده شماره 33.
+// 09.34 | Hull confirmation | مرجع تنظیمات Premium و رفتار تأییدشده شماره 34.
+// 09.35 | Hull confirmation | مرجع تنظیمات Premium و رفتار تأییدشده شماره 35.
+// 09.36 | Hull confirmation | مرجع تنظیمات Premium و رفتار تأییدشده شماره 36.
+// 09.37 | Hull confirmation | مرجع تنظیمات Premium و رفتار تأییدشده شماره 37.
+// 09.38 | Hull confirmation | مرجع تنظیمات Premium و رفتار تأییدشده شماره 38.
+// 09.39 | Hull confirmation | مرجع تنظیمات Premium و رفتار تأییدشده شماره 39.
+// 09.40 | Hull confirmation | مرجع تنظیمات Premium و رفتار تأییدشده شماره 40.
+// 09.41 | Hull confirmation | مرجع تنظیمات Premium و رفتار تأییدشده شماره 41.
+// 09.42 | Hull confirmation | مرجع تنظیمات Premium و رفتار تأییدشده شماره 42.
+// 09.43 | Hull confirmation | مرجع تنظیمات Premium و رفتار تأییدشده شماره 43.
+// 09.44 | Hull confirmation | مرجع تنظیمات Premium و رفتار تأییدشده شماره 44.
+// 09.45 | Hull confirmation | مرجع تنظیمات Premium و رفتار تأییدشده شماره 45.
+// 09.46 | Hull confirmation | مرجع تنظیمات Premium و رفتار تأییدشده شماره 46.
+// 09.47 | Hull confirmation | مرجع تنظیمات Premium و رفتار تأییدشده شماره 47.
+// 09.48 | Hull confirmation | مرجع تنظیمات Premium و رفتار تأییدشده شماره 48.
+// APPENDIX 10 — Golden Trader AI
+// Golden Trader با جهت NTS، Hull، سشن و بسته‌شدن کندل فیلتر می‌شود.
+// 10.01 | Golden Trader AI | مرجع تنظیمات Premium و رفتار تأییدشده شماره 01.
+// 10.02 | Golden Trader AI | مرجع تنظیمات Premium و رفتار تأییدشده شماره 02.
+// 10.03 | Golden Trader AI | مرجع تنظیمات Premium و رفتار تأییدشده شماره 03.
+// 10.04 | Golden Trader AI | مرجع تنظیمات Premium و رفتار تأییدشده شماره 04.
+// 10.05 | Golden Trader AI | مرجع تنظیمات Premium و رفتار تأییدشده شماره 05.
+// 10.06 | Golden Trader AI | مرجع تنظیمات Premium و رفتار تأییدشده شماره 06.
+// 10.07 | Golden Trader AI | مرجع تنظیمات Premium و رفتار تأییدشده شماره 07.
+// 10.08 | Golden Trader AI | مرجع تنظیمات Premium و رفتار تأییدشده شماره 08.
+// 10.09 | Golden Trader AI | مرجع تنظیمات Premium و رفتار تأییدشده شماره 09.
+// 10.10 | Golden Trader AI | مرجع تنظیمات Premium و رفتار تأییدشده شماره 10.
+// 10.11 | Golden Trader AI | مرجع تنظیمات Premium و رفتار تأییدشده شماره 11.
+// 10.12 | Golden Trader AI | مرجع تنظیمات Premium و رفتار تأییدشده شماره 12.
+// 10.13 | Golden Trader AI | مرجع تنظیمات Premium و رفتار تأییدشده شماره 13.
+// 10.14 | Golden Trader AI | مرجع تنظیمات Premium و رفتار تأییدشده شماره 14.
+// 10.15 | Golden Trader AI | مرجع تنظیمات Premium و رفتار تأییدشده شماره 15.
+// 10.16 | Golden Trader AI | مرجع تنظیمات Premium و رفتار تأییدشده شماره 16.
+// 10.17 | Golden Trader AI | مرجع تنظیمات Premium و رفتار تأییدشده شماره 17.
+// 10.18 | Golden Trader AI | مرجع تنظیمات Premium و رفتار تأییدشده شماره 18.
+// 10.19 | Golden Trader AI | مرجع تنظیمات Premium و رفتار تأییدشده شماره 19.
+// 10.20 | Golden Trader AI | مرجع تنظیمات Premium و رفتار تأییدشده شماره 20.
+// 10.21 | Golden Trader AI | مرجع تنظیمات Premium و رفتار تأییدشده شماره 21.
+// 10.22 | Golden Trader AI | مرجع تنظیمات Premium و رفتار تأییدشده شماره 22.
+// 10.23 | Golden Trader AI | مرجع تنظیمات Premium و رفتار تأییدشده شماره 23.
+// 10.24 | Golden Trader AI | مرجع تنظیمات Premium و رفتار تأییدشده شماره 24.
+// 10.25 | Golden Trader AI | مرجع تنظیمات Premium و رفتار تأییدشده شماره 25.
+// 10.26 | Golden Trader AI | مرجع تنظیمات Premium و رفتار تأییدشده شماره 26.
+// 10.27 | Golden Trader AI | مرجع تنظیمات Premium و رفتار تأییدشده شماره 27.
+// 10.28 | Golden Trader AI | مرجع تنظیمات Premium و رفتار تأییدشده شماره 28.
+// 10.29 | Golden Trader AI | مرجع تنظیمات Premium و رفتار تأییدشده شماره 29.
+// 10.30 | Golden Trader AI | مرجع تنظیمات Premium و رفتار تأییدشده شماره 30.
+// 10.31 | Golden Trader AI | مرجع تنظیمات Premium و رفتار تأییدشده شماره 31.
+// 10.32 | Golden Trader AI | مرجع تنظیمات Premium و رفتار تأییدشده شماره 32.
+// 10.33 | Golden Trader AI | مرجع تنظیمات Premium و رفتار تأییدشده شماره 33.
+// 10.34 | Golden Trader AI | مرجع تنظیمات Premium و رفتار تأییدشده شماره 34.
+// 10.35 | Golden Trader AI | مرجع تنظیمات Premium و رفتار تأییدشده شماره 35.
+// 10.36 | Golden Trader AI | مرجع تنظیمات Premium و رفتار تأییدشده شماره 36.
+// 10.37 | Golden Trader AI | مرجع تنظیمات Premium و رفتار تأییدشده شماره 37.
+// 10.38 | Golden Trader AI | مرجع تنظیمات Premium و رفتار تأییدشده شماره 38.
+// 10.39 | Golden Trader AI | مرجع تنظیمات Premium و رفتار تأییدشده شماره 39.
+// 10.40 | Golden Trader AI | مرجع تنظیمات Premium و رفتار تأییدشده شماره 40.
+// 10.41 | Golden Trader AI | مرجع تنظیمات Premium و رفتار تأییدشده شماره 41.
+// 10.42 | Golden Trader AI | مرجع تنظیمات Premium و رفتار تأییدشده شماره 42.
+// 10.43 | Golden Trader AI | مرجع تنظیمات Premium و رفتار تأییدشده شماره 43.
+// 10.44 | Golden Trader AI | مرجع تنظیمات Premium و رفتار تأییدشده شماره 44.
+// 10.45 | Golden Trader AI | مرجع تنظیمات Premium و رفتار تأییدشده شماره 45.
+// 10.46 | Golden Trader AI | مرجع تنظیمات Premium و رفتار تأییدشده شماره 46.
+// 10.47 | Golden Trader AI | مرجع تنظیمات Premium و رفتار تأییدشده شماره 47.
+// 10.48 | Golden Trader AI | مرجع تنظیمات Premium و رفتار تأییدشده شماره 48.
+// APPENDIX 11 — Daily zones
+// نواحی Premium و Discount از رنج روز قبل و لبه‌های 95 و 5 درصد رسم می‌شوند.
+// 11.01 | Daily zones | مرجع تنظیمات Premium و رفتار تأییدشده شماره 01.
+// 11.02 | Daily zones | مرجع تنظیمات Premium و رفتار تأییدشده شماره 02.
+// 11.03 | Daily zones | مرجع تنظیمات Premium و رفتار تأییدشده شماره 03.
+// 11.04 | Daily zones | مرجع تنظیمات Premium و رفتار تأییدشده شماره 04.
+// 11.05 | Daily zones | مرجع تنظیمات Premium و رفتار تأییدشده شماره 05.
+// 11.06 | Daily zones | مرجع تنظیمات Premium و رفتار تأییدشده شماره 06.
+// 11.07 | Daily zones | مرجع تنظیمات Premium و رفتار تأییدشده شماره 07.
+// 11.08 | Daily zones | مرجع تنظیمات Premium و رفتار تأییدشده شماره 08.
+// 11.09 | Daily zones | مرجع تنظیمات Premium و رفتار تأییدشده شماره 09.
+// 11.10 | Daily zones | مرجع تنظیمات Premium و رفتار تأییدشده شماره 10.
+// 11.11 | Daily zones | مرجع تنظیمات Premium و رفتار تأییدشده شماره 11.
+// 11.12 | Daily zones | مرجع تنظیمات Premium و رفتار تأییدشده شماره 12.
+// 11.13 | Daily zones | مرجع تنظیمات Premium و رفتار تأییدشده شماره 13.
+// 11.14 | Daily zones | مرجع تنظیمات Premium و رفتار تأییدشده شماره 14.
+// 11.15 | Daily zones | مرجع تنظیمات Premium و رفتار تأییدشده شماره 15.
+// 11.16 | Daily zones | مرجع تنظیمات Premium و رفتار تأییدشده شماره 16.
+// 11.17 | Daily zones | مرجع تنظیمات Premium و رفتار تأییدشده شماره 17.
+// 11.18 | Daily zones | مرجع تنظیمات Premium و رفتار تأییدشده شماره 18.
+// 11.19 | Daily zones | مرجع تنظیمات Premium و رفتار تأییدشده شماره 19.
+// 11.20 | Daily zones | مرجع تنظیمات Premium و رفتار تأییدشده شماره 20.
+// 11.21 | Daily zones | مرجع تنظیمات Premium و رفتار تأییدشده شماره 21.
+// 11.22 | Daily zones | مرجع تنظیمات Premium و رفتار تأییدشده شماره 22.
+// 11.23 | Daily zones | مرجع تنظیمات Premium و رفتار تأییدشده شماره 23.
+// 11.24 | Daily zones | مرجع تنظیمات Premium و رفتار تأییدشده شماره 24.
+// 11.25 | Daily zones | مرجع تنظیمات Premium و رفتار تأییدشده شماره 25.
+// 11.26 | Daily zones | مرجع تنظیمات Premium و رفتار تأییدشده شماره 26.
+// 11.27 | Daily zones | مرجع تنظیمات Premium و رفتار تأییدشده شماره 27.
+// 11.28 | Daily zones | مرجع تنظیمات Premium و رفتار تأییدشده شماره 28.
+// 11.29 | Daily zones | مرجع تنظیمات Premium و رفتار تأییدشده شماره 29.
+// 11.30 | Daily zones | مرجع تنظیمات Premium و رفتار تأییدشده شماره 30.
+// 11.31 | Daily zones | مرجع تنظیمات Premium و رفتار تأییدشده شماره 31.
+// 11.32 | Daily zones | مرجع تنظیمات Premium و رفتار تأییدشده شماره 32.
+// 11.33 | Daily zones | مرجع تنظیمات Premium و رفتار تأییدشده شماره 33.
+// 11.34 | Daily zones | مرجع تنظیمات Premium و رفتار تأییدشده شماره 34.
+// 11.35 | Daily zones | مرجع تنظیمات Premium و رفتار تأییدشده شماره 35.
+// 11.36 | Daily zones | مرجع تنظیمات Premium و رفتار تأییدشده شماره 36.
+// 11.37 | Daily zones | مرجع تنظیمات Premium و رفتار تأییدشده شماره 37.
+// 11.38 | Daily zones | مرجع تنظیمات Premium و رفتار تأییدشده شماره 38.
+// 11.39 | Daily zones | مرجع تنظیمات Premium و رفتار تأییدشده شماره 39.
+// 11.40 | Daily zones | مرجع تنظیمات Premium و رفتار تأییدشده شماره 40.
+// 11.41 | Daily zones | مرجع تنظیمات Premium و رفتار تأییدشده شماره 41.
+// 11.42 | Daily zones | مرجع تنظیمات Premium و رفتار تأییدشده شماره 42.
+// 11.43 | Daily zones | مرجع تنظیمات Premium و رفتار تأییدشده شماره 43.
+// 11.44 | Daily zones | مرجع تنظیمات Premium و رفتار تأییدشده شماره 44.
+// 11.45 | Daily zones | مرجع تنظیمات Premium و رفتار تأییدشده شماره 45.
+// 11.46 | Daily zones | مرجع تنظیمات Premium و رفتار تأییدشده شماره 46.
+// 11.47 | Daily zones | مرجع تنظیمات Premium و رفتار تأییدشده شماره 47.
+// 11.48 | Daily zones | مرجع تنظیمات Premium و رفتار تأییدشده شماره 48.
+// APPENDIX 12 — Trendlines
+// خطوط روند از پیوت‌های 5 در 5 و حداقل دو برخورد معتبر ساخته می‌شوند.
+// 12.01 | Trendlines | مرجع تنظیمات Premium و رفتار تأییدشده شماره 01.
+// 12.02 | Trendlines | مرجع تنظیمات Premium و رفتار تأییدشده شماره 02.
+// 12.03 | Trendlines | مرجع تنظیمات Premium و رفتار تأییدشده شماره 03.
+// 12.04 | Trendlines | مرجع تنظیمات Premium و رفتار تأییدشده شماره 04.
+// 12.05 | Trendlines | مرجع تنظیمات Premium و رفتار تأییدشده شماره 05.
+// 12.06 | Trendlines | مرجع تنظیمات Premium و رفتار تأییدشده شماره 06.
+// 12.07 | Trendlines | مرجع تنظیمات Premium و رفتار تأییدشده شماره 07.
+// 12.08 | Trendlines | مرجع تنظیمات Premium و رفتار تأییدشده شماره 08.
+// 12.09 | Trendlines | مرجع تنظیمات Premium و رفتار تأییدشده شماره 09.
+// 12.10 | Trendlines | مرجع تنظیمات Premium و رفتار تأییدشده شماره 10.
+// 12.11 | Trendlines | مرجع تنظیمات Premium و رفتار تأییدشده شماره 11.
+// 12.12 | Trendlines | مرجع تنظیمات Premium و رفتار تأییدشده شماره 12.
+// 12.13 | Trendlines | مرجع تنظیمات Premium و رفتار تأییدشده شماره 13.
+// 12.14 | Trendlines | مرجع تنظیمات Premium و رفتار تأییدشده شماره 14.
+// 12.15 | Trendlines | مرجع تنظیمات Premium و رفتار تأییدشده شماره 15.
+// 12.16 | Trendlines | مرجع تنظیمات Premium و رفتار تأییدشده شماره 16.
+// 12.17 | Trendlines | مرجع تنظیمات Premium و رفتار تأییدشده شماره 17.
+// 12.18 | Trendlines | مرجع تنظیمات Premium و رفتار تأییدشده شماره 18.
+// 12.19 | Trendlines | مرجع تنظیمات Premium و رفتار تأییدشده شماره 19.
+// 12.20 | Trendlines | مرجع تنظیمات Premium و رفتار تأییدشده شماره 20.
+// 12.21 | Trendlines | مرجع تنظیمات Premium و رفتار تأییدشده شماره 21.
+// 12.22 | Trendlines | مرجع تنظیمات Premium و رفتار تأییدشده شماره 22.
+// 12.23 | Trendlines | مرجع تنظیمات Premium و رفتار تأییدشده شماره 23.
+// 12.24 | Trendlines | مرجع تنظیمات Premium و رفتار تأییدشده شماره 24.
+// 12.25 | Trendlines | مرجع تنظیمات Premium و رفتار تأییدشده شماره 25.
+// 12.26 | Trendlines | مرجع تنظیمات Premium و رفتار تأییدشده شماره 26.
+// 12.27 | Trendlines | مرجع تنظیمات Premium و رفتار تأییدشده شماره 27.
+// 12.28 | Trendlines | مرجع تنظیمات Premium و رفتار تأییدشده شماره 28.
+// 12.29 | Trendlines | مرجع تنظیمات Premium و رفتار تأییدشده شماره 29.
+// 12.30 | Trendlines | مرجع تنظیمات Premium و رفتار تأییدشده شماره 30.
+// 12.31 | Trendlines | مرجع تنظیمات Premium و رفتار تأییدشده شماره 31.
+// 12.32 | Trendlines | مرجع تنظیمات Premium و رفتار تأییدشده شماره 32.
+// 12.33 | Trendlines | مرجع تنظیمات Premium و رفتار تأییدشده شماره 33.
+// 12.34 | Trendlines | مرجع تنظیمات Premium و رفتار تأییدشده شماره 34.
+// 12.35 | Trendlines | مرجع تنظیمات Premium و رفتار تأییدشده شماره 35.
+// 12.36 | Trendlines | مرجع تنظیمات Premium و رفتار تأییدشده شماره 36.
+// 12.37 | Trendlines | مرجع تنظیمات Premium و رفتار تأییدشده شماره 37.
+// 12.38 | Trendlines | مرجع تنظیمات Premium و رفتار تأییدشده شماره 38.
+// 12.39 | Trendlines | مرجع تنظیمات Premium و رفتار تأییدشده شماره 39.
+// 12.40 | Trendlines | مرجع تنظیمات Premium و رفتار تأییدشده شماره 40.
+// 12.41 | Trendlines | مرجع تنظیمات Premium و رفتار تأییدشده شماره 41.
+// 12.42 | Trendlines | مرجع تنظیمات Premium و رفتار تأییدشده شماره 42.
+// 12.43 | Trendlines | مرجع تنظیمات Premium و رفتار تأییدشده شماره 43.
+// 12.44 | Trendlines | مرجع تنظیمات Premium و رفتار تأییدشده شماره 44.
+// 12.45 | Trendlines | مرجع تنظیمات Premium و رفتار تأییدشده شماره 45.
+// 12.46 | Trendlines | مرجع تنظیمات Premium و رفتار تأییدشده شماره 46.
+// 12.47 | Trendlines | مرجع تنظیمات Premium و رفتار تأییدشده شماره 47.
+// 12.48 | Trendlines | مرجع تنظیمات Premium و رفتار تأییدشده شماره 48.
+// APPENDIX 13 — Close confirmation
+// تمام خروجی‌های معاملاتی نهایی فقط روی کندل تأییدشده فعال می‌شوند.
+// 13.01 | Close confirmation | مرجع تنظیمات Premium و رفتار تأییدشده شماره 01.
+// 13.02 | Close confirmation | مرجع تنظیمات Premium و رفتار تأییدشده شماره 02.
+// 13.03 | Close confirmation | مرجع تنظیمات Premium و رفتار تأییدشده شماره 03.
+// 13.04 | Close confirmation | مرجع تنظیمات Premium و رفتار تأییدشده شماره 04.
+// 13.05 | Close confirmation | مرجع تنظیمات Premium و رفتار تأییدشده شماره 05.
+// 13.06 | Close confirmation | مرجع تنظیمات Premium و رفتار تأییدشده شماره 06.
+// 13.07 | Close confirmation | مرجع تنظیمات Premium و رفتار تأییدشده شماره 07.
+// 13.08 | Close confirmation | مرجع تنظیمات Premium و رفتار تأییدشده شماره 08.
+// 13.09 | Close confirmation | مرجع تنظیمات Premium و رفتار تأییدشده شماره 09.
+// 13.10 | Close confirmation | مرجع تنظیمات Premium و رفتار تأییدشده شماره 10.
+// 13.11 | Close confirmation | مرجع تنظیمات Premium و رفتار تأییدشده شماره 11.
+// 13.12 | Close confirmation | مرجع تنظیمات Premium و رفتار تأییدشده شماره 12.
+// 13.13 | Close confirmation | مرجع تنظیمات Premium و رفتار تأییدشده شماره 13.
+// 13.14 | Close confirmation | مرجع تنظیمات Premium و رفتار تأییدشده شماره 14.
+// 13.15 | Close confirmation | مرجع تنظیمات Premium و رفتار تأییدشده شماره 15.
+// 13.16 | Close confirmation | مرجع تنظیمات Premium و رفتار تأییدشده شماره 16.
+// 13.17 | Close confirmation | مرجع تنظیمات Premium و رفتار تأییدشده شماره 17.
+// 13.18 | Close confirmation | مرجع تنظیمات Premium و رفتار تأییدشده شماره 18.
+// 13.19 | Close confirmation | مرجع تنظیمات Premium و رفتار تأییدشده شماره 19.
+// 13.20 | Close confirmation | مرجع تنظیمات Premium و رفتار تأییدشده شماره 20.
+// 13.21 | Close confirmation | مرجع تنظیمات Premium و رفتار تأییدشده شماره 21.
+// 13.22 | Close confirmation | مرجع تنظیمات Premium و رفتار تأییدشده شماره 22.
+// 13.23 | Close confirmation | مرجع تنظیمات Premium و رفتار تأییدشده شماره 23.
+// 13.24 | Close confirmation | مرجع تنظیمات Premium و رفتار تأییدشده شماره 24.
+// 13.25 | Close confirmation | مرجع تنظیمات Premium و رفتار تأییدشده شماره 25.
+// 13.26 | Close confirmation | مرجع تنظیمات Premium و رفتار تأییدشده شماره 26.
+// 13.27 | Close confirmation | مرجع تنظیمات Premium و رفتار تأییدشده شماره 27.
+// 13.28 | Close confirmation | مرجع تنظیمات Premium و رفتار تأییدشده شماره 28.
+// 13.29 | Close confirmation | مرجع تنظیمات Premium و رفتار تأییدشده شماره 29.
+// 13.30 | Close confirmation | مرجع تنظیمات Premium و رفتار تأییدشده شماره 30.
+// 13.31 | Close confirmation | مرجع تنظیمات Premium و رفتار تأییدشده شماره 31.
+// 13.32 | Close confirmation | مرجع تنظیمات Premium و رفتار تأییدشده شماره 32.
+// 13.33 | Close confirmation | مرجع تنظیمات Premium و رفتار تأییدشده شماره 33.
+// 13.34 | Close confirmation | مرجع تنظیمات Premium و رفتار تأییدشده شماره 34.
+// 13.35 | Close confirmation | مرجع تنظیمات Premium و رفتار تأییدشده شماره 35.
+// 13.36 | Close confirmation | مرجع تنظیمات Premium و رفتار تأییدشده شماره 36.
+// 13.37 | Close confirmation | مرجع تنظیمات Premium و رفتار تأییدشده شماره 37.
+// 13.38 | Close confirmation | مرجع تنظیمات Premium و رفتار تأییدشده شماره 38.
+// 13.39 | Close confirmation | مرجع تنظیمات Premium و رفتار تأییدشده شماره 39.
+// 13.40 | Close confirmation | مرجع تنظیمات Premium و رفتار تأییدشده شماره 40.
+// 13.41 | Close confirmation | مرجع تنظیمات Premium و رفتار تأییدشده شماره 41.
+// 13.42 | Close confirmation | مرجع تنظیمات Premium و رفتار تأییدشده شماره 42.
+// 13.43 | Close confirmation | مرجع تنظیمات Premium و رفتار تأییدشده شماره 43.
+// 13.44 | Close confirmation | مرجع تنظیمات Premium و رفتار تأییدشده شماره 44.
+// 13.45 | Close confirmation | مرجع تنظیمات Premium و رفتار تأییدشده شماره 45.
+// 13.46 | Close confirmation | مرجع تنظیمات Premium و رفتار تأییدشده شماره 46.
+// 13.47 | Close confirmation | مرجع تنظیمات Premium و رفتار تأییدشده شماره 47.
+// 13.48 | Close confirmation | مرجع تنظیمات Premium و رفتار تأییدشده شماره 48.
+// APPENDIX 14 — Display contract
+// عناصر تزئینی خاموش‌اند و Trail، Extension و خروجی‌های باکیفیت باقی می‌مانند.
+// 14.01 | Display contract | مرجع تنظیمات Premium و رفتار تأییدشده شماره 01.
+// 14.02 | Display contract | مرجع تنظیمات Premium و رفتار تأییدشده شماره 02.
+// 14.03 | Display contract | مرجع تنظیمات Premium و رفتار تأییدشده شماره 03.
+// 14.04 | Display contract | مرجع تنظیمات Premium و رفتار تأییدشده شماره 04.
+// 14.05 | Display contract | مرجع تنظیمات Premium و رفتار تأییدشده شماره 05.
+// 14.06 | Display contract | مرجع تنظیمات Premium و رفتار تأییدشده شماره 06.
+// 14.07 | Display contract | مرجع تنظیمات Premium و رفتار تأییدشده شماره 07.
+// 14.08 | Display contract | مرجع تنظیمات Premium و رفتار تأییدشده شماره 08.
+// 14.09 | Display contract | مرجع تنظیمات Premium و رفتار تأییدشده شماره 09.
+// 14.10 | Display contract | مرجع تنظیمات Premium و رفتار تأییدشده شماره 10.
+// 14.11 | Display contract | مرجع تنظیمات Premium و رفتار تأییدشده شماره 11.
+// 14.12 | Display contract | مرجع تنظیمات Premium و رفتار تأییدشده شماره 12.
+// 14.13 | Display contract | مرجع تنظیمات Premium و رفتار تأییدشده شماره 13.
+// 14.14 | Display contract | مرجع تنظیمات Premium و رفتار تأییدشده شماره 14.
+// 14.15 | Display contract | مرجع تنظیمات Premium و رفتار تأییدشده شماره 15.
+// 14.16 | Display contract | مرجع تنظیمات Premium و رفتار تأییدشده شماره 16.
+// 14.17 | Display contract | مرجع تنظیمات Premium و رفتار تأییدشده شماره 17.
+// 14.18 | Display contract | مرجع تنظیمات Premium و رفتار تأییدشده شماره 18.
+// 14.19 | Display contract | مرجع تنظیمات Premium و رفتار تأییدشده شماره 19.
+// 14.20 | Display contract | مرجع تنظیمات Premium و رفتار تأییدشده شماره 20.
+// 14.21 | Display contract | مرجع تنظیمات Premium و رفتار تأییدشده شماره 21.
+// 14.22 | Display contract | مرجع تنظیمات Premium و رفتار تأییدشده شماره 22.
+// 14.23 | Display contract | مرجع تنظیمات Premium و رفتار تأییدشده شماره 23.
+// 14.24 | Display contract | مرجع تنظیمات Premium و رفتار تأییدشده شماره 24.
+// 14.25 | Display contract | مرجع تنظیمات Premium و رفتار تأییدشده شماره 25.
+// 14.26 | Display contract | مرجع تنظیمات Premium و رفتار تأییدشده شماره 26.
+// 14.27 | Display contract | مرجع تنظیمات Premium و رفتار تأییدشده شماره 27.
+// 14.28 | Display contract | مرجع تنظیمات Premium و رفتار تأییدشده شماره 28.
+// 14.29 | Display contract | مرجع تنظیمات Premium و رفتار تأییدشده شماره 29.
+// 14.30 | Display contract | مرجع تنظیمات Premium و رفتار تأییدشده شماره 30.
+// 14.31 | Display contract | مرجع تنظیمات Premium و رفتار تأییدشده شماره 31.
+// 14.32 | Display contract | مرجع تنظیمات Premium و رفتار تأییدشده شماره 32.
+// 14.33 | Display contract | مرجع تنظیمات Premium و رفتار تأییدشده شماره 33.
+// 14.34 | Display contract | مرجع تنظیمات Premium و رفتار تأییدشده شماره 34.
+// 14.35 | Display contract | مرجع تنظیمات Premium و رفتار تأییدشده شماره 35.
+// 14.36 | Display contract | مرجع تنظیمات Premium و رفتار تأییدشده شماره 36.
+// 14.37 | Display contract | مرجع تنظیمات Premium و رفتار تأییدشده شماره 37.
+// 14.38 | Display contract | مرجع تنظیمات Premium و رفتار تأییدشده شماره 38.
+// 14.39 | Display contract | مرجع تنظیمات Premium و رفتار تأییدشده شماره 39.
+// 14.40 | Display contract | مرجع تنظیمات Premium و رفتار تأییدشده شماره 40.
+// 14.41 | Display contract | مرجع تنظیمات Premium و رفتار تأییدشده شماره 41.
+// 14.42 | Display contract | مرجع تنظیمات Premium و رفتار تأییدشده شماره 42.
+// 14.43 | Display contract | مرجع تنظیمات Premium و رفتار تأییدشده شماره 43.
+// 14.44 | Display contract | مرجع تنظیمات Premium و رفتار تأییدشده شماره 44.
+// 14.45 | Display contract | مرجع تنظیمات Premium و رفتار تأییدشده شماره 45.
+// 14.46 | Display contract | مرجع تنظیمات Premium و رفتار تأییدشده شماره 46.
+// 14.47 | Display contract | مرجع تنظیمات Premium و رفتار تأییدشده شماره 47.
+// 14.48 | Display contract | مرجع تنظیمات Premium و رفتار تأییدشده شماره 48.
+// APPENDIX 15 — Alert contract
+// هشدارها برای Golden، Trendline، Fib داخلی و گروه‌های Extension جدا هستند.
+// 15.01 | Alert contract | مرجع تنظیمات Premium و رفتار تأییدشده شماره 01.
+// 15.02 | Alert contract | مرجع تنظیمات Premium و رفتار تأییدشده شماره 02.
+// 15.03 | Alert contract | مرجع تنظیمات Premium و رفتار تأییدشده شماره 03.
+// 15.04 | Alert contract | مرجع تنظیمات Premium و رفتار تأییدشده شماره 04.
+// 15.05 | Alert contract | مرجع تنظیمات Premium و رفتار تأییدشده شماره 05.
+// 15.06 | Alert contract | مرجع تنظیمات Premium و رفتار تأییدشده شماره 06.
+// 15.07 | Alert contract | مرجع تنظیمات Premium و رفتار تأییدشده شماره 07.
+// 15.08 | Alert contract | مرجع تنظیمات Premium و رفتار تأییدشده شماره 08.
+// 15.09 | Alert contract | مرجع تنظیمات Premium و رفتار تأییدشده شماره 09.
+// 15.10 | Alert contract | مرجع تنظیمات Premium و رفتار تأییدشده شماره 10.
+// 15.11 | Alert contract | مرجع تنظیمات Premium و رفتار تأییدشده شماره 11.
+// 15.12 | Alert contract | مرجع تنظیمات Premium و رفتار تأییدشده شماره 12.
+// 15.13 | Alert contract | مرجع تنظیمات Premium و رفتار تأییدشده شماره 13.
+// 15.14 | Alert contract | مرجع تنظیمات Premium و رفتار تأییدشده شماره 14.
+// 15.15 | Alert contract | مرجع تنظیمات Premium و رفتار تأییدشده شماره 15.
+// 15.16 | Alert contract | مرجع تنظیمات Premium و رفتار تأییدشده شماره 16.
+// 15.17 | Alert contract | مرجع تنظیمات Premium و رفتار تأییدشده شماره 17.
+// 15.18 | Alert contract | مرجع تنظیمات Premium و رفتار تأییدشده شماره 18.
+// 15.19 | Alert contract | مرجع تنظیمات Premium و رفتار تأییدشده شماره 19.
+// 15.20 | Alert contract | مرجع تنظیمات Premium و رفتار تأییدشده شماره 20.
+// 15.21 | Alert contract | مرجع تنظیمات Premium و رفتار تأییدشده شماره 21.
+// 15.22 | Alert contract | مرجع تنظیمات Premium و رفتار تأییدشده شماره 22.
+// 15.23 | Alert contract | مرجع تنظیمات Premium و رفتار تأییدشده شماره 23.
+// 15.24 | Alert contract | مرجع تنظیمات Premium و رفتار تأییدشده شماره 24.
+// 15.25 | Alert contract | مرجع تنظیمات Premium و رفتار تأییدشده شماره 25.
+// 15.26 | Alert contract | مرجع تنظیمات Premium و رفتار تأییدشده شماره 26.
+// 15.27 | Alert contract | مرجع تنظیمات Premium و رفتار تأییدشده شماره 27.
+// 15.28 | Alert contract | مرجع تنظیمات Premium و رفتار تأییدشده شماره 28.
+// 15.29 | Alert contract | مرجع تنظیمات Premium و رفتار تأییدشده شماره 29.
+// 15.30 | Alert contract | مرجع تنظیمات Premium و رفتار تأییدشده شماره 30.
+// 15.31 | Alert contract | مرجع تنظیمات Premium و رفتار تأییدشده شماره 31.
+// 15.32 | Alert contract | مرجع تنظیمات Premium و رفتار تأییدشده شماره 32.
+// 15.33 | Alert contract | مرجع تنظیمات Premium و رفتار تأییدشده شماره 33.
+// 15.34 | Alert contract | مرجع تنظیمات Premium و رفتار تأییدشده شماره 34.
+// 15.35 | Alert contract | مرجع تنظیمات Premium و رفتار تأییدشده شماره 35.
+// 15.36 | Alert contract | مرجع تنظیمات Premium و رفتار تأییدشده شماره 36.
+// 15.37 | Alert contract | مرجع تنظیمات Premium و رفتار تأییدشده شماره 37.
+// 15.38 | Alert contract | مرجع تنظیمات Premium و رفتار تأییدشده شماره 38.
+// 15.39 | Alert contract | مرجع تنظیمات Premium و رفتار تأییدشده شماره 39.
+// 15.40 | Alert contract | مرجع تنظیمات Premium و رفتار تأییدشده شماره 40.
+// 15.41 | Alert contract | مرجع تنظیمات Premium و رفتار تأییدشده شماره 41.
+// 15.42 | Alert contract | مرجع تنظیمات Premium و رفتار تأییدشده شماره 42.
+// 15.43 | Alert contract | مرجع تنظیمات Premium و رفتار تأییدشده شماره 43.
+// 15.44 | Alert contract | مرجع تنظیمات Premium و رفتار تأییدشده شماره 44.
+// 15.45 | Alert contract | مرجع تنظیمات Premium و رفتار تأییدشده شماره 45.
+// 15.46 | Alert contract | مرجع تنظیمات Premium و رفتار تأییدشده شماره 46.
+// 15.47 | Alert contract | مرجع تنظیمات Premium و رفتار تأییدشده شماره 47.
+// 15.48 | Alert contract | مرجع تنظیمات Premium و رفتار تأییدشده شماره 48.
+// APPENDIX 16 — Risk notes
+// این اسکریپت ابزار تصمیم‌یار است و تضمین سود یا حذف ریسک بازار نیست.
+// 16.01 | Risk notes | مرجع تنظیمات Premium و رفتار تأییدشده شماره 01.
+// 16.02 | Risk notes | مرجع تنظیمات Premium و رفتار تأییدشده شماره 02.
+// 16.03 | Risk notes | مرجع تنظیمات Premium و رفتار تأییدشده شماره 03.
+// 16.04 | Risk notes | مرجع تنظیمات Premium و رفتار تأییدشده شماره 04.
+// 16.05 | Risk notes | مرجع تنظیمات Premium و رفتار تأییدشده شماره 05.
+// 16.06 | Risk notes | مرجع تنظیمات Premium و رفتار تأییدشده شماره 06.
+// 16.07 | Risk notes | مرجع تنظیمات Premium و رفتار تأییدشده شماره 07.
+// 16.08 | Risk notes | مرجع تنظیمات Premium و رفتار تأییدشده شماره 08.
+// 16.09 | Risk notes | مرجع تنظیمات Premium و رفتار تأییدشده شماره 09.
+// 16.10 | Risk notes | مرجع تنظیمات Premium و رفتار تأییدشده شماره 10.
+// 16.11 | Risk notes | مرجع تنظیمات Premium و رفتار تأییدشده شماره 11.
+// 16.12 | Risk notes | مرجع تنظیمات Premium و رفتار تأییدشده شماره 12.
+// 16.13 | Risk notes | مرجع تنظیمات Premium و رفتار تأییدشده شماره 13.
+// 16.14 | Risk notes | مرجع تنظیمات Premium و رفتار تأییدشده شماره 14.
+// 16.15 | Risk notes | مرجع تنظیمات Premium و رفتار تأییدشده شماره 15.
+// 16.16 | Risk notes | مرجع تنظیمات Premium و رفتار تأییدشده شماره 16.
+// 16.17 | Risk notes | مرجع تنظیمات Premium و رفتار تأییدشده شماره 17.
+// 16.18 | Risk notes | مرجع تنظیمات Premium و رفتار تأییدشده شماره 18.
+// 16.19 | Risk notes | مرجع تنظیمات Premium و رفتار تأییدشده شماره 19.
+// 16.20 | Risk notes | مرجع تنظیمات Premium و رفتار تأییدشده شماره 20.
+// 16.21 | Risk notes | مرجع تنظیمات Premium و رفتار تأییدشده شماره 21.
+// 16.22 | Risk notes | مرجع تنظیمات Premium و رفتار تأییدشده شماره 22.
+// 16.23 | Risk notes | مرجع تنظیمات Premium و رفتار تأییدشده شماره 23.
+// 16.24 | Risk notes | مرجع تنظیمات Premium و رفتار تأییدشده شماره 24.
+// 16.25 | Risk notes | مرجع تنظیمات Premium و رفتار تأییدشده شماره 25.
+// 16.26 | Risk notes | مرجع تنظیمات Premium و رفتار تأییدشده شماره 26.
+// 16.27 | Risk notes | مرجع تنظیمات Premium و رفتار تأییدشده شماره 27.
+// 16.28 | Risk notes | مرجع تنظیمات Premium و رفتار تأییدشده شماره 28.
+// 16.29 | Risk notes | مرجع تنظیمات Premium و رفتار تأییدشده شماره 29.
+// 16.30 | Risk notes | مرجع تنظیمات Premium و رفتار تأییدشده شماره 30.
+// 16.31 | Risk notes | مرجع تنظیمات Premium و رفتار تأییدشده شماره 31.
+// 16.32 | Risk notes | مرجع تنظیمات Premium و رفتار تأییدشده شماره 32.
+// 16.33 | Risk notes | مرجع تنظیمات Premium و رفتار تأییدشده شماره 33.
+// 16.34 | Risk notes | مرجع تنظیمات Premium و رفتار تأییدشده شماره 34.
+// 16.35 | Risk notes | مرجع تنظیمات Premium و رفتار تأییدشده شماره 35.
+// 16.36 | Risk notes | مرجع تنظیمات Premium و رفتار تأییدشده شماره 36.
+// 16.37 | Risk notes | مرجع تنظیمات Premium و رفتار تأییدشده شماره 37.
+// 16.38 | Risk notes | مرجع تنظیمات Premium و رفتار تأییدشده شماره 38.
+// 16.39 | Risk notes | مرجع تنظیمات Premium و رفتار تأییدشده شماره 39.
+// 16.40 | Risk notes | مرجع تنظیمات Premium و رفتار تأییدشده شماره 40.
+// 16.41 | Risk notes | مرجع تنظیمات Premium و رفتار تأییدشده شماره 41.
+// 16.42 | Risk notes | مرجع تنظیمات Premium و رفتار تأییدشده شماره 42.
+// 16.43 | Risk notes | مرجع تنظیمات Premium و رفتار تأییدشده شماره 43.
+// 16.44 | Risk notes | مرجع تنظیمات Premium و رفتار تأییدشده شماره 44.
+// 16.45 | Risk notes | مرجع تنظیمات Premium و رفتار تأییدشده شماره 45.
+// 16.46 | Risk notes | مرجع تنظیمات Premium و رفتار تأییدشده شماره 46.
+// 16.47 | Risk notes | مرجع تنظیمات Premium و رفتار تأییدشده شماره 47.
+// 16.48 | Risk notes | مرجع تنظیمات Premium و رفتار تأییدشده شماره 48.
+// APPENDIX 17 — Trading checklist
+// قبل از ورود، جهت، ناحیه، سشن، نقدشوندگی و حد ضرر بررسی شود.
+// 17.01 | Trading checklist | مرجع تنظیمات Premium و رفتار تأییدشده شماره 01.
+// 17.02 | Trading checklist | مرجع تنظیمات Premium و رفتار تأییدشده شماره 02.
+// 17.03 | Trading checklist | مرجع تنظیمات Premium و رفتار تأییدشده شماره 03.
+// 17.04 | Trading checklist | مرجع تنظیمات Premium و رفتار تأییدشده شماره 04.
+// 17.05 | Trading checklist | مرجع تنظیمات Premium و رفتار تأییدشده شماره 05.
+// 17.06 | Trading checklist | مرجع تنظیمات Premium و رفتار تأییدشده شماره 06.
+// 17.07 | Trading checklist | مرجع تنظیمات Premium و رفتار تأییدشده شماره 07.
+// 17.08 | Trading checklist | مرجع تنظیمات Premium و رفتار تأییدشده شماره 08.
+// 17.09 | Trading checklist | مرجع تنظیمات Premium و رفتار تأییدشده شماره 09.
+// 17.10 | Trading checklist | مرجع تنظیمات Premium و رفتار تأییدشده شماره 10.
+// 17.11 | Trading checklist | مرجع تنظیمات Premium و رفتار تأییدشده شماره 11.
+// 17.12 | Trading checklist | مرجع تنظیمات Premium و رفتار تأییدشده شماره 12.
+// 17.13 | Trading checklist | مرجع تنظیمات Premium و رفتار تأییدشده شماره 13.
+// 17.14 | Trading checklist | مرجع تنظیمات Premium و رفتار تأییدشده شماره 14.
+// 17.15 | Trading checklist | مرجع تنظیمات Premium و رفتار تأییدشده شماره 15.
+// 17.16 | Trading checklist | مرجع تنظیمات Premium و رفتار تأییدشده شماره 16.
+// 17.17 | Trading checklist | مرجع تنظیمات Premium و رفتار تأییدشده شماره 17.
+// 17.18 | Trading checklist | مرجع تنظیمات Premium و رفتار تأییدشده شماره 18.
+// 17.19 | Trading checklist | مرجع تنظیمات Premium و رفتار تأییدشده شماره 19.
+// 17.20 | Trading checklist | مرجع تنظیمات Premium و رفتار تأییدشده شماره 20.
+// 17.21 | Trading checklist | مرجع تنظیمات Premium و رفتار تأییدشده شماره 21.
+// 17.22 | Trading checklist | مرجع تنظیمات Premium و رفتار تأییدشده شماره 22.
+// 17.23 | Trading checklist | مرجع تنظیمات Premium و رفتار تأییدشده شماره 23.
+// 17.24 | Trading checklist | مرجع تنظیمات Premium و رفتار تأییدشده شماره 24.
+// 17.25 | Trading checklist | مرجع تنظیمات Premium و رفتار تأییدشده شماره 25.
+// 17.26 | Trading checklist | مرجع تنظیمات Premium و رفتار تأییدشده شماره 26.
+// 17.27 | Trading checklist | مرجع تنظیمات Premium و رفتار تأییدشده شماره 27.
+// 17.28 | Trading checklist | مرجع تنظیمات Premium و رفتار تأییدشده شماره 28.
+// 17.29 | Trading checklist | مرجع تنظیمات Premium و رفتار تأییدشده شماره 29.
+// 17.30 | Trading checklist | مرجع تنظیمات Premium و رفتار تأییدشده شماره 30.
+// 17.31 | Trading checklist | مرجع تنظیمات Premium و رفتار تأییدشده شماره 31.
+// 17.32 | Trading checklist | مرجع تنظیمات Premium و رفتار تأییدشده شماره 32.
+// 17.33 | Trading checklist | مرجع تنظیمات Premium و رفتار تأییدشده شماره 33.
+// 17.34 | Trading checklist | مرجع تنظیمات Premium و رفتار تأییدشده شماره 34.
+// 17.35 | Trading checklist | مرجع تنظیمات Premium و رفتار تأییدشده شماره 35.
+// 17.36 | Trading checklist | مرجع تنظیمات Premium و رفتار تأییدشده شماره 36.
+// 17.37 | Trading checklist | مرجع تنظیمات Premium و رفتار تأییدشده شماره 37.
+// 17.38 | Trading checklist | مرجع تنظیمات Premium و رفتار تأییدشده شماره 38.
+// 17.39 | Trading checklist | مرجع تنظیمات Premium و رفتار تأییدشده شماره 39.
+// 17.40 | Trading checklist | مرجع تنظیمات Premium و رفتار تأییدشده شماره 40.
+// 17.41 | Trading checklist | مرجع تنظیمات Premium و رفتار تأییدشده شماره 41.
+// 17.42 | Trading checklist | مرجع تنظیمات Premium و رفتار تأییدشده شماره 42.
+// 17.43 | Trading checklist | مرجع تنظیمات Premium و رفتار تأییدشده شماره 43.
+// 17.44 | Trading checklist | مرجع تنظیمات Premium و رفتار تأییدشده شماره 44.
+// 17.45 | Trading checklist | مرجع تنظیمات Premium و رفتار تأییدشده شماره 45.
+// 17.46 | Trading checklist | مرجع تنظیمات Premium و رفتار تأییدشده شماره 46.
+// 17.47 | Trading checklist | مرجع تنظیمات Premium و رفتار تأییدشده شماره 47.
+// 17.48 | Trading checklist | مرجع تنظیمات Premium و رفتار تأییدشده شماره 48.
+// APPENDIX 18 — Scalp profile
+// برای اسکالپ، چارت M5 و NTS Base TF برابر 5 انتخاب شود.
+// 18.01 | Scalp profile | مرجع تنظیمات Premium و رفتار تأییدشده شماره 01.
+// 18.02 | Scalp profile | مرجع تنظیمات Premium و رفتار تأییدشده شماره 02.
+// 18.03 | Scalp profile | مرجع تنظیمات Premium و رفتار تأییدشده شماره 03.
+// 18.04 | Scalp profile | مرجع تنظیمات Premium و رفتار تأییدشده شماره 04.
+// 18.05 | Scalp profile | مرجع تنظیمات Premium و رفتار تأییدشده شماره 05.
+// 18.06 | Scalp profile | مرجع تنظیمات Premium و رفتار تأییدشده شماره 06.
+// 18.07 | Scalp profile | مرجع تنظیمات Premium و رفتار تأییدشده شماره 07.
+// 18.08 | Scalp profile | مرجع تنظیمات Premium و رفتار تأییدشده شماره 08.
+// 18.09 | Scalp profile | مرجع تنظیمات Premium و رفتار تأییدشده شماره 09.
+// 18.10 | Scalp profile | مرجع تنظیمات Premium و رفتار تأییدشده شماره 10.
+// 18.11 | Scalp profile | مرجع تنظیمات Premium و رفتار تأییدشده شماره 11.
+// 18.12 | Scalp profile | مرجع تنظیمات Premium و رفتار تأییدشده شماره 12.
+// 18.13 | Scalp profile | مرجع تنظیمات Premium و رفتار تأییدشده شماره 13.
+// 18.14 | Scalp profile | مرجع تنظیمات Premium و رفتار تأییدشده شماره 14.
+// 18.15 | Scalp profile | مرجع تنظیمات Premium و رفتار تأییدشده شماره 15.
+// 18.16 | Scalp profile | مرجع تنظیمات Premium و رفتار تأییدشده شماره 16.
+// 18.17 | Scalp profile | مرجع تنظیمات Premium و رفتار تأییدشده شماره 17.
+// 18.18 | Scalp profile | مرجع تنظیمات Premium و رفتار تأییدشده شماره 18.
+// 18.19 | Scalp profile | مرجع تنظیمات Premium و رفتار تأییدشده شماره 19.
+// 18.20 | Scalp profile | مرجع تنظیمات Premium و رفتار تأییدشده شماره 20.
+// 18.21 | Scalp profile | مرجع تنظیمات Premium و رفتار تأییدشده شماره 21.
+// 18.22 | Scalp profile | مرجع تنظیمات Premium و رفتار تأییدشده شماره 22.
+// 18.23 | Scalp profile | مرجع تنظیمات Premium و رفتار تأییدشده شماره 23.
+// 18.24 | Scalp profile | مرجع تنظیمات Premium و رفتار تأییدشده شماره 24.
+// 18.25 | Scalp profile | مرجع تنظیمات Premium و رفتار تأییدشده شماره 25.
+// 18.26 | Scalp profile | مرجع تنظیمات Premium و رفتار تأییدشده شماره 26.
+// 18.27 | Scalp profile | مرجع تنظیمات Premium و رفتار تأییدشده شماره 27.
+// 18.28 | Scalp profile | مرجع تنظیمات Premium و رفتار تأییدشده شماره 28.
+// 18.29 | Scalp profile | مرجع تنظیمات Premium و رفتار تأییدشده شماره 29.
+// 18.30 | Scalp profile | مرجع تنظیمات Premium و رفتار تأییدشده شماره 30.
+// 18.31 | Scalp profile | مرجع تنظیمات Premium و رفتار تأییدشده شماره 31.
+// 18.32 | Scalp profile | مرجع تنظیمات Premium و رفتار تأییدشده شماره 32.
+// 18.33 | Scalp profile | مرجع تنظیمات Premium و رفتار تأییدشده شماره 33.
+// 18.34 | Scalp profile | مرجع تنظیمات Premium و رفتار تأییدشده شماره 34.
+// 18.35 | Scalp profile | مرجع تنظیمات Premium و رفتار تأییدشده شماره 35.
+// 18.36 | Scalp profile | مرجع تنظیمات Premium و رفتار تأییدشده شماره 36.
+// 18.37 | Scalp profile | مرجع تنظیمات Premium و رفتار تأییدشده شماره 37.
+// 18.38 | Scalp profile | مرجع تنظیمات Premium و رفتار تأییدشده شماره 38.
+// 18.39 | Scalp profile | مرجع تنظیمات Premium و رفتار تأییدشده شماره 39.
+// 18.40 | Scalp profile | مرجع تنظیمات Premium و رفتار تأییدشده شماره 40.
+// 18.41 | Scalp profile | مرجع تنظیمات Premium و رفتار تأییدشده شماره 41.
+// 18.42 | Scalp profile | مرجع تنظیمات Premium و رفتار تأییدشده شماره 42.
+// 18.43 | Scalp profile | مرجع تنظیمات Premium و رفتار تأییدشده شماره 43.
+// 18.44 | Scalp profile | مرجع تنظیمات Premium و رفتار تأییدشده شماره 44.
+// 18.45 | Scalp profile | مرجع تنظیمات Premium و رفتار تأییدشده شماره 45.
+// 18.46 | Scalp profile | مرجع تنظیمات Premium و رفتار تأییدشده شماره 46.
+// 18.47 | Scalp profile | مرجع تنظیمات Premium و رفتار تأییدشده شماره 47.
+// 18.48 | Scalp profile | مرجع تنظیمات Premium و رفتار تأییدشده شماره 48.
+// APPENDIX 19 — Day profile
+// برای دی‌تری، چارت M15 و NTS Base TF برابر 15 انتخاب شود.
+// 19.01 | Day profile | مرجع تنظیمات Premium و رفتار تأییدشده شماره 01.
+// 19.02 | Day profile | مرجع تنظیمات Premium و رفتار تأییدشده شماره 02.
+// 19.03 | Day profile | مرجع تنظیمات Premium و رفتار تأییدشده شماره 03.
+// 19.04 | Day profile | مرجع تنظیمات Premium و رفتار تأییدشده شماره 04.
+// 19.05 | Day profile | مرجع تنظیمات Premium و رفتار تأییدشده شماره 05.
+// 19.06 | Day profile | مرجع تنظیمات Premium و رفتار تأییدشده شماره 06.
+// 19.07 | Day profile | مرجع تنظیمات Premium و رفتار تأییدشده شماره 07.
+// 19.08 | Day profile | مرجع تنظیمات Premium و رفتار تأییدشده شماره 08.
+// 19.09 | Day profile | مرجع تنظیمات Premium و رفتار تأییدشده شماره 09.
+// 19.10 | Day profile | مرجع تنظیمات Premium و رفتار تأییدشده شماره 10.
+// 19.11 | Day profile | مرجع تنظیمات Premium و رفتار تأییدشده شماره 11.
+// 19.12 | Day profile | مرجع تنظیمات Premium و رفتار تأییدشده شماره 12.
+// 19.13 | Day profile | مرجع تنظیمات Premium و رفتار تأییدشده شماره 13.
+// 19.14 | Day profile | مرجع تنظیمات Premium و رفتار تأییدشده شماره 14.
+// 19.15 | Day profile | مرجع تنظیمات Premium و رفتار تأییدشده شماره 15.
+// 19.16 | Day profile | مرجع تنظیمات Premium و رفتار تأییدشده شماره 16.
+// 19.17 | Day profile | مرجع تنظیمات Premium و رفتار تأییدشده شماره 17.
+// 19.18 | Day profile | مرجع تنظیمات Premium و رفتار تأییدشده شماره 18.
+// 19.19 | Day profile | مرجع تنظیمات Premium و رفتار تأییدشده شماره 19.
+// 19.20 | Day profile | مرجع تنظیمات Premium و رفتار تأییدشده شماره 20.
+// 19.21 | Day profile | مرجع تنظیمات Premium و رفتار تأییدشده شماره 21.
+// 19.22 | Day profile | مرجع تنظیمات Premium و رفتار تأییدشده شماره 22.
+// 19.23 | Day profile | مرجع تنظیمات Premium و رفتار تأییدشده شماره 23.
+// 19.24 | Day profile | مرجع تنظیمات Premium و رفتار تأییدشده شماره 24.
+// 19.25 | Day profile | مرجع تنظیمات Premium و رفتار تأییدشده شماره 25.
+// 19.26 | Day profile | مرجع تنظیمات Premium و رفتار تأییدشده شماره 26.
+// 19.27 | Day profile | مرجع تنظیمات Premium و رفتار تأییدشده شماره 27.
+// 19.28 | Day profile | مرجع تنظیمات Premium و رفتار تأییدشده شماره 28.
+// 19.29 | Day profile | مرجع تنظیمات Premium و رفتار تأییدشده شماره 29.
+// 19.30 | Day profile | مرجع تنظیمات Premium و رفتار تأییدشده شماره 30.
+// 19.31 | Day profile | مرجع تنظیمات Premium و رفتار تأییدشده شماره 31.
+// 19.32 | Day profile | مرجع تنظیمات Premium و رفتار تأییدشده شماره 32.
+// 19.33 | Day profile | مرجع تنظیمات Premium و رفتار تأییدشده شماره 33.
+// 19.34 | Day profile | مرجع تنظیمات Premium و رفتار تأییدشده شماره 34.
+// 19.35 | Day profile | مرجع تنظیمات Premium و رفتار تأییدشده شماره 35.
+// 19.36 | Day profile | مرجع تنظیمات Premium و رفتار تأییدشده شماره 36.
+// 19.37 | Day profile | مرجع تنظیمات Premium و رفتار تأییدشده شماره 37.
+// 19.38 | Day profile | مرجع تنظیمات Premium و رفتار تأییدشده شماره 38.
+// 19.39 | Day profile | مرجع تنظیمات Premium و رفتار تأییدشده شماره 39.
+// 19.40 | Day profile | مرجع تنظیمات Premium و رفتار تأییدشده شماره 40.
+// 19.41 | Day profile | مرجع تنظیمات Premium و رفتار تأییدشده شماره 41.
+// 19.42 | Day profile | مرجع تنظیمات Premium و رفتار تأییدشده شماره 42.
+// 19.43 | Day profile | مرجع تنظیمات Premium و رفتار تأییدشده شماره 43.
+// 19.44 | Day profile | مرجع تنظیمات Premium و رفتار تأییدشده شماره 44.
+// 19.45 | Day profile | مرجع تنظیمات Premium و رفتار تأییدشده شماره 45.
+// 19.46 | Day profile | مرجع تنظیمات Premium و رفتار تأییدشده شماره 46.
+// 19.47 | Day profile | مرجع تنظیمات Premium و رفتار تأییدشده شماره 47.
+// 19.48 | Day profile | مرجع تنظیمات Premium و رفتار تأییدشده شماره 48.
+// APPENDIX 20 — Swing profile
+// برای سوئینگ، چارت H1 و NTS Base TF برابر 60 انتخاب شود.
+// 20.01 | Swing profile | مرجع تنظیمات Premium و رفتار تأییدشده شماره 01.
+// 20.02 | Swing profile | مرجع تنظیمات Premium و رفتار تأییدشده شماره 02.
+// 20.03 | Swing profile | مرجع تنظیمات Premium و رفتار تأییدشده شماره 03.
+// 20.04 | Swing profile | مرجع تنظیمات Premium و رفتار تأییدشده شماره 04.
+// 20.05 | Swing profile | مرجع تنظیمات Premium و رفتار تأییدشده شماره 05.
+// 20.06 | Swing profile | مرجع تنظیمات Premium و رفتار تأییدشده شماره 06.
+// 20.07 | Swing profile | مرجع تنظیمات Premium و رفتار تأییدشده شماره 07.
+// 20.08 | Swing profile | مرجع تنظیمات Premium و رفتار تأییدشده شماره 08.
+// 20.09 | Swing profile | مرجع تنظیمات Premium و رفتار تأییدشده شماره 09.
+// 20.10 | Swing profile | مرجع تنظیمات Premium و رفتار تأییدشده شماره 10.
+// 20.11 | Swing profile | مرجع تنظیمات Premium و رفتار تأییدشده شماره 11.
+// 20.12 | Swing profile | مرجع تنظیمات Premium و رفتار تأییدشده شماره 12.
+// 20.13 | Swing profile | مرجع تنظیمات Premium و رفتار تأییدشده شماره 13.
+// 20.14 | Swing profile | مرجع تنظیمات Premium و رفتار تأییدشده شماره 14.
+// 20.15 | Swing profile | مرجع تنظیمات Premium و رفتار تأییدشده شماره 15.
+// 20.16 | Swing profile | مرجع تنظیمات Premium و رفتار تأییدشده شماره 16.
+// 20.17 | Swing profile | مرجع تنظیمات Premium و رفتار تأییدشده شماره 17.
+// 20.18 | Swing profile | مرجع تنظیمات Premium و رفتار تأییدشده شماره 18.
+// 20.19 | Swing profile | مرجع تنظیمات Premium و رفتار تأییدشده شماره 19.
+// 20.20 | Swing profile | مرجع تنظیمات Premium و رفتار تأییدشده شماره 20.
+// 20.21 | Swing profile | مرجع تنظیمات Premium و رفتار تأییدشده شماره 21.
+// 20.22 | Swing profile | مرجع تنظیمات Premium و رفتار تأییدشده شماره 22.
+// 20.23 | Swing profile | مرجع تنظیمات Premium و رفتار تأییدشده شماره 23.
+// 20.24 | Swing profile | مرجع تنظیمات Premium و رفتار تأییدشده شماره 24.
+// 20.25 | Swing profile | مرجع تنظیمات Premium و رفتار تأییدشده شماره 25.
+// 20.26 | Swing profile | مرجع تنظیمات Premium و رفتار تأییدشده شماره 26.
+// 20.27 | Swing profile | مرجع تنظیمات Premium و رفتار تأییدشده شماره 27.
+// 20.28 | Swing profile | مرجع تنظیمات Premium و رفتار تأییدشده شماره 28.
+// 20.29 | Swing profile | مرجع تنظیمات Premium و رفتار تأییدشده شماره 29.
+// 20.30 | Swing profile | مرجع تنظیمات Premium و رفتار تأییدشده شماره 30.
+// 20.31 | Swing profile | مرجع تنظیمات Premium و رفتار تأییدشده شماره 31.
+// 20.32 | Swing profile | مرجع تنظیمات Premium و رفتار تأییدشده شماره 32.
+// 20.33 | Swing profile | مرجع تنظیمات Premium و رفتار تأییدشده شماره 33.
+// 20.34 | Swing profile | مرجع تنظیمات Premium و رفتار تأییدشده شماره 34.
+// 20.35 | Swing profile | مرجع تنظیمات Premium و رفتار تأییدشده شماره 35.
+// 20.36 | Swing profile | مرجع تنظیمات Premium و رفتار تأییدشده شماره 36.
+// 20.37 | Swing profile | مرجع تنظیمات Premium و رفتار تأییدشده شماره 37.
+// 20.38 | Swing profile | مرجع تنظیمات Premium و رفتار تأییدشده شماره 38.
+// 20.39 | Swing profile | مرجع تنظیمات Premium و رفتار تأییدشده شماره 39.
+// 20.40 | Swing profile | مرجع تنظیمات Premium و رفتار تأییدشده شماره 40.
+// 20.41 | Swing profile | مرجع تنظیمات Premium و رفتار تأییدشده شماره 41.
+// 20.42 | Swing profile | مرجع تنظیمات Premium و رفتار تأییدشده شماره 42.
+// 20.43 | Swing profile | مرجع تنظیمات Premium و رفتار تأییدشده شماره 43.
+// 20.44 | Swing profile | مرجع تنظیمات Premium و رفتار تأییدشده شماره 44.
+// 20.45 | Swing profile | مرجع تنظیمات Premium و رفتار تأییدشده شماره 45.
+// 20.46 | Swing profile | مرجع تنظیمات Premium و رفتار تأییدشده شماره 46.
+// 20.47 | Swing profile | مرجع تنظیمات Premium و رفتار تأییدشده شماره 47.
+// 20.48 | Swing profile | مرجع تنظیمات Premium و رفتار تأییدشده شماره 48.
+// APPENDIX 21 — Position profile
+// برای پوزیشن، تایم‌فریم‌های روزانه و Base TF بزرگ‌تر مناسب‌تر هستند.
+// 21.01 | Position profile | مرجع تنظیمات Premium و رفتار تأییدشده شماره 01.
+// 21.02 | Position profile | مرجع تنظیمات Premium و رفتار تأییدشده شماره 02.
+// 21.03 | Position profile | مرجع تنظیمات Premium و رفتار تأییدشده شماره 03.
+// 21.04 | Position profile | مرجع تنظیمات Premium و رفتار تأییدشده شماره 04.
+// 21.05 | Position profile | مرجع تنظیمات Premium و رفتار تأییدشده شماره 05.
+// 21.06 | Position profile | مرجع تنظیمات Premium و رفتار تأییدشده شماره 06.
+// 21.07 | Position profile | مرجع تنظیمات Premium و رفتار تأییدشده شماره 07.
+// 21.08 | Position profile | مرجع تنظیمات Premium و رفتار تأییدشده شماره 08.
+// 21.09 | Position profile | مرجع تنظیمات Premium و رفتار تأییدشده شماره 09.
+// 21.10 | Position profile | مرجع تنظیمات Premium و رفتار تأییدشده شماره 10.
+// 21.11 | Position profile | مرجع تنظیمات Premium و رفتار تأییدشده شماره 11.
+// 21.12 | Position profile | مرجع تنظیمات Premium و رفتار تأییدشده شماره 12.
+// 21.13 | Position profile | مرجع تنظیمات Premium و رفتار تأییدشده شماره 13.
+// 21.14 | Position profile | مرجع تنظیمات Premium و رفتار تأییدشده شماره 14.
+// 21.15 | Position profile | مرجع تنظیمات Premium و رفتار تأییدشده شماره 15.
+// 21.16 | Position profile | مرجع تنظیمات Premium و رفتار تأییدشده شماره 16.
+// 21.17 | Position profile | مرجع تنظیمات Premium و رفتار تأییدشده شماره 17.
+// 21.18 | Position profile | مرجع تنظیمات Premium و رفتار تأییدشده شماره 18.
+// 21.19 | Position profile | مرجع تنظیمات Premium و رفتار تأییدشده شماره 19.
+// 21.20 | Position profile | مرجع تنظیمات Premium و رفتار تأییدشده شماره 20.
+// 21.21 | Position profile | مرجع تنظیمات Premium و رفتار تأییدشده شماره 21.
+// 21.22 | Position profile | مرجع تنظیمات Premium و رفتار تأییدشده شماره 22.
+// 21.23 | Position profile | مرجع تنظیمات Premium و رفتار تأییدشده شماره 23.
+// 21.24 | Position profile | مرجع تنظیمات Premium و رفتار تأییدشده شماره 24.
+// 21.25 | Position profile | مرجع تنظیمات Premium و رفتار تأییدشده شماره 25.
+// 21.26 | Position profile | مرجع تنظیمات Premium و رفتار تأییدشده شماره 26.
+// 21.27 | Position profile | مرجع تنظیمات Premium و رفتار تأییدشده شماره 27.
+// 21.28 | Position profile | مرجع تنظیمات Premium و رفتار تأییدشده شماره 28.
+// 21.29 | Position profile | مرجع تنظیمات Premium و رفتار تأییدشده شماره 29.
+// 21.30 | Position profile | مرجع تنظیمات Premium و رفتار تأییدشده شماره 30.
+// 21.31 | Position profile | مرجع تنظیمات Premium و رفتار تأییدشده شماره 31.
+// 21.32 | Position profile | مرجع تنظیمات Premium و رفتار تأییدشده شماره 32.
+// 21.33 | Position profile | مرجع تنظیمات Premium و رفتار تأییدشده شماره 33.
+// 21.34 | Position profile | مرجع تنظیمات Premium و رفتار تأییدشده شماره 34.
+// 21.35 | Position profile | مرجع تنظیمات Premium و رفتار تأییدشده شماره 35.
+// 21.36 | Position profile | مرجع تنظیمات Premium و رفتار تأییدشده شماره 36.
+// 21.37 | Position profile | مرجع تنظیمات Premium و رفتار تأییدشده شماره 37.
+// 21.38 | Position profile | مرجع تنظیمات Premium و رفتار تأییدشده شماره 38.
+// 21.39 | Position profile | مرجع تنظیمات Premium و رفتار تأییدشده شماره 39.
+// 21.40 | Position profile | مرجع تنظیمات Premium و رفتار تأییدشده شماره 40.
+// 21.41 | Position profile | مرجع تنظیمات Premium و رفتار تأییدشده شماره 41.
+// 21.42 | Position profile | مرجع تنظیمات Premium و رفتار تأییدشده شماره 42.
+// 21.43 | Position profile | مرجع تنظیمات Premium و رفتار تأییدشده شماره 43.
+// 21.44 | Position profile | مرجع تنظیمات Premium و رفتار تأییدشده شماره 44.
+// 21.45 | Position profile | مرجع تنظیمات Premium و رفتار تأییدشده شماره 45.
+// 21.46 | Position profile | مرجع تنظیمات Premium و رفتار تأییدشده شماره 46.
+// 21.47 | Position profile | مرجع تنظیمات Premium و رفتار تأییدشده شماره 47.
+// 21.48 | Position profile | مرجع تنظیمات Premium و رفتار تأییدشده شماره 48.
+// APPENDIX 22 — Symbol tuning
+// Auto-Tune نوع نماد را پیش از انتخاب مقادیر Period و Factor بررسی می‌کند.
+// 22.01 | Symbol tuning | مرجع تنظیمات Premium و رفتار تأییدشده شماره 01.
+// 22.02 | Symbol tuning | مرجع تنظیمات Premium و رفتار تأییدشده شماره 02.
+// 22.03 | Symbol tuning | مرجع تنظیمات Premium و رفتار تأییدشده شماره 03.
+// 22.04 | Symbol tuning | مرجع تنظیمات Premium و رفتار تأییدشده شماره 04.
+// 22.05 | Symbol tuning | مرجع تنظیمات Premium و رفتار تأییدشده شماره 05.
+// 22.06 | Symbol tuning | مرجع تنظیمات Premium و رفتار تأییدشده شماره 06.
+// 22.07 | Symbol tuning | مرجع تنظیمات Premium و رفتار تأییدشده شماره 07.
+// 22.08 | Symbol tuning | مرجع تنظیمات Premium و رفتار تأییدشده شماره 08.
+// 22.09 | Symbol tuning | مرجع تنظیمات Premium و رفتار تأییدشده شماره 09.
+// 22.10 | Symbol tuning | مرجع تنظیمات Premium و رفتار تأییدشده شماره 10.
+// 22.11 | Symbol tuning | مرجع تنظیمات Premium و رفتار تأییدشده شماره 11.
+// 22.12 | Symbol tuning | مرجع تنظیمات Premium و رفتار تأییدشده شماره 12.
+// 22.13 | Symbol tuning | مرجع تنظیمات Premium و رفتار تأییدشده شماره 13.
+// 22.14 | Symbol tuning | مرجع تنظیمات Premium و رفتار تأییدشده شماره 14.
+// 22.15 | Symbol tuning | مرجع تنظیمات Premium و رفتار تأییدشده شماره 15.
+// 22.16 | Symbol tuning | مرجع تنظیمات Premium و رفتار تأییدشده شماره 16.
+// 22.17 | Symbol tuning | مرجع تنظیمات Premium و رفتار تأییدشده شماره 17.
+// 22.18 | Symbol tuning | مرجع تنظیمات Premium و رفتار تأییدشده شماره 18.
+// 22.19 | Symbol tuning | مرجع تنظیمات Premium و رفتار تأییدشده شماره 19.
+// 22.20 | Symbol tuning | مرجع تنظیمات Premium و رفتار تأییدشده شماره 20.
+// 22.21 | Symbol tuning | مرجع تنظیمات Premium و رفتار تأییدشده شماره 21.
+// 22.22 | Symbol tuning | مرجع تنظیمات Premium و رفتار تأییدشده شماره 22.
+// 22.23 | Symbol tuning | مرجع تنظیمات Premium و رفتار تأییدشده شماره 23.
+// 22.24 | Symbol tuning | مرجع تنظیمات Premium و رفتار تأییدشده شماره 24.
+// 22.25 | Symbol tuning | مرجع تنظیمات Premium و رفتار تأییدشده شماره 25.
+// 22.26 | Symbol tuning | مرجع تنظیمات Premium و رفتار تأییدشده شماره 26.
+// 22.27 | Symbol tuning | مرجع تنظیمات Premium و رفتار تأییدشده شماره 27.
+// 22.28 | Symbol tuning | مرجع تنظیمات Premium و رفتار تأییدشده شماره 28.
+// 22.29 | Symbol tuning | مرجع تنظیمات Premium و رفتار تأییدشده شماره 29.
+// 22.30 | Symbol tuning | مرجع تنظیمات Premium و رفتار تأییدشده شماره 30.
+// 22.31 | Symbol tuning | مرجع تنظیمات Premium و رفتار تأییدشده شماره 31.
+// 22.32 | Symbol tuning | مرجع تنظیمات Premium و رفتار تأییدشده شماره 32.
+// 22.33 | Symbol tuning | مرجع تنظیمات Premium و رفتار تأییدشده شماره 33.
+// 22.34 | Symbol tuning | مرجع تنظیمات Premium و رفتار تأییدشده شماره 34.
+// 22.35 | Symbol tuning | مرجع تنظیمات Premium و رفتار تأییدشده شماره 35.
+// 22.36 | Symbol tuning | مرجع تنظیمات Premium و رفتار تأییدشده شماره 36.
+// 22.37 | Symbol tuning | مرجع تنظیمات Premium و رفتار تأییدشده شماره 37.
+// 22.38 | Symbol tuning | مرجع تنظیمات Premium و رفتار تأییدشده شماره 38.
+// 22.39 | Symbol tuning | مرجع تنظیمات Premium و رفتار تأییدشده شماره 39.
+// 22.40 | Symbol tuning | مرجع تنظیمات Premium و رفتار تأییدشده شماره 40.
+// 22.41 | Symbol tuning | مرجع تنظیمات Premium و رفتار تأییدشده شماره 41.
+// 22.42 | Symbol tuning | مرجع تنظیمات Premium و رفتار تأییدشده شماره 42.
+// 22.43 | Symbol tuning | مرجع تنظیمات Premium و رفتار تأییدشده شماره 43.
+// 22.44 | Symbol tuning | مرجع تنظیمات Premium و رفتار تأییدشده شماره 44.
+// 22.45 | Symbol tuning | مرجع تنظیمات Premium و رفتار تأییدشده شماره 45.
+// 22.46 | Symbol tuning | مرجع تنظیمات Premium و رفتار تأییدشده شماره 46.
+// 22.47 | Symbol tuning | مرجع تنظیمات Premium و رفتار تأییدشده شماره 47.
+// 22.48 | Symbol tuning | مرجع تنظیمات Premium و رفتار تأییدشده شماره 48.
+// APPENDIX 23 — Gold tuning
+// برای XAU حداقل ATR پیش‌فرض 0.06 درصد در فیلتر نوسان استفاده می‌شود.
+// 23.01 | Gold tuning | مرجع تنظیمات Premium و رفتار تأییدشده شماره 01.
+// 23.02 | Gold tuning | مرجع تنظیمات Premium و رفتار تأییدشده شماره 02.
+// 23.03 | Gold tuning | مرجع تنظیمات Premium و رفتار تأییدشده شماره 03.
+// 23.04 | Gold tuning | مرجع تنظیمات Premium و رفتار تأییدشده شماره 04.
+// 23.05 | Gold tuning | مرجع تنظیمات Premium و رفتار تأییدشده شماره 05.
+// 23.06 | Gold tuning | مرجع تنظیمات Premium و رفتار تأییدشده شماره 06.
+// 23.07 | Gold tuning | مرجع تنظیمات Premium و رفتار تأییدشده شماره 07.
+// 23.08 | Gold tuning | مرجع تنظیمات Premium و رفتار تأییدشده شماره 08.
+// 23.09 | Gold tuning | مرجع تنظیمات Premium و رفتار تأییدشده شماره 09.
+// 23.10 | Gold tuning | مرجع تنظیمات Premium و رفتار تأییدشده شماره 10.
+// 23.11 | Gold tuning | مرجع تنظیمات Premium و رفتار تأییدشده شماره 11.
+// 23.12 | Gold tuning | مرجع تنظیمات Premium و رفتار تأییدشده شماره 12.
+// 23.13 | Gold tuning | مرجع تنظیمات Premium و رفتار تأییدشده شماره 13.
+// 23.14 | Gold tuning | مرجع تنظیمات Premium و رفتار تأییدشده شماره 14.
+// 23.15 | Gold tuning | مرجع تنظیمات Premium و رفتار تأییدشده شماره 15.
+// 23.16 | Gold tuning | مرجع تنظیمات Premium و رفتار تأییدشده شماره 16.
+// 23.17 | Gold tuning | مرجع تنظیمات Premium و رفتار تأییدشده شماره 17.
+// 23.18 | Gold tuning | مرجع تنظیمات Premium و رفتار تأییدشده شماره 18.
+// 23.19 | Gold tuning | مرجع تنظیمات Premium و رفتار تأییدشده شماره 19.
+// 23.20 | Gold tuning | مرجع تنظیمات Premium و رفتار تأییدشده شماره 20.
+// 23.21 | Gold tuning | مرجع تنظیمات Premium و رفتار تأییدشده شماره 21.
+// 23.22 | Gold tuning | مرجع تنظیمات Premium و رفتار تأییدشده شماره 22.
+// 23.23 | Gold tuning | مرجع تنظیمات Premium و رفتار تأییدشده شماره 23.
+// 23.24 | Gold tuning | مرجع تنظیمات Premium و رفتار تأییدشده شماره 24.
+// 23.25 | Gold tuning | مرجع تنظیمات Premium و رفتار تأییدشده شماره 25.
+// 23.26 | Gold tuning | مرجع تنظیمات Premium و رفتار تأییدشده شماره 26.
+// 23.27 | Gold tuning | مرجع تنظیمات Premium و رفتار تأییدشده شماره 27.
+// 23.28 | Gold tuning | مرجع تنظیمات Premium و رفتار تأییدشده شماره 28.
+// 23.29 | Gold tuning | مرجع تنظیمات Premium و رفتار تأییدشده شماره 29.
+// 23.30 | Gold tuning | مرجع تنظیمات Premium و رفتار تأییدشده شماره 30.
+// 23.31 | Gold tuning | مرجع تنظیمات Premium و رفتار تأییدشده شماره 31.
+// 23.32 | Gold tuning | مرجع تنظیمات Premium و رفتار تأییدشده شماره 32.
+// 23.33 | Gold tuning | مرجع تنظیمات Premium و رفتار تأییدشده شماره 33.
+// 23.34 | Gold tuning | مرجع تنظیمات Premium و رفتار تأییدشده شماره 34.
+// 23.35 | Gold tuning | مرجع تنظیمات Premium و رفتار تأییدشده شماره 35.
+// 23.36 | Gold tuning | مرجع تنظیمات Premium و رفتار تأییدشده شماره 36.
+// 23.37 | Gold tuning | مرجع تنظیمات Premium و رفتار تأییدشده شماره 37.
+// 23.38 | Gold tuning | مرجع تنظیمات Premium و رفتار تأییدشده شماره 38.
+// 23.39 | Gold tuning | مرجع تنظیمات Premium و رفتار تأییدشده شماره 39.
+// 23.40 | Gold tuning | مرجع تنظیمات Premium و رفتار تأییدشده شماره 40.
+// 23.41 | Gold tuning | مرجع تنظیمات Premium و رفتار تأییدشده شماره 41.
+// 23.42 | Gold tuning | مرجع تنظیمات Premium و رفتار تأییدشده شماره 42.
+// 23.43 | Gold tuning | مرجع تنظیمات Premium و رفتار تأییدشده شماره 43.
+// 23.44 | Gold tuning | مرجع تنظیمات Premium و رفتار تأییدشده شماره 44.
+// 23.45 | Gold tuning | مرجع تنظیمات Premium و رفتار تأییدشده شماره 45.
+// 23.46 | Gold tuning | مرجع تنظیمات Premium و رفتار تأییدشده شماره 46.
+// 23.47 | Gold tuning | مرجع تنظیمات Premium و رفتار تأییدشده شماره 47.
+// 23.48 | Gold tuning | مرجع تنظیمات Premium و رفتار تأییدشده شماره 48.
+// APPENDIX 24 — ADX regime
+// ADX 20 رژیم متوسط و ADX 28 رژیم قوی را در preset مشخص می‌کند.
+// 24.01 | ADX regime | مرجع تنظیمات Premium و رفتار تأییدشده شماره 01.
+// 24.02 | ADX regime | مرجع تنظیمات Premium و رفتار تأییدشده شماره 02.
+// 24.03 | ADX regime | مرجع تنظیمات Premium و رفتار تأییدشده شماره 03.
+// 24.04 | ADX regime | مرجع تنظیمات Premium و رفتار تأییدشده شماره 04.
+// 24.05 | ADX regime | مرجع تنظیمات Premium و رفتار تأییدشده شماره 05.
+// 24.06 | ADX regime | مرجع تنظیمات Premium و رفتار تأییدشده شماره 06.
+// 24.07 | ADX regime | مرجع تنظیمات Premium و رفتار تأییدشده شماره 07.
+// 24.08 | ADX regime | مرجع تنظیمات Premium و رفتار تأییدشده شماره 08.
+// 24.09 | ADX regime | مرجع تنظیمات Premium و رفتار تأییدشده شماره 09.
+// 24.10 | ADX regime | مرجع تنظیمات Premium و رفتار تأییدشده شماره 10.
+// 24.11 | ADX regime | مرجع تنظیمات Premium و رفتار تأییدشده شماره 11.
+// 24.12 | ADX regime | مرجع تنظیمات Premium و رفتار تأییدشده شماره 12.
+// 24.13 | ADX regime | مرجع تنظیمات Premium و رفتار تأییدشده شماره 13.
+// 24.14 | ADX regime | مرجع تنظیمات Premium و رفتار تأییدشده شماره 14.
+// 24.15 | ADX regime | مرجع تنظیمات Premium و رفتار تأییدشده شماره 15.
+// 24.16 | ADX regime | مرجع تنظیمات Premium و رفتار تأییدشده شماره 16.
+// 24.17 | ADX regime | مرجع تنظیمات Premium و رفتار تأییدشده شماره 17.
+// 24.18 | ADX regime | مرجع تنظیمات Premium و رفتار تأییدشده شماره 18.
+// 24.19 | ADX regime | مرجع تنظیمات Premium و رفتار تأییدشده شماره 19.
+// 24.20 | ADX regime | مرجع تنظیمات Premium و رفتار تأییدشده شماره 20.
+// 24.21 | ADX regime | مرجع تنظیمات Premium و رفتار تأییدشده شماره 21.
+// 24.22 | ADX regime | مرجع تنظیمات Premium و رفتار تأییدشده شماره 22.
+// 24.23 | ADX regime | مرجع تنظیمات Premium و رفتار تأییدشده شماره 23.
+// 24.24 | ADX regime | مرجع تنظیمات Premium و رفتار تأییدشده شماره 24.
+// 24.25 | ADX regime | مرجع تنظیمات Premium و رفتار تأییدشده شماره 25.
+// 24.26 | ADX regime | مرجع تنظیمات Premium و رفتار تأییدشده شماره 26.
+// 24.27 | ADX regime | مرجع تنظیمات Premium و رفتار تأییدشده شماره 27.
+// 24.28 | ADX regime | مرجع تنظیمات Premium و رفتار تأییدشده شماره 28.
+// 24.29 | ADX regime | مرجع تنظیمات Premium و رفتار تأییدشده شماره 29.
+// 24.30 | ADX regime | مرجع تنظیمات Premium و رفتار تأییدشده شماره 30.
+// 24.31 | ADX regime | مرجع تنظیمات Premium و رفتار تأییدشده شماره 31.
+// 24.32 | ADX regime | مرجع تنظیمات Premium و رفتار تأییدشده شماره 32.
+// 24.33 | ADX regime | مرجع تنظیمات Premium و رفتار تأییدشده شماره 33.
+// 24.34 | ADX regime | مرجع تنظیمات Premium و رفتار تأییدشده شماره 34.
+// 24.35 | ADX regime | مرجع تنظیمات Premium و رفتار تأییدشده شماره 35.
+// 24.36 | ADX regime | مرجع تنظیمات Premium و رفتار تأییدشده شماره 36.
+// 24.37 | ADX regime | مرجع تنظیمات Premium و رفتار تأییدشده شماره 37.
+// 24.38 | ADX regime | مرجع تنظیمات Premium و رفتار تأییدشده شماره 38.
+// 24.39 | ADX regime | مرجع تنظیمات Premium و رفتار تأییدشده شماره 39.
+// 24.40 | ADX regime | مرجع تنظیمات Premium و رفتار تأییدشده شماره 40.
+// 24.41 | ADX regime | مرجع تنظیمات Premium و رفتار تأییدشده شماره 41.
+// 24.42 | ADX regime | مرجع تنظیمات Premium و رفتار تأییدشده شماره 42.
+// 24.43 | ADX regime | مرجع تنظیمات Premium و رفتار تأییدشده شماره 43.
+// 24.44 | ADX regime | مرجع تنظیمات Premium و رفتار تأییدشده شماره 44.
+// 24.45 | ADX regime | مرجع تنظیمات Premium و رفتار تأییدشده شماره 45.
+// 24.46 | ADX regime | مرجع تنظیمات Premium و رفتار تأییدشده شماره 46.
+// 24.47 | ADX regime | مرجع تنظیمات Premium و رفتار تأییدشده شماره 47.
+// 24.48 | ADX regime | مرجع تنظیمات Premium و رفتار تأییدشده شماره 48.
+// APPENDIX 25 — Body quality
+// حداقل نسبت بدنه سطوح بالا 0.45 است و Wick واقعی جداگانه کنترل می‌شود.
+// 25.01 | Body quality | مرجع تنظیمات Premium و رفتار تأییدشده شماره 01.
+// 25.02 | Body quality | مرجع تنظیمات Premium و رفتار تأییدشده شماره 02.
+// 25.03 | Body quality | مرجع تنظیمات Premium و رفتار تأییدشده شماره 03.
+// 25.04 | Body quality | مرجع تنظیمات Premium و رفتار تأییدشده شماره 04.
+// 25.05 | Body quality | مرجع تنظیمات Premium و رفتار تأییدشده شماره 05.
+// 25.06 | Body quality | مرجع تنظیمات Premium و رفتار تأییدشده شماره 06.
+// 25.07 | Body quality | مرجع تنظیمات Premium و رفتار تأییدشده شماره 07.
+// 25.08 | Body quality | مرجع تنظیمات Premium و رفتار تأییدشده شماره 08.
+// 25.09 | Body quality | مرجع تنظیمات Premium و رفتار تأییدشده شماره 09.
+// 25.10 | Body quality | مرجع تنظیمات Premium و رفتار تأییدشده شماره 10.
+// 25.11 | Body quality | مرجع تنظیمات Premium و رفتار تأییدشده شماره 11.
+// 25.12 | Body quality | مرجع تنظیمات Premium و رفتار تأییدشده شماره 12.
+// 25.13 | Body quality | مرجع تنظیمات Premium و رفتار تأییدشده شماره 13.
+// 25.14 | Body quality | مرجع تنظیمات Premium و رفتار تأییدشده شماره 14.
+// 25.15 | Body quality | مرجع تنظیمات Premium و رفتار تأییدشده شماره 15.
+// 25.16 | Body quality | مرجع تنظیمات Premium و رفتار تأییدشده شماره 16.
+// 25.17 | Body quality | مرجع تنظیمات Premium و رفتار تأییدشده شماره 17.
+// 25.18 | Body quality | مرجع تنظیمات Premium و رفتار تأییدشده شماره 18.
+// 25.19 | Body quality | مرجع تنظیمات Premium و رفتار تأییدشده شماره 19.
+// 25.20 | Body quality | مرجع تنظیمات Premium و رفتار تأییدشده شماره 20.
+// 25.21 | Body quality | مرجع تنظیمات Premium و رفتار تأییدشده شماره 21.
+// 25.22 | Body quality | مرجع تنظیمات Premium و رفتار تأییدشده شماره 22.
+// 25.23 | Body quality | مرجع تنظیمات Premium و رفتار تأییدشده شماره 23.
+// 25.24 | Body quality | مرجع تنظیمات Premium و رفتار تأییدشده شماره 24.
+// 25.25 | Body quality | مرجع تنظیمات Premium و رفتار تأییدشده شماره 25.
+// 25.26 | Body quality | مرجع تنظیمات Premium و رفتار تأییدشده شماره 26.
+// 25.27 | Body quality | مرجع تنظیمات Premium و رفتار تأییدشده شماره 27.
+// 25.28 | Body quality | مرجع تنظیمات Premium و رفتار تأییدشده شماره 28.
+// 25.29 | Body quality | مرجع تنظیمات Premium و رفتار تأییدشده شماره 29.
+// 25.30 | Body quality | مرجع تنظیمات Premium و رفتار تأییدشده شماره 30.
+// 25.31 | Body quality | مرجع تنظیمات Premium و رفتار تأییدشده شماره 31.
+// 25.32 | Body quality | مرجع تنظیمات Premium و رفتار تأییدشده شماره 32.
+// 25.33 | Body quality | مرجع تنظیمات Premium و رفتار تأییدشده شماره 33.
+// 25.34 | Body quality | مرجع تنظیمات Premium و رفتار تأییدشده شماره 34.
+// 25.35 | Body quality | مرجع تنظیمات Premium و رفتار تأییدشده شماره 35.
+// 25.36 | Body quality | مرجع تنظیمات Premium و رفتار تأییدشده شماره 36.
+// 25.37 | Body quality | مرجع تنظیمات Premium و رفتار تأییدشده شماره 37.
+// 25.38 | Body quality | مرجع تنظیمات Premium و رفتار تأییدشده شماره 38.
+// 25.39 | Body quality | مرجع تنظیمات Premium و رفتار تأییدشده شماره 39.
+// 25.40 | Body quality | مرجع تنظیمات Premium و رفتار تأییدشده شماره 40.
+// 25.41 | Body quality | مرجع تنظیمات Premium و رفتار تأییدشده شماره 41.
+// 25.42 | Body quality | مرجع تنظیمات Premium و رفتار تأییدشده شماره 42.
+// 25.43 | Body quality | مرجع تنظیمات Premium و رفتار تأییدشده شماره 43.
+// 25.44 | Body quality | مرجع تنظیمات Premium و رفتار تأییدشده شماره 44.
+// 25.45 | Body quality | مرجع تنظیمات Premium و رفتار تأییدشده شماره 45.
+// 25.46 | Body quality | مرجع تنظیمات Premium و رفتار تأییدشده شماره 46.
+// 25.47 | Body quality | مرجع تنظیمات Premium و رفتار تأییدشده شماره 47.
+// 25.48 | Body quality | مرجع تنظیمات Premium و رفتار تأییدشده شماره 48.
+// APPENDIX 26 — Pivot structure
+// CHoCH فقط با Pivot تأییدشده و کلوز معتبر در نظر گرفته می‌شود.
+// 26.01 | Pivot structure | مرجع تنظیمات Premium و رفتار تأییدشده شماره 01.
+// 26.02 | Pivot structure | مرجع تنظیمات Premium و رفتار تأییدشده شماره 02.
+// 26.03 | Pivot structure | مرجع تنظیمات Premium و رفتار تأییدشده شماره 03.
+// 26.04 | Pivot structure | مرجع تنظیمات Premium و رفتار تأییدشده شماره 04.
+// 26.05 | Pivot structure | مرجع تنظیمات Premium و رفتار تأییدشده شماره 05.
+// 26.06 | Pivot structure | مرجع تنظیمات Premium و رفتار تأییدشده شماره 06.
+// 26.07 | Pivot structure | مرجع تنظیمات Premium و رفتار تأییدشده شماره 07.
+// 26.08 | Pivot structure | مرجع تنظیمات Premium و رفتار تأییدشده شماره 08.
+// 26.09 | Pivot structure | مرجع تنظیمات Premium و رفتار تأییدشده شماره 09.
+// 26.10 | Pivot structure | مرجع تنظیمات Premium و رفتار تأییدشده شماره 10.
+// 26.11 | Pivot structure | مرجع تنظیمات Premium و رفتار تأییدشده شماره 11.
+// 26.12 | Pivot structure | مرجع تنظیمات Premium و رفتار تأییدشده شماره 12.
+// 26.13 | Pivot structure | مرجع تنظیمات Premium و رفتار تأییدشده شماره 13.
+// 26.14 | Pivot structure | مرجع تنظیمات Premium و رفتار تأییدشده شماره 14.
+// 26.15 | Pivot structure | مرجع تنظیمات Premium و رفتار تأییدشده شماره 15.
+// 26.16 | Pivot structure | مرجع تنظیمات Premium و رفتار تأییدشده شماره 16.
+// 26.17 | Pivot structure | مرجع تنظیمات Premium و رفتار تأییدشده شماره 17.
+// 26.18 | Pivot structure | مرجع تنظیمات Premium و رفتار تأییدشده شماره 18.
+// 26.19 | Pivot structure | مرجع تنظیمات Premium و رفتار تأییدشده شماره 19.
+// 26.20 | Pivot structure | مرجع تنظیمات Premium و رفتار تأییدشده شماره 20.
+// 26.21 | Pivot structure | مرجع تنظیمات Premium و رفتار تأییدشده شماره 21.
+// 26.22 | Pivot structure | مرجع تنظیمات Premium و رفتار تأییدشده شماره 22.
+// 26.23 | Pivot structure | مرجع تنظیمات Premium و رفتار تأییدشده شماره 23.
+// 26.24 | Pivot structure | مرجع تنظیمات Premium و رفتار تأییدشده شماره 24.
+// 26.25 | Pivot structure | مرجع تنظیمات Premium و رفتار تأییدشده شماره 25.
+// 26.26 | Pivot structure | مرجع تنظیمات Premium و رفتار تأییدشده شماره 26.
+// 26.27 | Pivot structure | مرجع تنظیمات Premium و رفتار تأییدشده شماره 27.
+// 26.28 | Pivot structure | مرجع تنظیمات Premium و رفتار تأییدشده شماره 28.
+// 26.29 | Pivot structure | مرجع تنظیمات Premium و رفتار تأییدشده شماره 29.
+// 26.30 | Pivot structure | مرجع تنظیمات Premium و رفتار تأییدشده شماره 30.
+// 26.31 | Pivot structure | مرجع تنظیمات Premium و رفتار تأییدشده شماره 31.
+// 26.32 | Pivot structure | مرجع تنظیمات Premium و رفتار تأییدشده شماره 32.
+// 26.33 | Pivot structure | مرجع تنظیمات Premium و رفتار تأییدشده شماره 33.
+// 26.34 | Pivot structure | مرجع تنظیمات Premium و رفتار تأییدشده شماره 34.
+// 26.35 | Pivot structure | مرجع تنظیمات Premium و رفتار تأییدشده شماره 35.
+// 26.36 | Pivot structure | مرجع تنظیمات Premium و رفتار تأییدشده شماره 36.
+// 26.37 | Pivot structure | مرجع تنظیمات Premium و رفتار تأییدشده شماره 37.
+// 26.38 | Pivot structure | مرجع تنظیمات Premium و رفتار تأییدشده شماره 38.
+// 26.39 | Pivot structure | مرجع تنظیمات Premium و رفتار تأییدشده شماره 39.
+// 26.40 | Pivot structure | مرجع تنظیمات Premium و رفتار تأییدشده شماره 40.
+// 26.41 | Pivot structure | مرجع تنظیمات Premium و رفتار تأییدشده شماره 41.
+// 26.42 | Pivot structure | مرجع تنظیمات Premium و رفتار تأییدشده شماره 42.
+// 26.43 | Pivot structure | مرجع تنظیمات Premium و رفتار تأییدشده شماره 43.
+// 26.44 | Pivot structure | مرجع تنظیمات Premium و رفتار تأییدشده شماره 44.
+// 26.45 | Pivot structure | مرجع تنظیمات Premium و رفتار تأییدشده شماره 45.
+// 26.46 | Pivot structure | مرجع تنظیمات Premium و رفتار تأییدشده شماره 46.
+// 26.47 | Pivot structure | مرجع تنظیمات Premium و رفتار تأییدشده شماره 47.
+// 26.48 | Pivot structure | مرجع تنظیمات Premium و رفتار تأییدشده شماره 48.
+// APPENDIX 27 — Wave lifecycle
+// موج جاری پویاست و موج تمام‌شده برای تاریخچه snapshot می‌شود.
+// 27.01 | Wave lifecycle | مرجع تنظیمات Premium و رفتار تأییدشده شماره 01.
+// 27.02 | Wave lifecycle | مرجع تنظیمات Premium و رفتار تأییدشده شماره 02.
+// 27.03 | Wave lifecycle | مرجع تنظیمات Premium و رفتار تأییدشده شماره 03.
+// 27.04 | Wave lifecycle | مرجع تنظیمات Premium و رفتار تأییدشده شماره 04.
+// 27.05 | Wave lifecycle | مرجع تنظیمات Premium و رفتار تأییدشده شماره 05.
+// 27.06 | Wave lifecycle | مرجع تنظیمات Premium و رفتار تأییدشده شماره 06.
+// 27.07 | Wave lifecycle | مرجع تنظیمات Premium و رفتار تأییدشده شماره 07.
+// 27.08 | Wave lifecycle | مرجع تنظیمات Premium و رفتار تأییدشده شماره 08.
+// 27.09 | Wave lifecycle | مرجع تنظیمات Premium و رفتار تأییدشده شماره 09.
+// 27.10 | Wave lifecycle | مرجع تنظیمات Premium و رفتار تأییدشده شماره 10.
+// 27.11 | Wave lifecycle | مرجع تنظیمات Premium و رفتار تأییدشده شماره 11.
+// 27.12 | Wave lifecycle | مرجع تنظیمات Premium و رفتار تأییدشده شماره 12.
+// 27.13 | Wave lifecycle | مرجع تنظیمات Premium و رفتار تأییدشده شماره 13.
+// 27.14 | Wave lifecycle | مرجع تنظیمات Premium و رفتار تأییدشده شماره 14.
+// 27.15 | Wave lifecycle | مرجع تنظیمات Premium و رفتار تأییدشده شماره 15.
+// 27.16 | Wave lifecycle | مرجع تنظیمات Premium و رفتار تأییدشده شماره 16.
+// 27.17 | Wave lifecycle | مرجع تنظیمات Premium و رفتار تأییدشده شماره 17.
+// 27.18 | Wave lifecycle | مرجع تنظیمات Premium و رفتار تأییدشده شماره 18.
+// 27.19 | Wave lifecycle | مرجع تنظیمات Premium و رفتار تأییدشده شماره 19.
+// 27.20 | Wave lifecycle | مرجع تنظیمات Premium و رفتار تأییدشده شماره 20.
+// 27.21 | Wave lifecycle | مرجع تنظیمات Premium و رفتار تأییدشده شماره 21.
+// 27.22 | Wave lifecycle | مرجع تنظیمات Premium و رفتار تأییدشده شماره 22.
+// 27.23 | Wave lifecycle | مرجع تنظیمات Premium و رفتار تأییدشده شماره 23.
+// 27.24 | Wave lifecycle | مرجع تنظیمات Premium و رفتار تأییدشده شماره 24.
+// 27.25 | Wave lifecycle | مرجع تنظیمات Premium و رفتار تأییدشده شماره 25.
+// 27.26 | Wave lifecycle | مرجع تنظیمات Premium و رفتار تأییدشده شماره 26.
+// 27.27 | Wave lifecycle | مرجع تنظیمات Premium و رفتار تأییدشده شماره 27.
+// 27.28 | Wave lifecycle | مرجع تنظیمات Premium و رفتار تأییدشده شماره 28.
+// 27.29 | Wave lifecycle | مرجع تنظیمات Premium و رفتار تأییدشده شماره 29.
+// 27.30 | Wave lifecycle | مرجع تنظیمات Premium و رفتار تأییدشده شماره 30.
+// 27.31 | Wave lifecycle | مرجع تنظیمات Premium و رفتار تأییدشده شماره 31.
+// 27.32 | Wave lifecycle | مرجع تنظیمات Premium و رفتار تأییدشده شماره 32.
+// 27.33 | Wave lifecycle | مرجع تنظیمات Premium و رفتار تأییدشده شماره 33.
+// 27.34 | Wave lifecycle | مرجع تنظیمات Premium و رفتار تأییدشده شماره 34.
+// 27.35 | Wave lifecycle | مرجع تنظیمات Premium و رفتار تأییدشده شماره 35.
+// 27.36 | Wave lifecycle | مرجع تنظیمات Premium و رفتار تأییدشده شماره 36.
+// 27.37 | Wave lifecycle | مرجع تنظیمات Premium و رفتار تأییدشده شماره 37.
+// 27.38 | Wave lifecycle | مرجع تنظیمات Premium و رفتار تأییدشده شماره 38.
+// 27.39 | Wave lifecycle | مرجع تنظیمات Premium و رفتار تأییدشده شماره 39.
+// 27.40 | Wave lifecycle | مرجع تنظیمات Premium و رفتار تأییدشده شماره 40.
+// 27.41 | Wave lifecycle | مرجع تنظیمات Premium و رفتار تأییدشده شماره 41.
+// 27.42 | Wave lifecycle | مرجع تنظیمات Premium و رفتار تأییدشده شماره 42.
+// 27.43 | Wave lifecycle | مرجع تنظیمات Premium و رفتار تأییدشده شماره 43.
+// 27.44 | Wave lifecycle | مرجع تنظیمات Premium و رفتار تأییدشده شماره 44.
+// 27.45 | Wave lifecycle | مرجع تنظیمات Premium و رفتار تأییدشده شماره 45.
+// 27.46 | Wave lifecycle | مرجع تنظیمات Premium و رفتار تأییدشده شماره 46.
+// 27.47 | Wave lifecycle | مرجع تنظیمات Premium و رفتار تأییدشده شماره 47.
+// 27.48 | Wave lifecycle | مرجع تنظیمات Premium و رفتار تأییدشده شماره 48.
+// APPENDIX 28 — Historical stability
+// سطوح تاریخی از اندازه موج جدید تغذیه نمی‌شوند و ثابت می‌مانند.
+// 28.01 | Historical stability | مرجع تنظیمات Premium و رفتار تأییدشده شماره 01.
+// 28.02 | Historical stability | مرجع تنظیمات Premium و رفتار تأییدشده شماره 02.
+// 28.03 | Historical stability | مرجع تنظیمات Premium و رفتار تأییدشده شماره 03.
+// 28.04 | Historical stability | مرجع تنظیمات Premium و رفتار تأییدشده شماره 04.
+// 28.05 | Historical stability | مرجع تنظیمات Premium و رفتار تأییدشده شماره 05.
+// 28.06 | Historical stability | مرجع تنظیمات Premium و رفتار تأییدشده شماره 06.
+// 28.07 | Historical stability | مرجع تنظیمات Premium و رفتار تأییدشده شماره 07.
+// 28.08 | Historical stability | مرجع تنظیمات Premium و رفتار تأییدشده شماره 08.
+// 28.09 | Historical stability | مرجع تنظیمات Premium و رفتار تأییدشده شماره 09.
+// 28.10 | Historical stability | مرجع تنظیمات Premium و رفتار تأییدشده شماره 10.
+// 28.11 | Historical stability | مرجع تنظیمات Premium و رفتار تأییدشده شماره 11.
+// 28.12 | Historical stability | مرجع تنظیمات Premium و رفتار تأییدشده شماره 12.
+// 28.13 | Historical stability | مرجع تنظیمات Premium و رفتار تأییدشده شماره 13.
+// 28.14 | Historical stability | مرجع تنظیمات Premium و رفتار تأییدشده شماره 14.
+// 28.15 | Historical stability | مرجع تنظیمات Premium و رفتار تأییدشده شماره 15.
+// 28.16 | Historical stability | مرجع تنظیمات Premium و رفتار تأییدشده شماره 16.
+// 28.17 | Historical stability | مرجع تنظیمات Premium و رفتار تأییدشده شماره 17.
+// 28.18 | Historical stability | مرجع تنظیمات Premium و رفتار تأییدشده شماره 18.
+// 28.19 | Historical stability | مرجع تنظیمات Premium و رفتار تأییدشده شماره 19.
+// 28.20 | Historical stability | مرجع تنظیمات Premium و رفتار تأییدشده شماره 20.
+// 28.21 | Historical stability | مرجع تنظیمات Premium و رفتار تأییدشده شماره 21.
+// 28.22 | Historical stability | مرجع تنظیمات Premium و رفتار تأییدشده شماره 22.
+// 28.23 | Historical stability | مرجع تنظیمات Premium و رفتار تأییدشده شماره 23.
+// 28.24 | Historical stability | مرجع تنظیمات Premium و رفتار تأییدشده شماره 24.
+// 28.25 | Historical stability | مرجع تنظیمات Premium و رفتار تأییدشده شماره 25.
+// 28.26 | Historical stability | مرجع تنظیمات Premium و رفتار تأییدشده شماره 26.
+// 28.27 | Historical stability | مرجع تنظیمات Premium و رفتار تأییدشده شماره 27.
+// 28.28 | Historical stability | مرجع تنظیمات Premium و رفتار تأییدشده شماره 28.
+// 28.29 | Historical stability | مرجع تنظیمات Premium و رفتار تأییدشده شماره 29.
+// 28.30 | Historical stability | مرجع تنظیمات Premium و رفتار تأییدشده شماره 30.
+// 28.31 | Historical stability | مرجع تنظیمات Premium و رفتار تأییدشده شماره 31.
+// 28.32 | Historical stability | مرجع تنظیمات Premium و رفتار تأییدشده شماره 32.
+// 28.33 | Historical stability | مرجع تنظیمات Premium و رفتار تأییدشده شماره 33.
+// 28.34 | Historical stability | مرجع تنظیمات Premium و رفتار تأییدشده شماره 34.
+// 28.35 | Historical stability | مرجع تنظیمات Premium و رفتار تأییدشده شماره 35.
+// 28.36 | Historical stability | مرجع تنظیمات Premium و رفتار تأییدشده شماره 36.
+// 28.37 | Historical stability | مرجع تنظیمات Premium و رفتار تأییدشده شماره 37.
+// 28.38 | Historical stability | مرجع تنظیمات Premium و رفتار تأییدشده شماره 38.
+// 28.39 | Historical stability | مرجع تنظیمات Premium و رفتار تأییدشده شماره 39.
+// 28.40 | Historical stability | مرجع تنظیمات Premium و رفتار تأییدشده شماره 40.
+// 28.41 | Historical stability | مرجع تنظیمات Premium و رفتار تأییدشده شماره 41.
+// 28.42 | Historical stability | مرجع تنظیمات Premium و رفتار تأییدشده شماره 42.
+// 28.43 | Historical stability | مرجع تنظیمات Premium و رفتار تأییدشده شماره 43.
+// 28.44 | Historical stability | مرجع تنظیمات Premium و رفتار تأییدشده شماره 44.
+// 28.45 | Historical stability | مرجع تنظیمات Premium و رفتار تأییدشده شماره 45.
+// 28.46 | Historical stability | مرجع تنظیمات Premium و رفتار تأییدشده شماره 46.
+// 28.47 | Historical stability | مرجع تنظیمات Premium و رفتار تأییدشده شماره 47.
+// 28.48 | Historical stability | مرجع تنظیمات Premium و رفتار تأییدشده شماره 48.
+// APPENDIX 29 — MTF policy
+// lookahead خاموش برای داده‌های پایه و مقدار بسته‌شده برای Hull استفاده می‌شود.
+// 29.01 | MTF policy | مرجع تنظیمات Premium و رفتار تأییدشده شماره 01.
+// 29.02 | MTF policy | مرجع تنظیمات Premium و رفتار تأییدشده شماره 02.
+// 29.03 | MTF policy | مرجع تنظیمات Premium و رفتار تأییدشده شماره 03.
+// 29.04 | MTF policy | مرجع تنظیمات Premium و رفتار تأییدشده شماره 04.
+// 29.05 | MTF policy | مرجع تنظیمات Premium و رفتار تأییدشده شماره 05.
+// 29.06 | MTF policy | مرجع تنظیمات Premium و رفتار تأییدشده شماره 06.
+// 29.07 | MTF policy | مرجع تنظیمات Premium و رفتار تأییدشده شماره 07.
+// 29.08 | MTF policy | مرجع تنظیمات Premium و رفتار تأییدشده شماره 08.
+// 29.09 | MTF policy | مرجع تنظیمات Premium و رفتار تأییدشده شماره 09.
+// 29.10 | MTF policy | مرجع تنظیمات Premium و رفتار تأییدشده شماره 10.
+// 29.11 | MTF policy | مرجع تنظیمات Premium و رفتار تأییدشده شماره 11.
+// 29.12 | MTF policy | مرجع تنظیمات Premium و رفتار تأییدشده شماره 12.
+// 29.13 | MTF policy | مرجع تنظیمات Premium و رفتار تأییدشده شماره 13.
+// 29.14 | MTF policy | مرجع تنظیمات Premium و رفتار تأییدشده شماره 14.
+// 29.15 | MTF policy | مرجع تنظیمات Premium و رفتار تأییدشده شماره 15.
+// 29.16 | MTF policy | مرجع تنظیمات Premium و رفتار تأییدشده شماره 16.
+// 29.17 | MTF policy | مرجع تنظیمات Premium و رفتار تأییدشده شماره 17.
+// 29.18 | MTF policy | مرجع تنظیمات Premium و رفتار تأییدشده شماره 18.
+// 29.19 | MTF policy | مرجع تنظیمات Premium و رفتار تأییدشده شماره 19.
+// 29.20 | MTF policy | مرجع تنظیمات Premium و رفتار تأییدشده شماره 20.
+// 29.21 | MTF policy | مرجع تنظیمات Premium و رفتار تأییدشده شماره 21.
+// 29.22 | MTF policy | مرجع تنظیمات Premium و رفتار تأییدشده شماره 22.
+// 29.23 | MTF policy | مرجع تنظیمات Premium و رفتار تأییدشده شماره 23.
+// 29.24 | MTF policy | مرجع تنظیمات Premium و رفتار تأییدشده شماره 24.
+// 29.25 | MTF policy | مرجع تنظیمات Premium و رفتار تأییدشده شماره 25.
+// 29.26 | MTF policy | مرجع تنظیمات Premium و رفتار تأییدشده شماره 26.
+// 29.27 | MTF policy | مرجع تنظیمات Premium و رفتار تأییدشده شماره 27.
+// 29.28 | MTF policy | مرجع تنظیمات Premium و رفتار تأییدشده شماره 28.
+// 29.29 | MTF policy | مرجع تنظیمات Premium و رفتار تأییدشده شماره 29.
+// 29.30 | MTF policy | مرجع تنظیمات Premium و رفتار تأییدشده شماره 30.
+// 29.31 | MTF policy | مرجع تنظیمات Premium و رفتار تأییدشده شماره 31.
+// 29.32 | MTF policy | مرجع تنظیمات Premium و رفتار تأییدشده شماره 32.
+// 29.33 | MTF policy | مرجع تنظیمات Premium و رفتار تأییدشده شماره 33.
+// 29.34 | MTF policy | مرجع تنظیمات Premium و رفتار تأییدشده شماره 34.
+// 29.35 | MTF policy | مرجع تنظیمات Premium و رفتار تأییدشده شماره 35.
+// 29.36 | MTF policy | مرجع تنظیمات Premium و رفتار تأییدشده شماره 36.
+// 29.37 | MTF policy | مرجع تنظیمات Premium و رفتار تأییدشده شماره 37.
+// 29.38 | MTF policy | مرجع تنظیمات Premium و رفتار تأییدشده شماره 38.
+// 29.39 | MTF policy | مرجع تنظیمات Premium و رفتار تأییدشده شماره 39.
+// 29.40 | MTF policy | مرجع تنظیمات Premium و رفتار تأییدشده شماره 40.
+// 29.41 | MTF policy | مرجع تنظیمات Premium و رفتار تأییدشده شماره 41.
+// 29.42 | MTF policy | مرجع تنظیمات Premium و رفتار تأییدشده شماره 42.
+// 29.43 | MTF policy | مرجع تنظیمات Premium و رفتار تأییدشده شماره 43.
+// 29.44 | MTF policy | مرجع تنظیمات Premium و رفتار تأییدشده شماره 44.
+// 29.45 | MTF policy | مرجع تنظیمات Premium و رفتار تأییدشده شماره 45.
+// 29.46 | MTF policy | مرجع تنظیمات Premium و رفتار تأییدشده شماره 46.
+// 29.47 | MTF policy | مرجع تنظیمات Premium و رفتار تأییدشده شماره 47.
+// 29.48 | MTF policy | مرجع تنظیمات Premium و رفتار تأییدشده شماره 48.
+// APPENDIX 30 — Maintenance
+// این پیوست مرجع قابل جست‌وجو برای نگهداری و تنظیمات آینده است.
+// 30.01 | Maintenance | مرجع تنظیمات Premium و رفتار تأییدشده شماره 01.
+// 30.02 | Maintenance | مرجع تنظیمات Premium و رفتار تأییدشده شماره 02.
+// 30.03 | Maintenance | مرجع تنظیمات Premium و رفتار تأییدشده شماره 03.
+// 30.04 | Maintenance | مرجع تنظیمات Premium و رفتار تأییدشده شماره 04.
+// 30.05 | Maintenance | مرجع تنظیمات Premium و رفتار تأییدشده شماره 05.
+// 30.06 | Maintenance | مرجع تنظیمات Premium و رفتار تأییدشده شماره 06.
+// 30.07 | Maintenance | مرجع تنظیمات Premium و رفتار تأییدشده شماره 07.
+// 30.08 | Maintenance | مرجع تنظیمات Premium و رفتار تأییدشده شماره 08.
+// 30.09 | Maintenance | مرجع تنظیمات Premium و رفتار تأییدشده شماره 09.
+// 30.10 | Maintenance | مرجع تنظیمات Premium و رفتار تأییدشده شماره 10.
+// 30.11 | Maintenance | مرجع تنظیمات Premium و رفتار تأییدشده شماره 11.
+// 30.12 | Maintenance | مرجع تنظیمات Premium و رفتار تأییدشده شماره 12.
+// 30.13 | Maintenance | مرجع تنظیمات Premium و رفتار تأییدشده شماره 13.
+// 30.14 | Maintenance | مرجع تنظیمات Premium و رفتار تأییدشده شماره 14.
+// 30.15 | Maintenance | مرجع تنظیمات Premium و رفتار تأییدشده شماره 15.
+// 30.16 | Maintenance | مرجع تنظیمات Premium و رفتار تأییدشده شماره 16.
+// 30.17 | Maintenance | مرجع تنظیمات Premium و رفتار تأییدشده شماره 17.
+// 30.18 | Maintenance | مرجع تنظیمات Premium و رفتار تأییدشده شماره 18.
+// 30.19 | Maintenance | مرجع تنظیمات Premium و رفتار تأییدشده شماره 19.
+// 30.20 | Maintenance | مرجع تنظیمات Premium و رفتار تأییدشده شماره 20.
+// 30.21 | Maintenance | مرجع تنظیمات Premium و رفتار تأییدشده شماره 21.
+// 30.22 | Maintenance | مرجع تنظیمات Premium و رفتار تأییدشده شماره 22.
+// 30.23 | Maintenance | مرجع تنظیمات Premium و رفتار تأییدشده شماره 23.
+// 30.24 | Maintenance | مرجع تنظیمات Premium و رفتار تأییدشده شماره 24.
+// 30.25 | Maintenance | مرجع تنظیمات Premium و رفتار تأییدشده شماره 25.
+// 30.26 | Maintenance | مرجع تنظیمات Premium و رفتار تأییدشده شماره 26.
+// 30.27 | Maintenance | مرجع تنظیمات Premium و رفتار تأییدشده شماره 27.
+// 30.28 | Maintenance | مرجع تنظیمات Premium و رفتار تأییدشده شماره 28.
+// 30.29 | Maintenance | مرجع تنظیمات Premium و رفتار تأییدشده شماره 29.
+// 30.30 | Maintenance | مرجع تنظیمات Premium و رفتار تأییدشده شماره 30.
+// 30.31 | Maintenance | مرجع تنظیمات Premium و رفتار تأییدشده شماره 31.
+// 30.32 | Maintenance | مرجع تنظیمات Premium و رفتار تأییدشده شماره 32.
+// 30.33 | Maintenance | مرجع تنظیمات Premium و رفتار تأییدشده شماره 33.
+// 30.34 | Maintenance | مرجع تنظیمات Premium و رفتار تأییدشده شماره 34.
+// 30.35 | Maintenance | مرجع تنظیمات Premium و رفتار تأییدشده شماره 35.
+// 30.36 | Maintenance | مرجع تنظیمات Premium و رفتار تأییدشده شماره 36.
+// 30.37 | Maintenance | مرجع تنظیمات Premium و رفتار تأییدشده شماره 37.
+// 30.38 | Maintenance | مرجع تنظیمات Premium و رفتار تأییدشده شماره 38.
+// 30.39 | Maintenance | مرجع تنظیمات Premium و رفتار تأییدشده شماره 39.
+// 30.40 | Maintenance | مرجع تنظیمات Premium و رفتار تأییدشده شماره 40.
+// 30.41 | Maintenance | مرجع تنظیمات Premium و رفتار تأییدشده شماره 41.
+// 30.42 | Maintenance | مرجع تنظیمات Premium و رفتار تأییدشده شماره 42.
+// 30.43 | Maintenance | مرجع تنظیمات Premium و رفتار تأییدشده شماره 43.
+// 30.44 | Maintenance | مرجع تنظیمات Premium و رفتار تأییدشده شماره 44.
+// 30.45 | Maintenance | مرجع تنظیمات Premium و رفتار تأییدشده شماره 45.
+// 30.46 | Maintenance | مرجع تنظیمات Premium و رفتار تأییدشده شماره 46.
+// 30.47 | Maintenance | مرجع تنظیمات Premium و رفتار تأییدشده شماره 47.
+// 30.48 | Maintenance | مرجع تنظیمات Premium و رفتار تأییدشده شماره 48.
+// ============================================================================
+// پایان پیوست مرجع؛ خطوط بالا کامنت هستند و بخشی از منطق اجرایی نیستند.
+// ============================================================================
