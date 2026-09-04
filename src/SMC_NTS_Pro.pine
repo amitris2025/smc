@@ -38,6 +38,8 @@ minimalDisplay   = input.bool(true, "نمایش مینیمال", group=gDisp,
      tooltip="عناصر کمکی و تزئینی را پنهان می‌کند؛ فیلترهای محاسباتی همچنان فعال می‌مانند.")
 autoChartSetup   = input.bool(true, "تنظیم خودکار چارت", group=gDisp,
      tooltip="تنظیمات داخلی اندیکاتور را با حالت معاملاتی هماهنگ می‌کند؛ تغییر تایم‌فریم چارت بر عهده کاربر است.")
+autoTuneThisChart = input.bool(true, "تنظیم خودکار بر اساس نماد و تایم‌فریم", group=gAuto,
+     tooltip="Period، Factor و حداقل ATR را بر اساس نماد، حالت معاملاتی و تایم‌فریم پایه تنظیم می‌کند.")
 showAutoTunePanel = input.bool(true, "نمایش پنل تنظیمات خودکار", group=gDisp)
 
 showNtsTrail      = input.bool(true, "نمایش NTS Trail", group=gDisp)
