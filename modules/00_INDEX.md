@@ -13,7 +13,7 @@
 | ۶ | `06_confluence_scoring.pine` | امتیازدهی با کراس‌های پیش‌محاسبه‌شده | `ntsBuy/SellConfluencePts` |
 | ۷الف | `07a_zone_volume_filters.pine` | PD بر اساس رنج روز قبل + حجم | `inDailyDiscount`, `inDailyPremium` |
 | ۷ب | `07b_final_signals.pine` | Final با threshold و bar close | `finalBuySignal`, `finalSellSignal` |
-| ۸ | `08_display_alerts.pine` | پنل و هشدار همهٔ گروه‌های Fib | `alertcondition`های Extension |
+| ۸ | `08_display_alerts.pine` | پنل و هشدار همهٔ گروه‌های Fib (جفت‌های Buy/Sell ادغام‌شده برای سقف ۶۴ plot) | `alertcondition`های Extension |
 | ۹الف | `09a_symbol_detection.pine` | تشخیص Gold/Silver/Crypto/Forex | `autoSymbolType`, `xauMinAtrPctEff` |
 | ۹ب | `09b_apply_autotune.pine` | ترکیب Auto-Tune با mode/TF/regime | `ntsPeriodFinal`, `ntsFactorFinal` |
 | ۱۰ | `10_price_action_trendlines.pine` | خط روند بر پایهٔ پیوت‌های معتبر | `tlDnLine`, `tlUpLine` |
@@ -49,7 +49,11 @@ input.*
 7. **PD:** `pdHigh/pdLow` از `[high[1], low[1]]` تایم‌فریم D می‌آید و ناحیهٔ
    عملیاتی لبهٔ قابل تنظیم (پیش‌فرض ۵٪) است؛ EQ به‌تنهایی Discount/Premium نیست.
 8. **هشدار:** همهٔ Extensionها هشدار گروهی مستقل دارند و هشدارها مستقیماً به
-   شروطی متصل‌اند که قبلاً `barstate.isconfirmed` گرفته‌اند.
+   شروطی متصل‌اند که قبلاً `barstate.isconfirmed` گرفته‌اند. جفت‌های Buy/Sell هر
+   گروه عمداً در یک `alertcondition` جهت‌دار ادغام شده‌اند، چون هر
+   `alertcondition` یک plot count مصرف می‌کند و سقف ۶۴ تایی خطای RE10140 می‌دهد.
+   قبل از افزودن خروجی جدید، `python3 tools/check_plot_budget.py src/SMC_NTS_Pro.pine`
+   اجرا شود (فعلاً ۴۹/۶۴).
 
 ## بررسی محلی
 

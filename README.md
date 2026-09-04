@@ -29,8 +29,12 @@ Discount، Hull، سیگنال‌های Confluence و خط روند Price Action
   قابل‌تنظیم Premium/Discount هستند.
 - **سشن هدف طلا:** فیلتر پیش‌فرض `04:30–08:30` و Golden Hour پیش‌فرض
   `06:30–08:30` به وقت `Asia/Tehran` با `input.session` است.
-- **هشدار کامل:** برای Fib داخلی و تمام گروه‌های Extension از 0.300 تا 10.618
-  هشدار مستقل وجود دارد؛ همهٔ شروط نهایی فقط روی کندل تأییدشده فعال می‌شوند.
+- **هشدار کامل با بودجهٔ plot:** برای Fib داخلی و تمام گروه‌های Extension از
+  0.300 تا 10.618 هشدار وجود دارد؛ اما جفت‌های Buy/Sell هر گروه در یک
+  `alertcondition` جهت‌دار ادغام شده‌اند، چون هر `alertcondition` یک plot count
+  مصرف می‌کند و سقف ۶۴ تایی TradingView خطای **RE10140** («too many plots») می‌دهد.
+  منطق سیگنال‌ها و لیبل‌های روی چارت تغییر نکرده است؛ همهٔ شروط نهایی فقط روی کندل
+  تأییدشده فعال می‌شوند.
 
 ## ساختار
 
@@ -38,7 +42,8 @@ Discount، Hull، سیگنال‌های Confluence و خط روند Price Action
 modules/  قطعات مستقل هر بهبود؛ ترتیب و وابستگی‌ها در 00_INDEX.md
 src/      SMC_NTS_Pro.pine — اسکریپت کامل و یکپارچه
 docs/     مستندات طراحی و اصلاحات
-tools/    check_pine.py — بررسی سبک نحو و کاراکترهای نامرئی
+tools/    check_pine.py        — بررسی سبک نحو و کاراکترهای نامرئی
+          check_plot_budget.py — شمارش weighted plot count (سقف ۶۴، RE10140)
 ```
 
 ## شروع سریع
@@ -46,7 +51,14 @@ tools/    check_pine.py — بررسی سبک نحو و کاراکترهای ن�
 ```bash
 python3 tools/check_pine.py modules/
 python3 tools/check_pine.py src/
+python3 tools/check_plot_budget.py src/SMC_NTS_Pro.pine
 ```
+
+**بودجهٔ plot (RE10140):** TradingView حداکثر ۶۴ plot count برای هر اسکریپت مجاز
+می‌کند. `plot`/`plotshape`/`alertcondition`/`bgcolor`/`barcolor` واحد مصرف می‌کنند
+(رنگ series یک واحد اضافه می‌گیرد)؛ `fill` فقط با رنگ series واحد می‌گیرد و
+`hline`/`line.new`/`label.new`/`box.new`/`table.new` رایگان‌اند. شمارندهٔ وزنی بالا
+قبل از Add to chart مشخص می‌کند آیا اسکریپت از سقف عبور کرده است.
 
 کامپایلر رسمی TradingView در این محیط نصب نیست؛ بررسی نهایی را با Add to chart
 در Pine Editor انجام دهید. این ابزار فقط توازن براکت‌ها، کاراکترهای نامرئی،

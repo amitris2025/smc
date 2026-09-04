@@ -1322,50 +1322,38 @@ plot(inDailyDiscount and not inDailyPremium ? 1 : inDailyPremium and not inDaily
 plot(ntsBuyConfluencePts, title="BuyPts", display=display.data_window)
 plot(ntsSellConfluencePts, title="SellPts", display=display.data_window)
 
-// هشدارهای Hull، Smart Divergence و سپس Fib داخلی/Extension — هر گروه نام مستقل دارد.
-alertcondition(barstate.isconfirmed and hullCrossUp, title="Hull Up", message="Hull trending up on {{ticker}}")
-alertcondition(barstate.isconfirmed and hullCrossDown, title="Hull Down", message="Hull trending down on {{ticker}}")
-alertcondition(smartDivBullConfirmed, title="Smart Confirmed Bullish Reversal",
-     message="Confirmed bullish divergence + BOS on {{ticker}} | Price: {{close}}")
-alertcondition(smartDivBearConfirmed, title="Smart Confirmed Bearish Reversal",
-     message="Confirmed bearish divergence + BOS on {{ticker}} | Price: {{close}}")
-alertcondition(barstate.isconfirmed and smartDivEnabled and smartDivBullCandidate and smartDivBullCandidateScore >= smartDivEffectiveMinScore,
-     title="Bullish Divergence Candidate", message="Bullish divergence candidate on {{ticker}} | Awaiting BOS")
-alertcondition(barstate.isconfirmed and smartDivEnabled and smartDivBearCandidate and smartDivBearCandidateScore >= smartDivEffectiveMinScore,
-     title="Bearish Divergence Candidate", message="Bearish divergence candidate on {{ticker}} | Awaiting BOS")
-alertcondition(finalNtsFib1Buy or finalNtsFib2Buy or finalNtsFib3Buy,
-     title="NTS Fib 1-3 Buy", message="NTS Fib 1-3 BUY on {{ticker}} | Price: {{close}}")
-alertcondition(finalNtsFib1Sell or finalNtsFib2Sell or finalNtsFib3Sell,
-     title="NTS Fib 1-3 Sell", message="NTS Fib 1-3 SELL on {{ticker}} | Price: {{close}}")
-alertcondition(finalNtsBuy0300 or finalNtsBuy1470 or finalNtsBuy2100,
-     title="NTS Extension Continuation Buy 0.300/1.470/2.100",
-     message="NTS continuation BUY 0.300/1.470/2.100 on {{ticker}} | Price: {{close}}")
-alertcondition(finalNtsSell0300 or finalNtsSell1470 or finalNtsSell2100,
-     title="NTS Extension Continuation Sell 0.300/1.470/2.100",
-     message="NTS continuation SELL 0.300/1.470/2.100 on {{ticker}} | Price: {{close}}")
-alertcondition(finalNtsBuy2618_3000, title="NTS Extension Reversal Buy 2.618/3.000",
-     message="NTS reversal BUY 2.618/3.000 on {{ticker}} | Price: {{close}}")
-alertcondition(finalNtsSell2618_3000, title="NTS Extension Reversal Sell 2.618/3.000",
-     message="NTS reversal SELL 2.618/3.000 on {{ticker}} | Price: {{close}}")
-alertcondition(finalNtsBuy4414_4764, title="NTS Extension Reversal Buy 4.414/4.764",
-     message="NTS reversal BUY 4.414/4.764 on {{ticker}} | Price: {{close}}")
-alertcondition(finalNtsSell4414_4764, title="NTS Extension Reversal Sell 4.414/4.764",
-     message="NTS reversal SELL 4.414/4.764 on {{ticker}} | Price: {{close}}")
-alertcondition(finalNtsBuy6618_8618, title="NTS Extension Reversal Buy 6.618/8.618",
-     message="NTS reversal BUY 6.618/8.618 on {{ticker}} | Price: {{close}}")
-alertcondition(finalNtsSell6618_8618, title="NTS Extension Reversal Sell 6.618/8.618",
-     message="NTS reversal SELL 6.618/8.618 on {{ticker}} | Price: {{close}}")
-alertcondition(finalNtsBuy10618, title="NTS Extension Reversal Buy 10.618",
-     message="NTS reversal BUY 10.618 on {{ticker}} | Price: {{close}}")
-alertcondition(finalNtsSell10618, title="NTS Extension Reversal Sell 10.618",
-     message="NTS reversal SELL 10.618 on {{ticker}} | Price: {{close}}")
-alertcondition(finalBuySignal,
-     title="Final Confirmed BUY (Trend Confluence + Discount)",
-     message="Final BUY on {{ticker}} at {{close}} | Zone: {{plot(\"DailyZone\")}} | Pts: {{plot(\"BuyPts\")}}")
-alertcondition(finalSellSignal,
-     title="Final Confirmed SELL (Trend Confluence + Premium)",
-     message="Final SELL on {{ticker}} at {{close}} | Zone: {{plot(\"DailyZone\")}} | Pts: {{plot(\"SellPts\")}}")
-alertcondition(ntsKafSignal,
-     title="NTS KAF / Final BUY", message="NTS KAF on {{ticker}} at {{close}}")
-alertcondition(ntsSaghfSignal,
-     title="NTS SAGHF / Final SELL", message="NTS SAGHF on {{ticker}} at {{close}}")
+// هشدارهای Hull، Smart Divergence و سپس Fib داخلی/Extension.
+// توجه: هر alertcondition یک plot count مصرف می‌کند (سقف ۶۴ تایی، خطای RE10140).
+// جفت‌های Buy/Sell هر گروه در یک هشدار جهت‌دار ادغام شده‌اند تا بودجهٔ plot آزاد بماند؛
+// منطق سیگنال‌ها و لیبل‌های روی چارت بدون تغییر است.
+alertcondition(barstate.isconfirmed and (hullCrossUp or hullCrossDown), title="Hull Cross",
+     message="Hull trend cross on {{ticker}} | Price: {{close}}")
+alertcondition(smartDivBullConfirmed or smartDivBearConfirmed, title="Smart Divergence Confirmed",
+     message="Confirmed divergence + BOS on {{ticker}} | Price: {{close}}")
+alertcondition(barstate.isconfirmed and smartDivEnabled and
+     (smartDivBullCandidate and smartDivBullCandidateScore >= smartDivEffectiveMinScore or
+      smartDivBearCandidate and smartDivBearCandidateScore >= smartDivEffectiveMinScore),
+     title="Smart Divergence Candidate", message="Divergence candidate on {{ticker}} | Awaiting BOS")
+alertcondition(finalNtsFib1Buy or finalNtsFib2Buy or finalNtsFib3Buy or finalNtsFib1Sell or finalNtsFib2Sell or finalNtsFib3Sell,
+     title="NTS Fib 1-3 Touch", message="NTS Fib 61.8/78.6/88.6 touch on {{ticker}} | Price: {{close}}")
+alertcondition(finalNtsBuy0300 or finalNtsSell0300 or finalNtsBuy1470 or finalNtsSell1470 or
+     finalNtsBuy2100 or finalNtsSell2100,
+     title="NTS Extension Continuation 0.300/1.470/2.100",
+     message="NTS continuation 0.300/1.470/2.100 on {{ticker}} | Price: {{close}}")
+alertcondition(finalNtsBuy2618_3000 or finalNtsSell2618_3000,
+     title="NTS Extension Reversal 2.618/3.000",
+     message="NTS reversal 2.618/3.000 on {{ticker}} | Price: {{close}}")
+alertcondition(finalNtsBuy4414_4764 or finalNtsSell4414_4764,
+     title="NTS Extension Reversal 4.414/4.764",
+     message="NTS reversal 4.414/4.764 on {{ticker}} | Price: {{close}}")
+alertcondition(finalNtsBuy6618_8618 or finalNtsSell6618_8618,
+     title="NTS Extension Reversal 6.618/8.618",
+     message="NTS reversal 6.618/8.618 on {{ticker}} | Price: {{close}}")
+alertcondition(finalNtsBuy10618 or finalNtsSell10618,
+     title="NTS Extension Reversal 10.618",
+     message="NTS reversal 10.618 on {{ticker}} | Price: {{close}}")
+alertcondition(finalBuySignal or finalSellSignal,
+     title="Final Confirmed Signal (Trend Confluence)",
+     message="Final signal on {{ticker}} at {{close}} | Zone: {{plot(\"DailyZone\")}} | Pts: {{plot(\"BuyPts\")}}/{{plot(\"SellPts\")}}")
+alertcondition(ntsKafSignal or ntsSaghfSignal,
+     title="NTS KAF / SAGHF", message="NTS KAF/SAGHF on {{ticker}} at {{close}}")
