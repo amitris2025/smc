@@ -259,8 +259,10 @@ ntsPeriod := math.max(4, math.min(40, ntsPeriod))
 // Auto-Tune اکنون با حالت تریدینگ، TF پایه و رژیم ترکیب می‌شود.
 regimePeriodFactor = chopRegime ? 1.20 : trendRegime ? 0.85 : 1.0
 regimeFactorFactor = chopRegime ? 1.10 : trendRegime ? 0.95 : 1.0
-autoPeriodCombined = autoPeriod * math.max(0.50, math.min(2.0, basePeriod / 10.0)) * regimePeriodFactor
-autoFactorCombined = autoFactor * math.max(0.60, math.min(1.80, baseFactor / 3.5)) * regimeFactorFactor
+// Auto-Tune نماد را با ترکیب حالت + TF پایه ادغام می‌کند؛ برای XAU در
+// حالت روزانه/M15 هر دو ورودی 10 و 3.5 هستند، پس مقدار پیش‌فرض همان حدود 10/3.5 می‌ماند.
+autoPeriodCombined = (autoPeriod * 0.30 + ntsPeriod * 0.70) * regimePeriodFactor
+autoFactorCombined = (autoFactor * 0.30 + ntsFactor * 0.70) * regimeFactorFactor
 ntsPeriodFinal = autoTuneThisChart ? int(math.round(autoPeriodCombined)) : ntsPeriod
 ntsPeriodFinal := math.max(4, math.min(40, ntsPeriodFinal))
 ntsFactorFinal = autoTuneThisChart ? autoFactorCombined : ntsFactor
@@ -512,9 +514,12 @@ if barstate.islast and (not updateOnClose or barstate.isconfirmed)
                 zoneRight = dailyZonesExtend ? time : zoneTime + 24 * 60 * 60 * 1000
                 premiumBox = box.new(zoneTime, zoneHigh, zoneRight, premiumBottom, xloc=xloc.bar_time,
                      bgcolor=color.new(color.red, 88), border_color=color.new(color.red, 70))
+                equilibriumBox = box.new(zoneTime, premiumBottom, zoneRight, discountTop, xloc=xloc.bar_time,
+                     bgcolor=color.new(color.gray, 96), border_color=color.new(color.gray, 92))
                 discountBox = box.new(zoneTime, discountTop, zoneRight, zoneLow, xloc=xloc.bar_time,
                      bgcolor=color.new(color.green, 88), border_color=color.new(color.green, 70))
                 array.push(dailyZoneBoxes, premiumBox)
+                array.push(dailyZoneBoxes, equilibriumBox)
                 array.push(dailyZoneBoxes, discountBox)
                 if dailyZonesShowLabels
                     premiumLabel = label.new(zoneTime, premiumBottom, "Premium", xloc=xloc.bar_time,
@@ -588,6 +593,7 @@ goldenFastEma = ta.ema(close, 21)
 goldenSlowEma = ta.ema(close, 55)
 goldenAtr = ta.atr(14)
 goldenPsar = ta.sar(0.02, 0.02, 0.2)
+[goldenSupertrend, goldenSupertrendDirection] = ta.supertrend(goldenSensitivity, 10)
 goldenBody = math.abs(close - open)
 goldenBreakBuffer = goldenAtr * (0.10 + goldenSensitivity * 0.025)
 goldenBreakUp = not na(high[1]) and close > ta.highest(high, 20)[1] and close - open >= goldenBreakBuffer
@@ -596,8 +602,8 @@ goldenCrossUp = ta.crossover(goldenFastEma, goldenSlowEma)
 goldenCrossDown = ta.crossunder(goldenFastEma, goldenSlowEma)
 goldenGapUp = not na(high[1]) and low > high[1]
 goldenGapDown = not na(low[1]) and high < low[1]
-goldenBullBias = close > goldenFastEma and goldenFastEma > goldenSlowEma and close > goldenPsar
-goldenBearBias = close < goldenFastEma and goldenFastEma < goldenSlowEma and close < goldenPsar
+goldenBullBias = close > goldenFastEma and goldenFastEma > goldenSlowEma and close > goldenPsar and goldenSupertrendDirection < 0
+goldenBearBias = close < goldenFastEma and goldenFastEma < goldenSlowEma and close < goldenPsar and goldenSupertrendDirection > 0
 goldenBuyTrigger = goldenCrossUp or goldenBreakUp or (goldenUseGaps and goldenGapUp)
 goldenSellTrigger = goldenCrossDown or goldenBreakDown or (goldenUseGaps and goldenGapDown)
 goldenBuySignal = barstate.isconfirmed and goldenEnabled and goldenBullBias and
@@ -882,8 +888,12 @@ extensionSellLocationOk = inRevSellZone or revSellRecent
 extensionBuyLocationOk = inRevBuyZone or revBuyRecent
 extensionSellMomentumOk = ntsRsiNow >= 60 or bearishChochStrong
 extensionBuyMomentumOk = ntsRsiNow <= 40 or bullishChochStrong
-extensionSellOk = not useReversalCloudFilter or (extensionSellLocationOk and extensionSellMomentumOk and revSellNear)
-extensionBuyOk = not useReversalCloudFilter or (extensionBuyLocationOk and extensionBuyMomentumOk and revBuyNear)
+// Extensionهای عمیق در preset فقط با واگرایی قویِ تأییدشده اجازهٔ ورود دارند.
+// اگر موتور واگرایی عمداً خاموش شود، این فیلتر نیز برای سازگاری غیرفعال می‌شود.
+extensionSellDivergenceOk = not smartDivEnabled or smartDivBearConfirmed
+extensionBuyDivergenceOk = not smartDivEnabled or smartDivBullConfirmed
+extensionSellOk = (not useReversalCloudFilter or (extensionSellLocationOk and extensionSellMomentumOk and revSellNear)) and extensionSellDivergenceOk
+extensionBuyOk = (not useReversalCloudFilter or (extensionBuyLocationOk and extensionBuyMomentumOk and revBuyNear)) and extensionBuyDivergenceOk
 extensionDistanceOk(level) =>
     not na(level) and (na(atrSeed) or math.abs(level - close) <= atrSeed * ntsMaxExtensionAtr)
 extensionContinuationAllowed = useCurrentExtensionWave and extensionTrendAligned and waveMature and waveAlive
@@ -1365,6 +1375,8 @@ if doRedraw and showTrendlines
 // شکست با کلوز تأیید می‌شود و به‌صورت سیگنال مستقل از خطوط تاریخی در دسترس است.
 bool trendlineBullBreak = false
 bool trendlineBearBreak = false
+bool trendlineBullTouch = false
+bool trendlineBearTouch = false
 if not na(tlDnLine) or not na(tlUpLine)
     downNow = not na(tlDnLine) ? line.get_price(tlDnLine, bar_index) : na
     downPrev = not na(tlDnLine) ? line.get_price(tlDnLine, bar_index - 1) : na
@@ -1374,12 +1386,15 @@ if not na(tlDnLine) or not na(tlUpLine)
     bullAboveUp = not na(upNow) and not na(upPrev) and close > upNow + tlTouchTolAtr * atrSeed and close[1] <= upPrev + tlTouchTolAtr * atrSeed
     bearBelowUp = not na(upNow) and not na(upPrev) and close < upNow - tlTouchTolAtr * atrSeed and close[1] >= upPrev - tlTouchTolAtr * atrSeed
     bearBelowDown = not na(downNow) and not na(downPrev) and close < downNow - tlTouchTolAtr * atrSeed and close[1] >= downPrev - tlTouchTolAtr * atrSeed
+    trendlineBullTouch := not na(upNow) and low <= upNow + tlTouchTolAtr * atrSeed and close >= upNow - tlTouchTolAtr * atrSeed
+    trendlineBearTouch := not na(downNow) and high >= downNow - tlTouchTolAtr * atrSeed and close <= downNow + tlTouchTolAtr * atrSeed
     trendlineBullBreak := (bullAboveDown or bullAboveUp) and barstate.isconfirmed
     trendlineBearBreak := (bearBelowUp or bearBelowDown) and barstate.isconfirmed
 trendlineBuyZone = not na(pdRange) and pdRange > 0 and close <= pdLow + pdRange * tlDiscountEndPct / 100.0
 trendlineSellZone = not na(pdRange) and pdRange > 0 and close >= pdLow + pdRange * tlPremiumStartPct / 100.0
-trendlineBuyConfluence = barstate.isconfirmed and showTrendConfluence and trendlineBullBreak and trendlineBuyZone
-trendlineSellConfluence = barstate.isconfirmed and showTrendConfluence and trendlineBearBreak and trendlineSellZone
+// خرید از لمس خط حمایت صعودی/شکست صعودی در Discount و فروش از لمس خط مقاومت نزولی/شکست نزولی در Premium.
+trendlineBuyConfluence = barstate.isconfirmed and showTrendConfluence and (trendlineBullBreak or trendlineBullTouch) and trendlineBuyZone
+trendlineSellConfluence = barstate.isconfirmed and showTrendConfluence and (trendlineBearBreak or trendlineBearTouch) and trendlineSellZone
 
 // ============================================================================
 //  ▍نمایش، پنل و هشدارها
